@@ -2,6 +2,8 @@
 
 Educational decision-support and trade journaling SaaS built from the V4 Power Engine HTML template.
 
+Repository: [aj-academy/Investing-League](https://github.com/aj-academy/Investing-League)
+
 ## Stack
 
 - Next.js App Router + TypeScript
