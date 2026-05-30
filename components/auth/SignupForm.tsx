@@ -22,26 +22,59 @@ export function SignupForm() {
     }
     setLoading(true);
     const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const redirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/login`
+        : undefined;
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectTo,
+        data: {
+          full_name: name,
+          risk_disclaimer_accepted: true,
+        },
+      },
+    });
+
     if (error) {
       setLoading(false);
       toast.error(error.message);
       return;
     }
-    if (data.user) {
-      await supabase.from("profiles").upsert({
-        id: data.user.id,
-        email,
-        full_name: name,
-        risk_disclaimer_accepted: true,
-        disclaimer_accepted_at: new Date().toISOString(),
-      });
-      await supabase.from("user_settings").upsert({ user_id: data.user.id });
+
+    if (data.user?.identities?.length === 0) {
+      setLoading(false);
+      toast.error(
+        "This email is already registered. Sign in or use Forgot password on the Login tab."
+      );
+      return;
     }
+
+    if (data.session && data.user) {
+      await supabase
+        .from("profiles")
+        .update({
+          full_name: name,
+          risk_disclaimer_accepted: true,
+          disclaimer_accepted_at: new Date().toISOString(),
+        })
+        .eq("id", data.user.id);
+
+      setLoading(false);
+      toast.success("Account created. Welcome!");
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
     setLoading(false);
-    toast.success("Account created. You can sign in now.");
-    router.push("/dashboard");
-    router.refresh();
+    toast.success(
+      "Account created. Check your inbox and confirm your email, then sign in.",
+      { duration: 8000 }
+    );
   };
 
   return (

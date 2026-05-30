@@ -161,8 +161,18 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name)
-  values (new.id, new.email, coalesce(new.raw_user_meta_data->>'full_name', ''))
+  insert into public.profiles (id, email, full_name, risk_disclaimer_accepted, disclaimer_accepted_at)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', ''),
+    coalesce((new.raw_user_meta_data->>'risk_disclaimer_accepted')::boolean, false),
+    case
+      when coalesce((new.raw_user_meta_data->>'risk_disclaimer_accepted')::boolean, false)
+      then now()
+      else null
+    end
+  )
   on conflict (id) do nothing;
   insert into public.user_settings (user_id)
   values (new.id)
