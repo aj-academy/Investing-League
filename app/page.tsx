@@ -1,65 +1,76 @@
-import Image from "next/image";
+import Link from "next/link";
+import { DISCLAIMER } from "@/lib/utils";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="z">
+      <section className="landing-hero">
+        <h1>THE INVESTING LEAGUE</h1>
+        <p style={{ fontFamily: "var(--mono)", color: "var(--gold2)", letterSpacing: 2, marginBottom: 8 }}>
+          DECISION LAB
+        </p>
+        <p>
+          The Investing League Decision Lab is an educational decision-support and trade journaling
+          platform for market setup scanning, signal testing, discipline tracking, and performance
+          analytics.
+        </p>
+        <div className="landing-cta">
+          <Link href="/login" className="landing-btn primary">
+            Start Decision Lab
+          </Link>
+          <Link href="/login" className="landing-btn secondary">
+            Open Scanner
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      <section className="landing-section">
+        <h2 style={{ color: "var(--txt2)", marginBottom: 16, fontFamily: "var(--mono)", letterSpacing: 2 }}>
+          PLATFORM FEATURES
+        </h2>
+        <div className="landing-grid">
+          {[
+            {
+              title: "Educational Scanner",
+              text: "Multi-factor market setup scanning with EMA/WMA bias, ADX filter, candle strength, and V4 classification.",
+            },
+            {
+              title: "Practice vs Live Mode",
+              text: "Practice Mode collects observation data. Live Mode selects the best trade-eligible signal per scan window.",
+            },
+            {
+              title: "Journal Analytics",
+              text: "Track trade discipline, entry drift, observation accuracy, and performance review with CSV/JSON export.",
+            },
+            {
+              title: "Risk-Aware Analysis",
+              text: "Signal testing without profit claims. Refund logic, invalid entry tracking, and real trade win rate rules built in.",
+            },
+          ].map((f) => (
+            <div key={f.title} className="landing-card">
+              <h3>{f.title}</h3>
+              <p>{f.text}</p>
+            </div>
+          ))}
         </div>
-      </main>
+      </section>
+
+      <section className="landing-section" style={{ textAlign: "center" }}>
+        <h2 style={{ color: "var(--gold2)", marginBottom: 12 }}>Track Your Trading Discipline</h2>
+        <p style={{ color: "var(--m3)", maxWidth: 640, margin: "0 auto 20px", lineHeight: 1.8 }}>
+          Record Olymp opening and closing quotes, auto-calculate Win/Loss/Refund, and review
+          performance by pair, timeframe, grade, and signal type.
+        </p>
+        <Link href="/login" className="landing-btn primary">
+          Start Decision Lab
+        </Link>
+      </section>
+
+      <section className="landing-section">
+        <div className="disclaimer-banner" style={{ maxWidth: 800, margin: "0 auto" }}>
+          {DISCLAIMER}
+        </div>
+      </section>
     </div>
   );
 }
