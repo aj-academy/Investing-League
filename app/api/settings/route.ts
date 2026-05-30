@@ -80,5 +80,14 @@ export async function PATCH(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true });
+  const { data: savedProfile } = await admin
+    .from("profiles")
+    .select("risk_disclaimer_accepted")
+    .eq("id", userId)
+    .single();
+
+  return NextResponse.json({
+    ok: true,
+    riskDisclaimerAccepted: Boolean(savedProfile?.risk_disclaimer_accepted),
+  });
 }

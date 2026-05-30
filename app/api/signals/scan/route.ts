@@ -1,4 +1,5 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
+import { hasAcceptedRiskDisclaimer } from "@/lib/auth/profile";
 import { computeSignal, filterSignals } from "@/lib/signal-engine";
 import type { JournalHistoryRow } from "@/lib/signal-engine/types";
 import { getMarketCandles } from "@/lib/market/cachedCandles";
@@ -29,19 +30,18 @@ export async function POST(request: Request) {
       }
     }
 
-    const supabase = await createClient();
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("risk_disclaimer_accepted")
-      .eq("id", auth!.user.id)
-      .single();
-
-    if (!profile?.risk_disclaimer_accepted) {
+    const disclaimerOk = await hasAcceptedRiskDisclaimer(auth!.user.id);
+    if (!disclaimerOk) {
       return NextResponse.json(
-        { error: "Please accept the risk disclaimer in settings before scanning." },
+        {
+          error:
+            "Risk disclaimer not saved yet. Open Settings, check the disclaimer box, click Save Settings, then scan again.",
+        },
         { status: 403 }
       );
     }
+
+    const supabase = await createClient();
 
     const { data: journalRows } = await supabase
       .from("trade_journal")

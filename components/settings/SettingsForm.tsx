@@ -48,7 +48,11 @@ export function SettingsForm({
         toast.error(json.error || "Could not save settings");
         return;
       }
-      toast.success("Settings saved");
+      if (!json.riskDisclaimerAccepted) {
+        toast.error("Disclaimer was not saved. Check the box and try again.");
+        return;
+      }
+      toast.success("Settings saved — you can run Scan Market now.");
       router.refresh();
     } catch {
       toast.error("Could not save settings");
