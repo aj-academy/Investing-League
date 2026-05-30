@@ -28,11 +28,7 @@ export function Topbar({ usageCount = 0 }: { usageCount?: number }) {
   }, []);
 
   useEffect(() => {
-    fetch("/api/market/candles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pair: "EUR/USD", interval: "5min", outputsize: 5 }),
-    })
+    fetch("/api/market/ticker")
       .then((r) => setLive(r.ok))
       .catch(() => setLive(false));
   }, []);

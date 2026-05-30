@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     <ProtectedShell isAdmin={auth.isAdmin}>
       <DashboardClient
         initialSettings={initialSettings}
-        connected={!!process.env.TWELVE_DATA_API_KEY}
+        configured={!!process.env.TWELVE_DATA_API_KEY}
         usageCount={count || 0}
       />
     </ProtectedShell>

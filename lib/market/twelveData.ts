@@ -9,11 +9,17 @@ export async function fetchTwelveDataCandles(
   if (!apiKey) throw new Error("Market data provider is not configured");
 
   const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=${interval}&outputsize=${outputsize}&apikey=${apiKey}&format=JSON`;
-  const res = await fetch(url, { next: { revalidate: 0 } });
+  const res = await fetch(url, { cache: "no-store" });
   const json = await res.json();
 
   if (json.status === "error") {
-    throw new Error(json.message || "Market data error");
+    const msg = String(json.message || "Market data error");
+    if (json.code === 429 || /run out of api credits/i.test(msg)) {
+      throw new Error(
+        "Twelve Data daily API limit reached. Wait until tomorrow or upgrade your plan at twelvedata.com/pricing."
+      );
+    }
+    throw new Error(msg);
   }
   if (!json.values?.length) {
     throw new Error("No candle data returned");

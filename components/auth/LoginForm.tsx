@@ -52,7 +52,7 @@ export function LoginForm() {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/login`,
       });
       if (error) {
         toast.error(error.message);

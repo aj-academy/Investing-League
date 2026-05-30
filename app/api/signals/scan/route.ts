@@ -1,19 +1,13 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { computeSignal, filterSignals } from "@/lib/signal-engine";
 import type { JournalHistoryRow } from "@/lib/signal-engine/types";
-import { getCachedCandles, setCachedCandles } from "@/lib/market/candleCache";
-import { fetchTwelveDataCandles } from "@/lib/market/twelveData";
+import { getMarketCandles } from "@/lib/market/cachedCandles";
 import { createClient } from "@/lib/supabase/server";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 async function getCandles(pair: string, interval: string) {
-  let candles = getCachedCandles(pair, interval, 150);
-  if (!candles) {
-    candles = await fetchTwelveDataCandles(pair, interval, 150);
-    setCachedCandles(pair, interval, 150, candles);
-  }
-  return candles;
+  return getMarketCandles(pair, interval, 150);
 }
 
 export async function POST(request: Request) {

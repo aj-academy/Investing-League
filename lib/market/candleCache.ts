@@ -1,7 +1,8 @@
 import type { OHLC } from "@/lib/signal-engine/types";
 
 const memoryCache = new Map<string, { data: OHLC[]; ts: number }>();
-const TTL_MS = 50_000;
+/** In-memory TTL — keep high to avoid burning Twelve Data credits on Vercel. */
+const TTL_MS = 5 * 60 * 1000;
 
 export function getCachedCandles(pair: string, interval: string, outputsize: number) {
   const key = `${pair}_${interval}_${outputsize}`;

@@ -1,49 +1,60 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
 import { DISCLAIMER } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export function SettingsForm({
   profile,
   settings,
+  email,
 }: {
   profile: Record<string, unknown> | null;
   settings: Record<string, unknown> | null;
+  email: string;
 }) {
+  const router = useRouter();
   const [fullName, setFullName] = useState(String(profile?.full_name || ""));
   const [mode, setMode] = useState(String(settings?.default_mode || "practice"));
   const [tf, setTf] = useState(String(settings?.default_timeframe || "5min"));
   const [minScore, setMinScore] = useState(Number(settings?.default_min_score || 5));
   const [showB, setShowB] = useState(Boolean(settings?.show_b_signals ?? true));
   const [accepted, setAccepted] = useState(Boolean(profile?.risk_disclaimer_accepted));
+  const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!accepted) {
+      toast.error("Please check the risk disclaimer box before saving.");
+      return;
+    }
 
-    await supabase
-      .from("profiles")
-      .update({
-        full_name: fullName,
-        risk_disclaimer_accepted: accepted,
-        disclaimer_accepted_at: accepted ? new Date().toISOString() : null,
-      })
-      .eq("id", user.id);
-
-    await supabase.from("user_settings").upsert({
-      user_id: user.id,
-      default_mode: mode,
-      default_timeframe: tf,
-      default_min_score: minScore,
-      show_b_signals: showB,
-    });
-
-    toast.success("Settings saved");
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName,
+          riskDisclaimerAccepted: accepted,
+          defaultMode: mode,
+          defaultTimeframe: tf,
+          defaultMinScore: minScore,
+          showBSignals: showB,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || "Could not save settings");
+        return;
+      }
+      toast.success("Settings saved");
+      router.refresh();
+    } catch {
+      toast.error("Could not save settings");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -60,7 +71,7 @@ export function SettingsForm({
       </div>
       <div className="f" style={{ marginBottom: 12 }}>
         <label>Email</label>
-        <input className="key-in" style={{ width: "100%" }} value={String(profile?.email || "")} disabled />
+        <input className="key-in" style={{ width: "100%" }} value={email} disabled />
       </div>
       <div className="ctrl-title" style={{ marginTop: 20 }}>
         SCANNER DEFAULTS
@@ -109,8 +120,8 @@ export function SettingsForm({
       <p style={{ fontSize: 11, color: "var(--m3)", marginBottom: 12 }}>
         Plan: {String(profile?.plan || "free")} (placeholder for commercial billing)
       </p>
-      <button type="button" className="btn-scan" onClick={save}>
-        Save Settings
+      <button type="button" className="btn-scan" onClick={save} disabled={saving}>
+        {saving ? "Saving..." : "Save Settings"}
       </button>
     </div>
   );

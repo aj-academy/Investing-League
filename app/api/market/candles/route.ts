@@ -1,6 +1,5 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { getCachedCandles, setCachedCandles } from "@/lib/market/candleCache";
-import { fetchTwelveDataCandles } from "@/lib/market/twelveData";
+import { getMarketCandles } from "@/lib/market/cachedCandles";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
@@ -24,15 +23,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid output size" }, { status: 400 });
     }
 
-    let candles = getCachedCandles(pair, interval, outputsize);
-    if (!candles) {
-      candles = await fetchTwelveDataCandles(pair, interval, outputsize);
-      setCachedCandles(pair, interval, outputsize, candles);
-    }
-
+    const candles = await getMarketCandles(pair, interval, outputsize);
     return NextResponse.json({ candles });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Market data unavailable";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = /api limit|api credits/i.test(message) ? 429 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

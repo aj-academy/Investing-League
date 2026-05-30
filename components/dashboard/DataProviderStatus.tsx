@@ -1,6 +1,20 @@
 "use client";
 
-export function DataProviderStatus({ connected }: { connected: boolean }) {
+export function DataProviderStatus({
+  configured,
+  live,
+  hint,
+}: {
+  configured: boolean;
+  live?: boolean;
+  hint?: string | null;
+}) {
+  const statusLabel = !configured
+    ? "○ API key not set on server"
+    : live
+      ? "● Connected"
+      : "○ Offline (check Twelve Data credits)";
+
   return (
     <div className="key-box provider-box z">
       <div className="key-top">
@@ -15,11 +29,14 @@ export function DataProviderStatus({ connected }: { connected: boolean }) {
           Source: Server-secured market data
         </div>
         <div
-          className={connected ? "provider-status" : "provider-status provider-off"}
+          className={configured && live ? "provider-status" : "provider-status provider-off"}
           style={{ marginTop: 4 }}
         >
-          Status: {connected ? "● Connected" : "○ Not configured"}
+          Status: {statusLabel}
         </div>
+        {hint && (
+          <div style={{ fontSize: 10, color: "var(--bear)", marginTop: 6, lineHeight: 1.5 }}>{hint}</div>
+        )}
       </div>
     </div>
   );

@@ -22,7 +22,11 @@ export default async function SettingsPage() {
       <Topbar />
       <div className="wrap z">
         <RiskDisclaimerBanner />
-        <SettingsForm profile={auth.profile} settings={settings} />
+        <SettingsForm
+          profile={auth.profile}
+          settings={settings}
+          email={auth.user.email || auth.profile?.email || ""}
+        />
       </div>
     </ProtectedShell>
   );

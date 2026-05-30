@@ -27,11 +27,12 @@ export interface ScanSettings {
 
 export function DashboardClient({
   initialSettings,
-  connected,
+  configured,
   usageCount,
 }: {
   initialSettings: ScanSettings;
-  connected: boolean;
+  /** TWELVE_DATA_API_KEY present on server */
+  configured: boolean;
   usageCount: number;
 }) {
   const [settings, setSettings] = useState<ScanSettings>(initialSettings);
@@ -40,7 +41,26 @@ export function DashboardClient({
   const [progress, setProgress] = useState(0);
   const [loaderText, setLoaderText] = useState("SCANNING");
   const [loaderSub, setLoaderSub] = useState("");
+  const [marketLive, setMarketLive] = useState(false);
+  const [marketHint, setMarketHint] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!configured) {
+      setMarketHint("Add TWELVE_DATA_API_KEY in Vercel environment variables.");
+      return;
+    }
+    fetch("/api/market/ticker")
+      .then(async (r) => {
+        const json = await r.json();
+        setMarketLive(r.ok);
+        setMarketHint(r.ok ? null : String(json.error || "Market data unavailable"));
+      })
+      .catch(() => {
+        setMarketLive(false);
+        setMarketHint("Could not load market data.");
+      });
+  }, [configured]);
 
   const runScan = useCallback(async () => {
     if (scanning) return;
@@ -99,7 +119,7 @@ export function DashboardClient({
       <Topbar usageCount={usageCount} />
       <div className="wrap z">
         <RiskDisclaimerBanner />
-        <DataProviderStatus connected={connected} />
+        <DataProviderStatus configured={configured} live={marketLive} hint={marketHint} />
         <MarketTicker />
         <ScannerControls
           settings={settings}

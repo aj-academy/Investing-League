@@ -27,7 +27,8 @@ create policy "profiles_insert_own" on public.profiles for insert with check (au
 
 -- user_settings
 create policy "settings_select_own" on public.user_settings for select using (auth.uid() = user_id or public.is_admin());
-create policy "settings_upsert_own" on public.user_settings for all using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id);
+create policy "settings_insert_own" on public.user_settings for insert with check (auth.uid() = user_id);
+create policy "settings_update_own" on public.user_settings for update using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id);
 
 -- signals
 create policy "signals_select_own" on public.signals for select using (auth.uid() = user_id or public.is_admin());

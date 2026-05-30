@@ -24,7 +24,7 @@ export function SignupForm() {
     const supabase = createClient();
     const redirectTo =
       typeof window !== "undefined"
-        ? `${window.location.origin}/login`
+        ? `${window.location.origin}/auth/callback`
         : undefined;
 
     const { data, error } = await supabase.auth.signUp({
