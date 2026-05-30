@@ -8,11 +8,9 @@ import { toast } from "sonner";
 export function SettingsForm({
   profile,
   settings,
-  isDemo = false,
 }: {
   profile: Record<string, unknown> | null;
   settings: Record<string, unknown> | null;
-  isDemo?: boolean;
 }) {
   const [fullName, setFullName] = useState(String(profile?.full_name || ""));
   const [mode, setMode] = useState(String(settings?.default_mode || "practice"));
@@ -22,10 +20,6 @@ export function SettingsForm({
   const [accepted, setAccepted] = useState(Boolean(profile?.risk_disclaimer_accepted));
 
   const save = async () => {
-    if (isDemo) {
-      toast.success("Demo mode — settings are not persisted until Supabase is connected.");
-      return;
-    }
     const supabase = createClient();
     const {
       data: { user },

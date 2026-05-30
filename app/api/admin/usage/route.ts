@@ -1,5 +1,4 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { getDemoJournal } from "@/lib/demo/mockStore";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -9,27 +8,6 @@ export async function GET() {
 
   if (!auth!.isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  if (auth!.isDemo) {
-    return NextResponse.json({
-      totalUsers: 1,
-      signalsGenerated: 12,
-      journalRecords: getDemoJournal().length,
-      usageLogs: [
-        {
-          action: "scan",
-          mode: "practice",
-          created_at: new Date().toISOString(),
-        },
-        {
-          action: "scan",
-          mode: "live",
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-        },
-      ],
-      demo: true,
-    });
   }
 
   const admin = createAdminClient();

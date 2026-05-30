@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { DEMO_COOKIE, isDemoSessionValue } from "@/lib/auth/demo";
 
 const protectedPaths = ["/dashboard", "/journal", "/analytics", "/settings", "/admin"];
 
@@ -11,24 +10,9 @@ function supabaseConfigured() {
   );
 }
 
-function hasDemoSession(request: NextRequest) {
-  return isDemoSessionValue(request.cookies.get(DEMO_COOKIE)?.value);
-}
-
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isProtected = protectedPaths.some((p) => path.startsWith(p));
-  const demo = hasDemoSession(request);
-
-  if (demo) {
-    if (path === "/login") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-    if (isProtected) {
-      return NextResponse.next();
-    }
-    return NextResponse.next();
-  }
 
   if (!supabaseConfigured()) {
     if (isProtected) {

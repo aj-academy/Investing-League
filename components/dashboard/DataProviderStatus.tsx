@@ -1,12 +1,6 @@
 "use client";
 
-export function DataProviderStatus({
-  connected,
-  demo = false,
-}: {
-  connected: boolean;
-  demo?: boolean;
-}) {
+export function DataProviderStatus({ connected }: { connected: boolean }) {
   return (
     <div className="key-box provider-box z">
       <div className="key-top">
@@ -24,12 +18,7 @@ export function DataProviderStatus({
           className={connected ? "provider-status" : "provider-status provider-off"}
           style={{ marginTop: 4 }}
         >
-          Status:{" "}
-          {connected
-            ? demo
-              ? "● Connected (demo synthetic data)"
-              : "● Connected"
-            : "○ Not configured"}
+          Status: {connected ? "● Connected" : "○ Not configured"}
         </div>
       </div>
     </div>

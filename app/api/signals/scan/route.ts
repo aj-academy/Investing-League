@@ -1,6 +1,4 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { addDemoJournalFromSignals, getDemoJournal } from "@/lib/demo/mockStore";
-import { generateSyntheticCandles } from "@/lib/demo/syntheticCandles";
 import { computeSignal, filterSignals } from "@/lib/signal-engine";
 import type { JournalHistoryRow } from "@/lib/signal-engine/types";
 import { getCachedCandles, setCachedCandles } from "@/lib/market/candleCache";
@@ -9,11 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
-async function getCandles(pair: string, interval: string, demo: boolean) {
-  if (demo) {
-    const mins = interval === "15min" ? 15 : 5;
-    return generateSyntheticCandles(pair, 150, mins);
-  }
+async function getCandles(pair: string, interval: string) {
   let candles = getCachedCandles(pair, interval, 150);
   if (!candles) {
     candles = await fetchTwelveDataCandles(pair, interval, 150);
@@ -39,42 +33,6 @@ export async function POST(request: Request) {
       if (!PAIRS.includes(p as (typeof PAIRS)[number])) {
         return NextResponse.json({ error: `Invalid pair: ${p}` }, { status: 400 });
       }
-    }
-
-    if (auth!.isDemo) {
-      const history: JournalHistoryRow[] = getDemoJournal().map((r) => ({
-        pair: r.pair,
-        timeframe: r.timeframe,
-        direction: r.direction,
-        signalType: r.signal_type,
-        signal_entry_time: r.signal_entry_time,
-      }));
-
-      const rawSignals = [];
-      for (const pair of pairs) {
-        for (const tf of timeframes) {
-          const ohlc = await getCandles(pair, tf, true);
-          const sig = computeSignal(ohlc, pair, tf, mode, history);
-          if (sig) rawSignals.push(sig);
-        }
-      }
-
-      const signals = filterSignals(rawSignals, {
-        pairs,
-        timeframes,
-        mode,
-        minScore,
-        showBSignals,
-        sessionFilter,
-      });
-
-      addDemoJournalFromSignals(signals);
-
-      return NextResponse.json({
-        signals,
-        connected: true,
-        demo: true,
-      });
     }
 
     const supabase = await createClient();
@@ -109,7 +67,7 @@ export async function POST(request: Request) {
     const rawSignals = [];
     for (const pair of pairs) {
       for (const tf of timeframes) {
-        const ohlc = await getCandles(pair, tf, false);
+        const ohlc = await getCandles(pair, tf);
         const sig = computeSignal(ohlc, pair, tf, mode, history);
         if (sig) rawSignals.push(sig);
       }

@@ -4,13 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-export function Topbar({
-  usageCount = 0,
-  isDemo = false,
-}: {
-  usageCount?: number;
-  isDemo?: boolean;
-}) {
+export function Topbar({ usageCount = 0 }: { usageCount?: number }) {
   const [time, setTime] = useState("");
   const [countdown, setCountdown] = useState("");
   const [live, setLive] = useState(false);
@@ -39,21 +33,13 @@ export function Topbar({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pair: "EUR/USD", interval: "5min", outputsize: 5 }),
     })
-      .then((r) => setLive(r.ok || isDemo))
+      .then((r) => setLive(r.ok))
       .catch(() => setLive(false));
   }, []);
 
   const logout = async () => {
-    await fetch("/api/auth/demo/logout", { method: "POST" });
-    try {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      if (url) {
-        const supabase = createClient();
-        await supabase.auth.signOut();
-      }
-    } catch {
-      /* demo-only session */
-    }
+    const supabase = createClient();
+    await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
   };

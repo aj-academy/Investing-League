@@ -1,5 +1,4 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { generateSyntheticCandles } from "@/lib/demo/syntheticCandles";
 import { getCachedCandles, setCachedCandles } from "@/lib/market/candleCache";
 import { fetchTwelveDataCandles } from "@/lib/market/twelveData";
 import { PAIRS } from "@/lib/utils";
@@ -7,7 +6,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { auth, error } = await requireApiAuth();
+    const { error } = await requireApiAuth();
     if (error) return error;
 
     const body = await request.json();
@@ -23,12 +22,6 @@ export async function POST(request: Request) {
     }
     if (!Number.isFinite(outputsize) || outputsize < 2 || outputsize > 500) {
       return NextResponse.json({ error: "Invalid output size" }, { status: 400 });
-    }
-
-    if (auth!.isDemo) {
-      const mins = interval === "15min" ? 15 : 5;
-      const candles = generateSyntheticCandles(pair, outputsize, mins);
-      return NextResponse.json({ candles, demo: true });
     }
 
     let candles = getCachedCandles(pair, interval, outputsize);

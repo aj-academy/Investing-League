@@ -29,12 +29,10 @@ export function DashboardClient({
   initialSettings,
   connected,
   usageCount,
-  isDemo = false,
 }: {
   initialSettings: ScanSettings;
   connected: boolean;
   usageCount: number;
-  isDemo?: boolean;
 }) {
   const [settings, setSettings] = useState<ScanSettings>(initialSettings);
   const [signals, setSignals] = useState<ComputedSignal[]>([]);
@@ -98,10 +96,10 @@ export function DashboardClient({
 
   return (
     <>
-      <Topbar usageCount={usageCount} isDemo={isDemo} />
+      <Topbar usageCount={usageCount} />
       <div className="wrap z">
         <RiskDisclaimerBanner />
-        <DataProviderStatus connected={connected} demo={isDemo} />
+        <DataProviderStatus connected={connected} />
         <MarketTicker />
         <ScannerControls
           settings={settings}

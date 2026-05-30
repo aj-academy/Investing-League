@@ -1,5 +1,4 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { getDemoJournal } from "@/lib/demo/mockStore";
 import { journalToJson } from "@/lib/journal/exportJson";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -7,15 +6,6 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { auth, error } = await requireApiAuth();
   if (error) return error;
-
-  if (auth!.isDemo) {
-    return new NextResponse(journalToJson(getDemoJournal()), {
-      headers: {
-        "Content-Type": "application/json;charset=utf-8",
-        "Content-Disposition": 'attachment; filename="til_trade_journal.json"',
-      },
-    });
-  }
 
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
