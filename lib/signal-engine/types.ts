@@ -82,6 +82,8 @@ export interface ComputedSignal {
   chgPct: string;
   entryTime: string;
   expTime: string;
+  entryAtIso?: string;
+  expAtIso?: string;
   expMin: number;
   maxEntryDrift: string;
   entryNote: string;

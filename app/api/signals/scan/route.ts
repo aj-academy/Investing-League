@@ -16,6 +16,7 @@ import type { JournalHistoryRow } from "@/lib/signal-engine/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
+import { resolveTimeZone } from "@/lib/datetime";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
@@ -126,6 +127,7 @@ export async function POST(request: Request) {
     const minScore = Number(body.minScore ?? 5);
     const showBSignals = body.showBSignals !== false;
     const sessionFilter = String(body.sessionFilter || "any");
+    const timeZone = resolveTimeZone(body.timezone);
 
     try {
       pairs = validatePairsForPlan(plan, pairs);
@@ -204,7 +206,9 @@ export async function POST(request: Request) {
           const candleResult = await getCandlesCached(pair, tf, 150);
           if (candleResult.providerCall) providerCalls++;
           if (candleResult.cacheHit) cacheHits++;
-          const sig = computeSignal(candleResult.candles, pair, tf, mode, history);
+          const sig = computeSignal(candleResult.candles, pair, tf, mode, history, {
+            timeZone,
+          });
           if (sig) rawSignals.push(sig);
         } catch (e) {
           marketErrors.push(

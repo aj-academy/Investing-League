@@ -13,9 +13,10 @@ export function computeSignal(
   pair: string,
   tf: string,
   mode: TradingMode = "practice",
-  journalHistory: JournalHistoryRow[] = []
+  journalHistory: JournalHistoryRow[] = [],
+  options?: { timeZone?: string }
 ): ComputedSignal | null {
-  const base = computeBaseSignal(ohlc, pair, tf);
+  const base = computeBaseSignal(ohlc, pair, tf, options?.timeZone);
   if (!base) return null;
 
   const sig = enrichWithV4Metrics(

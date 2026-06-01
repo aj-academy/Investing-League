@@ -1,5 +1,6 @@
 "use client";
 
+import { formatClockTime, resolveTimeZone, timeZoneAbbreviation } from "@/lib/datetime";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -10,31 +11,36 @@ export function Topbar({
   scansToday = 0,
   live,
   countdown = 0,
+  timeZone: timeZoneProp,
+  timeZoneLabel: timeZoneLabelProp,
 }: {
   scansToday?: number;
   live?: boolean;
   countdown?: number;
+  timeZone?: string;
+  timeZoneLabel?: string;
 }) {
+  const [timeZone] = useState(() =>
+    resolveTimeZone(
+      timeZoneProp ||
+        (typeof Intl !== "undefined"
+          ? Intl.DateTimeFormat().resolvedOptions().timeZone
+          : undefined)
+    )
+  );
+  const tzLabel = timeZoneLabelProp || timeZoneAbbreviation(timeZone);
   const [time, setTime] = useState("");
   const [pill, setPill] = useState<MarketPill>("cached");
   const router = useRouter();
 
   useEffect(() => {
     const tick = () => {
-      const n = new Date();
-      setTime(
-        n.toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        })
-      );
+      setTime(formatClockTime(new Date(), timeZone));
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [timeZone]);
 
   useEffect(() => {
     if (live === true) {
@@ -90,7 +96,9 @@ export function Topbar({
         </div>
       </div>
       <div className="hdr-r">
-        <span className="clk">{time}</span>
+        <span className="clk" title={`Local time (${timeZone})`}>
+          {time} <span style={{ fontSize: 9, color: "var(--m3)" }}>{tzLabel}</span>
+        </span>
         {countdown > 0 && (
           <span
             className="countdown-box"

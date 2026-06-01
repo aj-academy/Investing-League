@@ -8,15 +8,11 @@ import {
 } from "./marketStructure";
 import { detectPatterns } from "./patterns";
 import { getSessionQualityScore } from "./session";
+import { formatSignalTime, resolveTimeZone } from "@/lib/datetime";
 import type { ComputedSignal, OHLC } from "./types";
 
-function fmtTime(d: Date) {
-  return d.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+function fmtTime(d: Date, timeZone: string) {
+  return formatSignalTime(d, timeZone);
 }
 
 export function buildSignalUid(
@@ -37,7 +33,8 @@ export function buildSignalUid(
 export function computeBaseSignal(
   ohlc: OHLC[],
   pair: string,
-  tf: string
+  tf: string,
+  timeZone?: string
 ): Omit<
   ComputedSignal,
   | "signalUid"
@@ -386,7 +383,8 @@ export function computeBaseSignal(
   const tier =
     grade === "A+" ? "★★★ A+ STRONG" : grade === "A" ? "★★ A QUALITY" : "★ B WATCH";
 
-  const exMs = parseInt(tf) * 60000;
+  const tz = resolveTimeZone(timeZone);
+  const exMs = (tf.startsWith("15") ? 15 : 5) * 60_000;
   const entry = new Date(Math.ceil(Date.now() / exMs) * exMs);
   const expiry = new Date(entry.getTime() + exMs);
   const maxEntryDrift = isNum(atrV) ? atrV * 0.25 : 0;
@@ -459,8 +457,10 @@ export function computeBaseSignal(
     bigCandle,
     price: price.toFixed(decimalsForPair(pair)),
     chgPct: chgPct.toFixed(3),
-    entryTime: fmtTime(entry),
-    expTime: fmtTime(expiry),
+    entryAtIso: entry.toISOString(),
+    expAtIso: expiry.toISOString(),
+    entryTime: fmtTime(entry, tz),
+    expTime: fmtTime(expiry, tz),
     expMin: tf === "5min" ? 5 : 15,
     maxEntryDrift: driftText,
     entryNote: `Cancel signal if price moves more than ${driftText} before entry. Avoid entry if price is already extended away from EMA/WMA.`,

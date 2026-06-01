@@ -2,6 +2,7 @@
 
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { decimalsForPair, isJpyPair } from "@/lib/utils";
+import { displayEntryTime, displayExpTime } from "./signalTime";
 import { ConfRing, MiniChart } from "./MiniChart";
 
 function signalTypeClass(type: string) {
@@ -20,7 +21,17 @@ function indClass(v: string, kind: "r" | "s" | "b" | "m" | "c") {
   return n < -100 ? "bc" : n > 100 ? "rc" : "wc";
 }
 
-export function SignalCard({ sig, delay = 0 }: { sig: ComputedSignal; delay?: number }) {
+export function SignalCard({
+  sig,
+  delay = 0,
+  timeZone,
+}: {
+  sig: ComputedSignal;
+  delay?: number;
+  timeZone?: string;
+}) {
+  const entryDisplay = displayEntryTime(sig, timeZone);
+  const expDisplay = displayExpTime(sig, timeZone);
   const dc = sig.direction === "CALL" ? "call" : "put";
   const confColor = sig.conf >= 75 ? "var(--bull)" : sig.conf >= 55 ? "var(--gold)" : "var(--warn)";
   const chgUp = parseFloat(sig.chgPct) >= 0;
@@ -159,13 +170,13 @@ export function SignalCard({ sig, delay = 0 }: { sig: ComputedSignal; delay?: nu
       <div className="entry-box">
         <div className="entry-col">
           <div className="el">Enter At</div>
-          <div className="ev">{sig.entryTime}</div>
-          <div className="es">At candle open</div>
+          <div className="ev">{entryDisplay}</div>
+          <div className="es">At candle open · your local time</div>
         </div>
         <div className="entry-col" style={{ textAlign: "center" }}>
           <div className="el">Expire</div>
           <div className="es">{sig.expMin} minutes</div>
-          <div className="es">{sig.expTime}</div>
+          <div className="es">{expDisplay}</div>
         </div>
         <div className="entry-dir">{sig.direction === "CALL" ? "▲" : "▼"}</div>
       </div>

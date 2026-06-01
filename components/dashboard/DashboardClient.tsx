@@ -21,7 +21,15 @@ import { StatsRow } from "./StatsRow";
 import { SupportPanel } from "./SupportPanel";
 import { Topbar } from "../layout/Topbar";
 import type { TickerItem } from "@/lib/market/tickerService";
+import { resolveTimeZone, timeZoneAbbreviation } from "@/lib/datetime";
 import { readScanFromSessionCache, saveScanToSessionCache } from "@/lib/signals/scanCache";
+
+function clientTimeZone() {
+  if (typeof Intl !== "undefined") {
+    return resolveTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }
+  return resolveTimeZone();
+}
 
 export interface ScanSettings {
   asset: string;
@@ -74,6 +82,8 @@ export function DashboardClient({
   const autoScanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runScanRef = useRef<(opts?: { auto?: boolean }) => Promise<void>>(async () => {});
+  const [timeZone] = useState(() => clientTimeZone());
+  const tzLabel = timeZoneAbbreviation(timeZone);
 
   const applyLatestScan = useCallback((json: {
     signals?: ComputedSignal[];
@@ -225,6 +235,7 @@ export function DashboardClient({
           showBSignals: settings.showB,
           sessionFilter: settings.session,
           auto: isAuto,
+          timezone: timeZone,
         }),
       });
       const json = await res.json();
@@ -312,6 +323,8 @@ export function DashboardClient({
         scansToday={scanUsage.scansUsedToday}
         live={marketLive || autoScanning || scanning}
         countdown={countdown}
+        timeZone={timeZone}
+        timeZoneLabel={tzLabel}
       />
       <div className="wrap z">
         <RiskDisclaimerBanner />
@@ -386,7 +399,7 @@ export function DashboardClient({
             <>
               {signals.length > 0 && <SupportPanel signals={signals} />}
               {signals.map((sig, idx) => (
-                <SignalCard key={sig.signalUid} sig={sig} delay={idx * 60} />
+                <SignalCard key={sig.signalUid} sig={sig} delay={idx * 60} timeZone={timeZone} />
               ))}
             </>
           )}
