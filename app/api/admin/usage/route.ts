@@ -17,7 +17,7 @@ export async function GET() {
     admin.from("trade_journal").select("id", { count: "exact", head: true }),
     admin
       .from("usage_logs")
-      .select("id,user_id,action,mode,created_at,metadata")
+      .select("id,user_id,action,mode,created_at,metadata,provider_calls,cache_hits,estimated_provider_calls")
       .order("created_at", { ascending: false })
       .limit(100),
   ]);

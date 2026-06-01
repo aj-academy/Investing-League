@@ -5,7 +5,7 @@ create table if not exists public.profiles (
   full_name text,
   email text,
   role text not null default 'user' check (role in ('user','admin')),
-  plan text not null default 'free',
+  plan text not null default 'free' check (plan in ('free','starter','pro','admin')),
   is_active boolean not null default true,
   risk_disclaimer_accepted boolean not null default false,
   disclaimer_accepted_at timestamptz,
@@ -61,6 +61,7 @@ create table if not exists public.signals (
   loss_reason text,
   live_rank numeric,
   raw_payload jsonb,
+  scan_session_id uuid,
   created_at timestamptz not null default now(),
   unique(user_id, signal_uid)
 );
@@ -112,6 +113,25 @@ create table if not exists public.subscriptions (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.scan_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  mode text not null default 'practice',
+  pairs text[] not null,
+  timeframes text[] not null,
+  min_score int,
+  show_b_signals boolean,
+  session_filter text,
+  total_signals int default 0,
+  provider_calls int default 0,
+  cache_hits int default 0,
+  estimated_provider_calls int default 0,
+  plan_at_scan text default 'free',
+  status text not null default 'completed',
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '10 minutes')
+);
+
 create table if not exists public.usage_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade,
@@ -120,6 +140,10 @@ create table if not exists public.usage_logs (
   timeframe text,
   mode text,
   request_count int not null default 1,
+  provider_calls int default 0,
+  cache_hits int default 0,
+  estimated_provider_calls int default 0,
+  blocked_reason text,
   metadata jsonb,
   created_at timestamptz not null default now()
 );
@@ -152,6 +176,14 @@ create index if not exists idx_trade_journal_user_created on public.trade_journa
 create index if not exists idx_trade_journal_user_result on public.trade_journal(user_id, result);
 create index if not exists idx_trade_journal_user_pair on public.trade_journal(user_id, pair);
 create index if not exists idx_usage_logs_user_created on public.usage_logs(user_id, created_at desc);
+create index if not exists idx_usage_logs_scan_today on public.usage_logs(user_id, action, created_at desc);
+create index if not exists idx_scan_sessions_user_expires on public.scan_sessions(user_id, expires_at desc);
+create index if not exists idx_signals_scan_session on public.signals(scan_session_id);
+
+alter table public.signals
+  drop constraint if exists signals_scan_session_id_fkey,
+  add constraint signals_scan_session_id_fkey
+  foreign key (scan_session_id) references public.scan_sessions(id) on delete set null;
 
 -- Auto-create profile + settings on signup
 create or replace function public.handle_new_user()

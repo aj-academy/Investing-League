@@ -6,6 +6,7 @@ alter table public.subscriptions enable row level security;
 alter table public.usage_logs enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.market_cache enable row level security;
+alter table public.scan_sessions enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -52,3 +53,8 @@ create policy "audit_admin_read" on public.audit_logs for select using (public.i
 
 -- market_cache (service role writes; authenticated read)
 create policy "market_cache_read_auth" on public.market_cache for select to authenticated using (true);
+
+-- scan_sessions
+create policy "scan_sessions_select_own" on public.scan_sessions for select using (auth.uid() = user_id or public.is_admin());
+create policy "scan_sessions_insert_own" on public.scan_sessions for insert with check (auth.uid() = user_id);
+create policy "scan_sessions_update_own" on public.scan_sessions for update using (auth.uid() = user_id or public.is_admin());

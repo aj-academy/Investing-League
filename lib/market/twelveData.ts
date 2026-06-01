@@ -35,3 +35,26 @@ export async function fetchTwelveDataCandles(
       close: parseFloat(v.close),
     }));
 }
+
+export async function fetchTwelveDataPrice(pair: string): Promise<{ price: number; datetime?: string }> {
+  const apiKey = process.env.TWELVE_DATA_API_KEY;
+  if (!apiKey) throw new Error("Market data provider is not configured");
+
+  const url = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(pair)}&apikey=${apiKey}&format=JSON`;
+  const res = await fetch(url, { cache: "no-store" });
+  const json = await res.json();
+
+  if (json.status === "error") {
+    const msg = String(json.message || "Market data error");
+    if (json.code === 429 || /run out of api credits/i.test(msg)) {
+      throw new Error(
+        "Twelve Data daily API limit reached. Wait until tomorrow or upgrade your plan at twelvedata.com/pricing."
+      );
+    }
+    throw new Error(msg);
+  }
+
+  const price = parseFloat(json.price);
+  if (!Number.isFinite(price)) throw new Error("No price returned");
+  return { price, datetime: json.datetime };
+}

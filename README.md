@@ -28,6 +28,10 @@ Repository: [aj-academy/Investing-League](https://github.com/aj-academy/Investin
 - `/settings` — Profile & scanner defaults
 - `/admin` — Admin only
 
+## Full documentation
+
+See **[docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md)** for complete architecture, API workflows, signal engine, database schema, folder structure, deployment, and troubleshooting.
+
 ## Disclaimer
 
 This platform is for educational analysis, signal testing, and trade journaling only. It does not guarantee profit and does not provide financial advice.

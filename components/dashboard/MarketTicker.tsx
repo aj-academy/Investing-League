@@ -1,35 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import type { TickerItem } from "@/lib/market/tickerService";
 
-type TickerItem = { pair: string; price: string; chg: string; up: boolean };
+export function MarketTicker({ items }: { items: TickerItem[] }) {
+  const display =
+    items.length > 0
+      ? items
+      : [{ pair: "LOADING", price: "——", chg: "", up: true, source: "cache" as const, updatedAt: "" }];
 
-export function MarketTicker() {
-  const [items, setItems] = useState<TickerItem[]>([
-    { pair: "LOADING", price: "——", chg: "", up: true },
-  ]);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/market/ticker");
-        const json = await res.json();
-        if (res.ok && json.items?.length) {
-          setItems([...json.items, ...json.items]);
-        }
-      } catch {
-        /* keep previous / loading state */
-      }
-    };
-    load();
-    const id = setInterval(load, 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, []);
+  const doubled = [...display, ...display];
 
   return (
     <div className="ticker">
       <div className="ticker-inner">
-        {items.map((ti, i) => (
+        {doubled.map((ti, i) => (
           <div className="ti" key={`${ti.pair}-${i}`}>
             <span className="ti-pair">{ti.pair}</span>
             <span className="ti-p" style={{ color: ti.up ? "var(--bull)" : "var(--bear)" }}>

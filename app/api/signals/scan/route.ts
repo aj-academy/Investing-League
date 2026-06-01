@@ -1,39 +1,36 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { hasAcceptedRiskDisclaimer } from "@/lib/auth/profile";
+import { hasAcceptedRiskDisclaimer, getProfileByUserId } from "@/lib/auth/profile";
+import { canScanToday } from "@/lib/billing/scanUsage";
+import {
+  getLockedPairs,
+  getPlanLimits,
+  getUserPlan,
+  resolveTimeframesForScan,
+  validatePairsForPlan,
+  type PlanName,
+} from "@/lib/billing/planLimits";
+import { getCandlesCached } from "@/lib/market/cachedCandles";
+import { buildTickerForPairs } from "@/lib/market/tickerService";
 import { computeSignal, filterSignals } from "@/lib/signal-engine";
 import type { JournalHistoryRow } from "@/lib/signal-engine/types";
-import { getMarketCandles } from "@/lib/market/cachedCandles";
 import { createClient } from "@/lib/supabase/server";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
-
-async function getCandles(pair: string, interval: string) {
-  return getMarketCandles(pair, interval, 150);
-}
 
 export async function POST(request: Request) {
   try {
     const { auth, error } = await requireApiAuth();
     if (error) return error;
 
-    const body = await request.json();
-    const pairs: string[] = body.pairs?.length ? body.pairs : [...PAIRS];
-    const timeframes: string[] = body.timeframes?.length ? body.timeframes : ["5min"];
-    const mode = body.mode === "live" ? "live" : "practice";
-    const minScore = Number(body.minScore ?? 5);
-    const showBSignals = body.showBSignals !== false;
-    const sessionFilter = String(body.sessionFilter || "any");
-
-    for (const p of pairs) {
-      if (!PAIRS.includes(p as (typeof PAIRS)[number])) {
-        return NextResponse.json({ error: `Invalid pair: ${p}` }, { status: 400 });
-      }
-    }
+    const profile = await getProfileByUserId(auth!.user.id);
+    const plan: PlanName = getUserPlan(profile);
+    const planLimits = getPlanLimits(plan);
 
     const disclaimerOk = await hasAcceptedRiskDisclaimer(auth!.user.id);
     if (!disclaimerOk) {
       return NextResponse.json(
         {
+          ok: false,
           error:
             "Risk disclaimer not saved yet. Open Settings, check the disclaimer box, click Save Settings, then scan again.",
         },
@@ -41,7 +38,78 @@ export async function POST(request: Request) {
       );
     }
 
+    const scanQuota = await canScanToday(auth!.user.id, plan);
+    if (!scanQuota.allowed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "DAILY_SCAN_LIMIT",
+          message: "You have reached your daily scan limit. Try again tomorrow or upgrade your plan.",
+          scansUsedToday: scanQuota.scansUsedToday,
+          dailyScanLimit: scanQuota.dailyScanLimit,
+        },
+        { status: 429 }
+      );
+    }
+
+    const body = await request.json();
+    let pairs: string[] = body.pairs?.length ? body.pairs : [...planLimits.allowedPairs];
+    let timeframes: string[] = body.timeframes?.length ? body.timeframes : ["5min"];
+    const mode = body.mode === "live" ? "live" : "practice";
+    const minScore = Number(body.minScore ?? 5);
+    const showBSignals = body.showBSignals !== false;
+    const sessionFilter = String(body.sessionFilter || "any");
+
+    try {
+      pairs = validatePairsForPlan(plan, pairs);
+      timeframes = resolveTimeframesForScan(plan, timeframes);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Plan limit exceeded";
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PLAN_LIMIT",
+          message,
+          lockedPairs: getLockedPairs(plan),
+          planLimits,
+        },
+        { status: 403 }
+      );
+    }
+
+    for (const p of pairs) {
+      if (!PAIRS.includes(p as (typeof PAIRS)[number])) {
+        return NextResponse.json({ ok: false, error: `Invalid pair: ${p}` }, { status: 400 });
+      }
+    }
+
+    const estimatedProviderCalls = pairs.length * timeframes.length;
     const supabase = await createClient();
+
+    const { data: scanSession, error: sessionError } = await supabase
+      .from("scan_sessions")
+      .insert({
+        user_id: auth!.user.id,
+        mode,
+        pairs,
+        timeframes,
+        min_score: minScore,
+        show_b_signals: showBSignals,
+        session_filter: sessionFilter,
+        estimated_provider_calls: estimatedProviderCalls,
+        plan_at_scan: plan,
+        status: "running",
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (sessionError || !scanSession) {
+      return NextResponse.json(
+        { ok: false, error: sessionError?.message || "Could not create scan session" },
+        { status: 500 }
+      );
+    }
 
     const { data: journalRows } = await supabase
       .from("trade_journal")
@@ -58,11 +126,16 @@ export async function POST(request: Request) {
       signal_entry_time: r.signal_entry_time || undefined,
     }));
 
+    let providerCalls = 0;
+    let cacheHits = 0;
     const rawSignals = [];
+
     for (const pair of pairs) {
       for (const tf of timeframes) {
-        const ohlc = await getCandles(pair, tf);
-        const sig = computeSignal(ohlc, pair, tf, mode, history);
+        const candleResult = await getCandlesCached(pair, tf, 150);
+        if (candleResult.providerCall) providerCalls++;
+        if (candleResult.cacheHit) cacheHits++;
+        const sig = computeSignal(candleResult.candles, pair, tf, mode, history);
         if (sig) rawSignals.push(sig);
       }
     }
@@ -82,6 +155,7 @@ export async function POST(request: Request) {
         .upsert(
           {
             user_id: auth!.user.id,
+            scan_session_id: scanSession.id,
             signal_uid: sig.signalUid,
             pair: sig.pair,
             timeframe: sig.tf,
@@ -141,21 +215,62 @@ export async function POST(request: Request) {
           result_source: "Unverified",
           entry_status: "Pending",
         },
-        { onConflict: "user_id,signal_uid", ignoreDuplicates: false }
+        { onConflict: "user_id,signal_uid", ignoreDuplicates: true }
       );
     }
 
+    await supabase
+      .from("scan_sessions")
+      .update({
+        total_signals: signals.length,
+        provider_calls: providerCalls,
+        cache_hits: cacheHits,
+        status: "completed",
+      })
+      .eq("id", scanSession.id);
+
     await supabase.from("usage_logs").insert({
       user_id: auth!.user.id,
-      action: "scan",
+      action: "scan_market",
       mode,
-      request_count: pairs.length * timeframes.length,
-      metadata: { pairs, timeframes, signalCount: signals.length },
+      request_count: estimatedProviderCalls,
+      provider_calls: providerCalls,
+      cache_hits: cacheHits,
+      estimated_provider_calls: estimatedProviderCalls,
+      metadata: {
+        pairs,
+        timeframes,
+        signalCount: signals.length,
+        scanSessionId: scanSession.id,
+        plan,
+      },
     });
 
-    return NextResponse.json({ signals, connected: !!process.env.TWELVE_DATA_API_KEY });
+    const tickerResult = await buildTickerForPairs(pairs, plan);
+    const scansUsedAfter = scanQuota.scansUsedToday + 1;
+
+    return NextResponse.json({
+      ok: true,
+      scanSessionId: scanSession.id,
+      signals,
+      ticker: tickerResult.items,
+      connected: !!process.env.TWELVE_DATA_API_KEY,
+      usage: {
+        plan,
+        estimatedProviderCalls,
+        providerCalls,
+        cacheHits,
+        dailyScanLimit: scanQuota.dailyScanLimit,
+        scansUsedToday: scansUsedAfter,
+        scansRemainingToday: Math.max(0, scanQuota.dailyScanLimit - scansUsedAfter),
+      },
+      planLimits,
+      lockedPairs: getLockedPairs(plan),
+      message: "Scan complete. Signals saved to your journal.",
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Scan failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = /api limit|api credits/i.test(message) ? 429 : 500;
+    return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

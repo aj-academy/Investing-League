@@ -3,6 +3,7 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { DISCLAIMER } from "@/lib/utils";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -13,6 +14,22 @@ function LoginContent() {
 
   return (
     <div className="auth-wrap z">
+      <Link
+        href="/"
+        className="auth-home-link"
+        style={{
+          position: "absolute",
+          top: 20,
+          left: 20,
+          fontSize: 12,
+          color: "var(--blue2)",
+          textDecoration: "none",
+          fontWeight: 600,
+          letterSpacing: 0.5,
+        }}
+      >
+        ← Home
+      </Link>
       <div className="auth-card">
         {needsSetup && (
           <div

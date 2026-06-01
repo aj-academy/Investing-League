@@ -1,54 +1,79 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { getMarketCandles } from "@/lib/market/cachedCandles";
-import { PAIRS, isJpyPair } from "@/lib/utils";
+import { getProfileByUserId } from "@/lib/auth/profile";
+import { getPlanLimits, getUserPlan, validatePairsForPlan } from "@/lib/billing/planLimits";
+import { buildTickerForPairs } from "@/lib/market/tickerService";
 import { NextResponse } from "next/server";
 
-export type TickerItem = {
-  pair: string;
-  price: string;
-  chg: string;
-  up: boolean;
-};
+export async function GET(request: Request) {
+  return handleTicker(request);
+}
 
-/** One request returns all ticker rows (cached) instead of 8 parallel candle calls. */
-export async function GET() {
+export async function POST(request: Request) {
+  return handleTicker(request);
+}
+
+async function handleTicker(request: Request) {
   try {
-    const { error } = await requireApiAuth();
+    const { auth, error } = await requireApiAuth();
     if (error) return error;
 
-    const items: TickerItem[] = [];
+    const profile = await getProfileByUserId(auth!.user.id);
+    const plan = getUserPlan(profile);
+    const limits = getPlanLimits(plan);
 
-    for (const pair of PAIRS) {
+    let pairs: string[] = [...limits.allowedPairs];
+    try {
+      const url = new URL(request.url);
+      const q = url.searchParams.get("pairs");
+      if (q) pairs = JSON.parse(q) as string[];
+    } catch {
+      /* default allowed pairs */
+    }
+
+    if (request.method === "POST") {
       try {
-        const candles = await getMarketCandles(pair, "5min", 5);
-        if (candles.length < 2) continue;
-        const last = candles[candles.length - 1];
-        const prev = candles[candles.length - 2];
-        const chg = ((last.close - prev.close) / prev.close) * 100;
-        const up = chg >= 0;
-        const dp = isJpyPair(pair) ? 3 : 5;
-        items.push({
-          pair,
-          price: last.close.toFixed(dp),
-          chg: `${up ? "▲" : "▼"}${Math.abs(chg).toFixed(3)}%`,
-          up,
-        });
+        const body = await request.json();
+        if (body.pairs?.length) pairs = body.pairs as string[];
       } catch {
-        /* skip pair on failure */
+        /* ignore */
       }
     }
 
+    try {
+      pairs = validatePairsForPlan(plan, pairs);
+    } catch {
+      pairs = [...limits.allowedPairs];
+    }
+
+    const { items, providerCalls, cacheHits } = await buildTickerForPairs(pairs, plan);
+
     if (!items.length) {
       return NextResponse.json(
-        { error: "No market data available. Check Twelve Data API key and daily credits." },
+        {
+          ok: false,
+          error:
+            limits.liveUpdateMode === "cached_only"
+              ? "Your plan uses cached market display. Fresh signals are generated only when you scan."
+              : "No market data available. Check Twelve Data API key and daily credits.",
+          usage: { providerCalls: 0, cacheHits: 0, liveUpdateMode: limits.liveUpdateMode },
+        },
         { status: 503 }
       );
     }
 
-    return NextResponse.json({ items });
+    return NextResponse.json({
+      ok: true,
+      items,
+      usage: {
+        providerCalls,
+        cacheHits,
+        liveUpdateMode: limits.liveUpdateMode,
+        quoteRefreshSeconds: limits.quoteRefreshSeconds,
+      },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Market data unavailable";
     const status = /api limit|api credits/i.test(message) ? 429 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

@@ -1,5 +1,5 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { getMarketCandles } from "@/lib/market/cachedCandles";
+import { getCandlesCached } from "@/lib/market/cachedCandles";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
@@ -23,8 +23,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid output size" }, { status: 400 });
     }
 
-    const candles = await getMarketCandles(pair, interval, outputsize);
-    return NextResponse.json({ candles });
+    const result = await getCandlesCached(pair, interval, outputsize);
+    return NextResponse.json({
+      candles: result.candles,
+      meta: {
+        source: result.source,
+        providerCall: result.providerCall,
+        cacheHit: result.cacheHit,
+      },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Market data unavailable";
     const status = /api limit|api credits/i.test(message) ? 429 : 500;
