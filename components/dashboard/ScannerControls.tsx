@@ -24,14 +24,20 @@ export function ScannerControls({
   settings,
   onChange,
   onScan,
+  onRefreshPrices,
+  onReloadLastScan,
   scanning,
+  refreshing,
   progress,
 }: {
   plan: PlanName;
   settings: ScanSettings;
   onChange: (s: Partial<ScanSettings>) => void;
   onScan: () => void;
+  onRefreshPrices: () => void;
+  onReloadLastScan: () => void;
   scanning: boolean;
+  refreshing?: boolean;
   progress: number;
 }) {
   const limits = getPlanLimits(plan);
@@ -138,6 +144,32 @@ export function ScannerControls({
           <label>&nbsp;</label>
           <button type="button" className="btn-scan" disabled={scanning} onClick={onScan}>
             {scanning ? "SCANNING..." : "▶ SCAN MARKET"}
+          </button>
+        </div>
+        <div className="f">
+          <label>&nbsp;</label>
+          <button
+            type="button"
+            className="btn-scan"
+            style={{ background: "var(--p2)", borderColor: "var(--bd2)", color: "var(--txt2)" }}
+            disabled={scanning || refreshing}
+            onClick={onRefreshPrices}
+            title="Refresh ticker prices only (no new signals)"
+          >
+            {refreshing ? "..." : "↻ REFRESH PRICES"}
+          </button>
+        </div>
+        <div className="f">
+          <label>&nbsp;</label>
+          <button
+            type="button"
+            className="btn-scan"
+            style={{ background: "var(--p2)", borderColor: "var(--bd2)", color: "var(--txt2)" }}
+            disabled={scanning || refreshing}
+            onClick={onReloadLastScan}
+            title="Reload your last scan from the server"
+          >
+            ↻ RELOAD LAST SCAN
           </button>
         </div>
       </div>

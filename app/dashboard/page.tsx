@@ -22,11 +22,6 @@ export default async function DashboardPage() {
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
-  const { count } = await supabase
-    .from("usage_logs")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", auth.user.id);
-
   const initialSettings: ScanSettings = {
     asset: "all",
     timeframe: settings?.default_timeframe || "5min",
@@ -42,7 +37,6 @@ export default async function DashboardPage() {
       <DashboardClient
         initialSettings={initialSettings}
         configured={!!process.env.TWELVE_DATA_API_KEY}
-        usageCount={count || 0}
         planInfo={{
           plan,
           scansUsedToday: scanQuota.scansUsedToday,

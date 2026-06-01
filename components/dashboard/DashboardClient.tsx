@@ -39,12 +39,10 @@ export interface PlanInfo {
 export function DashboardClient({
   initialSettings,
   configured,
-  usageCount,
   planInfo,
 }: {
   initialSettings: ScanSettings;
   configured: boolean;
-  usageCount: number;
   planInfo: PlanInfo;
 }) {
   const [settings, setSettings] = useState<ScanSettings>({
@@ -61,7 +59,24 @@ export function DashboardClient({
   const [marketHint, setMarketHint] = useState<string | null>(null);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const [scanUsage, setScanUsage] = useState(planInfo);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastScanNote, setLastScanNote] = useState<string | null>(null);
   const tickerTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const applyLatestScan = useCallback((json: {
+    signals?: ComputedSignal[];
+    ticker?: TickerItem[];
+    message?: string;
+    hasLatest?: boolean;
+  }) => {
+    if (json.signals?.length) {
+      setSignals(json.signals);
+      if (json.ticker?.length) setTicker(json.ticker);
+      setRestoreMessage(json.message || null);
+      return true;
+    }
+    return false;
+  }, []);
 
   const selectedPairs = useCallback(() => {
     try {
@@ -98,20 +113,33 @@ export function DashboardClient({
     }
   }, [selectedPairs, settings.liveUpdate]);
 
+  const reloadLastScan = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/signals/latest");
+      const json = await res.json();
+      if (applyLatestScan(json)) {
+        toast.success(json.message || "Last scan loaded");
+      } else {
+        toast.message(json.message || "No recent scan to reload");
+      }
+    } catch {
+      toast.error("Could not reload last scan");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [applyLatestScan]);
+
   useEffect(() => {
     fetch("/api/signals/latest")
       .then((r) => r.json())
       .then((json) => {
-        if (json.hasLatest && json.signals?.length) {
-          setSignals(json.signals);
-          if (json.ticker?.length) setTicker(json.ticker);
-          setRestoreMessage(json.message);
-          toast.message(json.message);
-        }
+        applyLatestScan(json);
       })
       .catch(() => {
         /* no latest scan */
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, []);
 
   useEffect(() => {
@@ -183,8 +211,10 @@ export function DashboardClient({
         setScanning(false);
         return;
       }
-      setSignals(json.signals || []);
+      const list = json.signals || [];
+      setSignals(list);
       if (json.ticker?.length) setTicker(json.ticker);
+      setMarketLive(Boolean(json.ticker?.length));
       if (json.usage) {
         setScanUsage({
           plan: json.usage.plan,
@@ -193,8 +223,21 @@ export function DashboardClient({
           dailyScanLimit: json.usage.dailyScanLimit,
         });
       }
+      setLastScanNote(
+        list.length === 0
+          ? json.message
+          : json.filteredSignalCount < json.rawSignalCount
+            ? `Showing ${list.length} setup(s). ${json.journalSaved ?? 0} saved to journal.`
+            : null
+      );
       setProgress(100);
-      toast.success(json.message || `Scan complete — ${json.signals?.length || 0} signals`);
+      if (json.journalSaved > 0) {
+        toast.success(json.message);
+      } else if (list.length > 0) {
+        toast.success(`Scan complete — ${list.length} setup(s) on screen`);
+      } else {
+        toast.message(json.message || "Scan finished — adjust filters or check market data");
+      }
     } catch {
       toast.error("Scan request failed");
     } finally {
@@ -205,7 +248,7 @@ export function DashboardClient({
 
   return (
     <>
-      <Topbar usageCount={usageCount} />
+      <Topbar scansToday={scanUsage.scansUsedToday} live={marketLive} />
       <div className="wrap z">
         <RiskDisclaimerBanner />
         <div className="disclaimer-banner" style={{ marginBottom: 10 }}>
@@ -228,9 +271,22 @@ export function DashboardClient({
           settings={settings}
           onChange={(p) => setSettings((s) => ({ ...s, ...p }))}
           onScan={runScan}
+          onRefreshPrices={async () => {
+            setRefreshing(true);
+            await refreshTicker();
+            setRefreshing(false);
+            toast.success("Prices refreshed");
+          }}
+          onReloadLastScan={reloadLastScan}
           scanning={scanning}
+          refreshing={refreshing}
           progress={progress}
         />
+        {lastScanNote && !restoreMessage && (
+          <div className="disclaimer-banner" style={{ borderColor: "var(--gold)", color: "var(--gold2)" }}>
+            {lastScanNote}
+          </div>
+        )}
         {restoreMessage && (
           <div className="disclaimer-banner" style={{ borderColor: "var(--blue)", color: "var(--blue2)" }}>
             {restoreMessage}

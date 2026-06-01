@@ -13,9 +13,73 @@ import { getCandlesCached } from "@/lib/market/cachedCandles";
 import { buildTickerForPairs } from "@/lib/market/tickerService";
 import { computeSignal, filterSignals } from "@/lib/signal-engine";
 import type { JournalHistoryRow } from "@/lib/signal-engine/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
+
+function signalRow(userId: string, scanSessionId: string, sig: ComputedSignal) {
+  return {
+    user_id: userId,
+    scan_session_id: scanSessionId,
+    signal_uid: sig.signalUid,
+    pair: sig.pair,
+    timeframe: sig.tf,
+    expiry_minutes: sig.expMin,
+    direction: sig.direction,
+    grade: sig.grade,
+    confidence: sig.conf,
+    score: sig.score,
+    score_gap: sig.scoreGap,
+    weighted_score: sig.weightedScore,
+    opposite_score: sig.oppositeScore,
+    signal_type: sig.signalType,
+    signal_reason: sig.signalReason,
+    trade_eligible: sig.tradeEligible,
+    mode: sig.mode,
+    entry_time: sig.entryTime,
+    entry_price: parseFloat(sig.price),
+    expiry_time: sig.expTime,
+    adx: sig.adx,
+    atr: parseFloat(sig.atr) || null,
+    rsi: parseFloat(sig.rsi) || null,
+    stoch: parseFloat(sig.stoch) || null,
+    cci: parseFloat(sig.cci) || null,
+    bb: sig.bb,
+    macd_hist: parseFloat(sig.macdH) || null,
+    ema_wma_bias: sig.emaWmaBias,
+    market_structure: sig.marketStructure.trend,
+    candle_body_ratio: sig.candleBodyRatio,
+    candle_strength: sig.candleStrengthText,
+    live_rank: sig.liveRank || null,
+    raw_payload: sig,
+  };
+}
+
+function journalRow(userId: string, signalId: string | null, sig: ComputedSignal) {
+  return {
+    user_id: userId,
+    signal_id: signalId,
+    signal_uid: sig.signalUid,
+    pair: sig.pair,
+    timeframe: sig.tf,
+    direction: sig.direction,
+    grade: sig.grade,
+    confidence: sig.conf,
+    score: sig.score,
+    signal_type: sig.signalType,
+    signal_reason: sig.signalReason,
+    trade_eligible: sig.tradeEligible,
+    signal_entry_time: sig.entryTime,
+    signal_entry_price: parseFloat(sig.price),
+    expiry_time: sig.expTime,
+    expiry_minutes: sig.expMin,
+    result: "Pending",
+    result_source: "Unverified",
+    entry_status: "Pending",
+  };
+}
 
 export async function POST(request: Request) {
   try {
@@ -128,19 +192,26 @@ export async function POST(request: Request) {
 
     let providerCalls = 0;
     let cacheHits = 0;
-    const rawSignals = [];
+    const rawSignals: ComputedSignal[] = [];
+    const marketErrors: string[] = [];
 
     for (const pair of pairs) {
       for (const tf of timeframes) {
-        const candleResult = await getCandlesCached(pair, tf, 150);
-        if (candleResult.providerCall) providerCalls++;
-        if (candleResult.cacheHit) cacheHits++;
-        const sig = computeSignal(candleResult.candles, pair, tf, mode, history);
-        if (sig) rawSignals.push(sig);
+        try {
+          const candleResult = await getCandlesCached(pair, tf, 150);
+          if (candleResult.providerCall) providerCalls++;
+          if (candleResult.cacheHit) cacheHits++;
+          const sig = computeSignal(candleResult.candles, pair, tf, mode, history);
+          if (sig) rawSignals.push(sig);
+        } catch (e) {
+          marketErrors.push(
+            `${pair} ${tf}: ${e instanceof Error ? e.message : "no market data"}`
+          );
+        }
       }
     }
 
-    const signals = filterSignals(rawSignals, {
+    const filteredSignals = filterSignals(rawSignals, {
       pairs,
       timeframes,
       mode,
@@ -149,80 +220,50 @@ export async function POST(request: Request) {
       sessionFilter,
     });
 
-    for (const sig of signals) {
-      const { data: savedSignal } = await supabase
+    const toPersist =
+      filteredSignals.length > 0
+        ? filteredSignals
+        : mode === "practice" && rawSignals.length > 0
+          ? rawSignals
+          : [];
+
+    const toDisplay =
+      filteredSignals.length > 0
+        ? filteredSignals
+        : rawSignals.length > 0
+          ? rawSignals
+          : [];
+
+    const admin =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : null;
+    let journalSaved = 0;
+
+    for (const sig of toPersist) {
+      const writer = admin ?? supabase;
+      const { data: savedSignal, error: sigErr } = await writer
         .from("signals")
-        .upsert(
-          {
-            user_id: auth!.user.id,
-            scan_session_id: scanSession.id,
-            signal_uid: sig.signalUid,
-            pair: sig.pair,
-            timeframe: sig.tf,
-            expiry_minutes: sig.expMin,
-            direction: sig.direction,
-            grade: sig.grade,
-            confidence: sig.conf,
-            score: sig.score,
-            score_gap: sig.scoreGap,
-            weighted_score: sig.weightedScore,
-            opposite_score: sig.oppositeScore,
-            signal_type: sig.signalType,
-            signal_reason: sig.signalReason,
-            trade_eligible: sig.tradeEligible,
-            mode: sig.mode,
-            entry_time: sig.entryTime,
-            entry_price: parseFloat(sig.price),
-            expiry_time: sig.expTime,
-            adx: sig.adx,
-            atr: parseFloat(sig.atr) || null,
-            rsi: parseFloat(sig.rsi) || null,
-            stoch: parseFloat(sig.stoch) || null,
-            cci: parseFloat(sig.cci) || null,
-            bb: sig.bb,
-            macd_hist: parseFloat(sig.macdH) || null,
-            ema_wma_bias: sig.emaWmaBias,
-            market_structure: sig.marketStructure.trend,
-            candle_body_ratio: sig.candleBodyRatio,
-            candle_strength: sig.candleStrengthText,
-            live_rank: sig.liveRank || null,
-            raw_payload: sig,
-          },
-          { onConflict: "user_id,signal_uid" }
-        )
+        .upsert(signalRow(auth!.user.id, scanSession.id, sig), {
+          onConflict: "user_id,signal_uid",
+        })
         .select("id")
         .single();
 
-      await supabase.from("trade_journal").upsert(
-        {
-          user_id: auth!.user.id,
-          signal_id: savedSignal?.id || null,
-          signal_uid: sig.signalUid,
-          pair: sig.pair,
-          timeframe: sig.tf,
-          direction: sig.direction,
-          grade: sig.grade,
-          confidence: sig.conf,
-          score: sig.score,
-          signal_type: sig.signalType,
-          signal_reason: sig.signalReason,
-          trade_eligible: sig.tradeEligible,
-          signal_entry_time: sig.entryTime,
-          signal_entry_price: parseFloat(sig.price),
-          expiry_time: sig.expTime,
-          expiry_minutes: sig.expMin,
-          result: "Pending",
-          result_source: "Unverified",
-          entry_status: "Pending",
-        },
-        { onConflict: "user_id,signal_uid", ignoreDuplicates: true }
+      if (sigErr) continue;
+
+      const { error: journalErr } = await writer.from("trade_journal").upsert(
+        journalRow(auth!.user.id, savedSignal?.id || null, sig),
+        { onConflict: "user_id,signal_uid" }
       );
+
+      if (!journalErr) journalSaved++;
     }
+
+    const signals = toDisplay;
 
     await supabase
       .from("scan_sessions")
       .update({
-        total_signals: signals.length,
+        total_signals: filteredSignals.length || rawSignals.length,
         provider_calls: providerCalls,
         cache_hits: cacheHits,
         status: "completed",
@@ -240,7 +281,10 @@ export async function POST(request: Request) {
       metadata: {
         pairs,
         timeframes,
-        signalCount: signals.length,
+        signalCount: filteredSignals.length,
+        rawSignalCount: rawSignals.length,
+        journalSaved,
+        marketErrors,
         scanSessionId: scanSession.id,
         plan,
       },
@@ -266,7 +310,18 @@ export async function POST(request: Request) {
       },
       planLimits,
       lockedPairs: getLockedPairs(plan),
-      message: "Scan complete. Signals saved to your journal.",
+      rawSignalCount: rawSignals.length,
+      filteredSignalCount: filteredSignals.length,
+      journalSaved,
+      marketErrors,
+      message:
+        journalSaved > 0
+          ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
+          : marketErrors.length > 0
+            ? `Scan finished but no market data: ${marketErrors[0]}`
+            : rawSignals.length === 0
+              ? "Scan complete — no setups found. Try another session filter or lower min score."
+              : "Scan complete — setups found but none matched your filters. Lower min score or enable B signals.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Scan failed";

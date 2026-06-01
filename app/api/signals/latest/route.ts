@@ -37,9 +37,21 @@ export async function GET() {
       .eq("user_id", auth!.user.id)
       .eq("scan_session_id", session.id);
 
-    const signals = (rows || [])
+    let signals = (rows || [])
       .map((r) => r.raw_payload as ComputedSignal | null)
       .filter(Boolean) as ComputedSignal[];
+
+    if (!signals.length) {
+      const { data: fallback } = await supabase
+        .from("signals")
+        .select("raw_payload")
+        .eq("user_id", auth!.user.id)
+        .order("created_at", { ascending: false })
+        .limit(24);
+      signals = (fallback || [])
+        .map((r) => r.raw_payload as ComputedSignal | null)
+        .filter(Boolean) as ComputedSignal[];
+    }
 
     const profile = await getProfileByUserId(auth!.user.id);
     const plan = getUserPlan(profile);
@@ -47,6 +59,14 @@ export async function GET() {
     const tickerResult = await buildTickerForPairs(session.pairs as string[], plan, {
       fromLatestScan: scanTicker,
     });
+
+    if (!signals.length) {
+      return NextResponse.json({
+        ok: true,
+        hasLatest: false,
+        message: "Scan session found but no signals stored yet. Run SCAN MARKET again.",
+      });
+    }
 
     return NextResponse.json({
       ok: true,

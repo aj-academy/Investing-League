@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-export function Topbar({ usageCount = 0 }: { usageCount?: number }) {
+export function Topbar({
+  scansToday = 0,
+  live,
+}: {
+  scansToday?: number;
+  live?: boolean;
+}) {
   const [time, setTime] = useState("");
   const [countdown, setCountdown] = useState("");
-  const [live, setLive] = useState(false);
+  const [liveState, setLiveState] = useState(false);
   const router = useRouter();
+  const isLive = live !== undefined ? live : liveState;
 
   useEffect(() => {
     const tick = () => {
@@ -28,10 +35,11 @@ export function Topbar({ usageCount = 0 }: { usageCount?: number }) {
   }, []);
 
   useEffect(() => {
+    if (live !== undefined) return;
     fetch("/api/market/ticker")
-      .then((r) => setLive(r.ok))
-      .catch(() => setLive(false));
-  }, []);
+      .then((r) => setLiveState(r.ok))
+      .catch(() => setLiveState(false));
+  }, [live]);
 
   const logout = async () => {
     const supabase = createClient();
@@ -55,11 +63,11 @@ export function Topbar({ usageCount = 0 }: { usageCount?: number }) {
         <span className="clk">{time}</span>
         {countdown && <span className="countdown-box">{countdown}</span>}
         <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--m3)" }}>
-          Scans: {usageCount}
+          Scans today: {scansToday}
         </span>
-        <div className={`pill ${live ? "on" : "off"}`}>
-          <span className={`dot ${live ? "on" : "off"}`} />
-          <span>{live ? "LIVE" : "OFFLINE"}</span>
+        <div className={`pill ${isLive ? "on" : "off"}`}>
+          <span className={`dot ${isLive ? "on" : "off"}`} />
+          <span>{isLive ? "LIVE" : "OFFLINE"}</span>
         </div>
         <button type="button" className="btn-sm" style={{ background: "var(--p2)", border: "1px solid var(--bd2)", color: "var(--txt)" }} onClick={logout}>
           Logout
