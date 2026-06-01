@@ -9,10 +9,8 @@ import {
 } from "@/lib/billing/planLimits";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { toast } from "sonner";
-import { DataProviderStatus } from "./DataProviderStatus";
 import { LoadingScanner } from "./LoadingScanner";
 import { MarketTicker } from "./MarketTicker";
-import { RiskDisclaimerBanner } from "./RiskDisclaimerBanner";
 import { ScannerControls } from "./ScannerControls";
 import { SessionPills } from "./SessionPills";
 import { SignalCard } from "./SignalCard";
@@ -49,11 +47,9 @@ export interface PlanInfo {
 
 export function DashboardClient({
   initialSettings,
-  configured,
   planInfo,
 }: {
   initialSettings: ScanSettings;
-  configured: boolean;
   planInfo: PlanInfo;
 }) {
   const [settings, setSettings] = useState<ScanSettings>({
@@ -71,7 +67,6 @@ export function DashboardClient({
   const [loaderText, setLoaderText] = useState("SCANNING");
   const [loaderSub, setLoaderSub] = useState("");
   const [marketLive, setMarketLive] = useState(false);
-  const [marketHint, setMarketHint] = useState<string | null>(null);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const [scanUsage, setScanUsage] = useState(planInfo);
   const [refreshing, setRefreshing] = useState(false);
@@ -181,12 +176,6 @@ export function DashboardClient({
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, []);
-
-  useEffect(() => {
-    if (!configured) {
-      setMarketHint("Add TWELVE_DATA_API_KEY in Vercel environment variables.");
-    }
-  }, [configured]);
 
   useEffect(() => {
     return () => clearAutoSchedule();
@@ -326,13 +315,6 @@ export function DashboardClient({
         timeZoneLabel={tzLabel}
       />
       <div className="wrap z">
-        <RiskDisclaimerBanner />
-        <div className="disclaimer-banner" style={{ marginBottom: 10 }}>
-          <strong>SCAN MARKET</strong> runs the V4 signal engine on live candle data.{" "}
-          <strong>AUTO REFRESH</strong> re-runs the same engine on a timer (like the HTML template)
-          and updates signals in real time.
-        </div>
-        <DataProviderStatus configured={configured} live={marketLive} hint={marketHint} />
         <MarketTicker items={ticker} />
         <ScannerControls
           plan={planInfo.plan}

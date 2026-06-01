@@ -41,7 +41,6 @@ export default async function DashboardPage() {
     <ProtectedShell isAdmin={auth.isAdmin}>
       <DashboardClient
         initialSettings={initialSettings}
-        configured={!!process.env.TWELVE_DATA_API_KEY}
         planInfo={{
           plan,
           scansUsedToday: scanQuota.scansUsedToday,
