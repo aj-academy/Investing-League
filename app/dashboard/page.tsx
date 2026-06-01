@@ -3,7 +3,7 @@ import { ProtectedShell } from "@/components/layout/ProtectedShell";
 import { getAuthContext } from "@/lib/auth/session";
 import { getProfileByUserId } from "@/lib/auth/profile";
 import { canScanToday } from "@/lib/billing/scanUsage";
-import { defaultLiveUpdateForPlan, getUserPlan } from "@/lib/billing/planLimits";
+import { getUserPlan, normalizeAutoRefresh } from "@/lib/billing/planLimits";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -28,7 +28,12 @@ export default async function DashboardPage() {
     minScore: settings?.default_min_score || 5,
     showB: settings?.show_b_signals ?? true,
     session: "any",
-    liveUpdate: defaultLiveUpdateForPlan(plan),
+    autoRefresh: normalizeAutoRefresh(
+      settings?.auto_refresh_seconds != null
+        ? Number(settings.auto_refresh_seconds)
+        : "off",
+      plan
+    ),
     mode: (settings?.default_mode as "practice" | "live") || "practice",
   };
 

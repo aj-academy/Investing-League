@@ -144,10 +144,10 @@ export function SettingsForm({
             : limits.allowedTimeframes.join(", ")}
         </div>
         <div>
-          <strong style={{ color: "var(--txt2)" }}>Live update:</strong>{" "}
-          {limits.liveUpdateMode === "cached_only"
-            ? "Cached only"
-            : `Quote polling every ${limits.quoteRefreshSeconds}s`}
+          <strong style={{ color: "var(--txt2)" }}>Auto refresh:</strong>{" "}
+          {limits.allowAutoScan
+            ? "Available on Scanner (Off / 60s / 180s / 30s by plan)"
+            : "Not available on this plan"}
         </div>
         <p style={{ marginTop: 8, fontSize: 10 }}>
           Stripe billing integration coming soon. Admins can change plans from the Admin page.

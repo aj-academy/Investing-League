@@ -102,21 +102,24 @@ export async function POST(request: Request) {
       );
     }
 
+    const body = await request.json();
+    const isAuto = Boolean(body.auto);
+
     const scanQuota = await canScanToday(auth!.user.id, plan);
     if (!scanQuota.allowed) {
       return NextResponse.json(
         {
           ok: false,
           code: "DAILY_SCAN_LIMIT",
-          message: "You have reached your daily scan limit. Try again tomorrow or upgrade your plan.",
+          message: isAuto
+            ? "Daily scan limit reached — auto refresh paused. Upgrade or try again tomorrow."
+            : "You have reached your daily scan limit. Try again tomorrow or upgrade your plan.",
           scansUsedToday: scanQuota.scansUsedToday,
           dailyScanLimit: scanQuota.dailyScanLimit,
         },
         { status: 429 }
       );
     }
-
-    const body = await request.json();
     let pairs: string[] = body.pairs?.length ? body.pairs : [...planLimits.allowedPairs];
     let timeframes: string[] = body.timeframes?.length ? body.timeframes : ["5min"];
     const mode = body.mode === "live" ? "live" : "practice";
@@ -315,6 +318,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
+      auto: isAuto,
       scanSessionId: scanSession.id,
       signals,
       ticker: tickerResult.items,

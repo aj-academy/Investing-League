@@ -9,9 +9,11 @@ type MarketPill = "live" | "cached" | "offline";
 export function Topbar({
   scansToday = 0,
   live,
+  countdown = 0,
 }: {
   scansToday?: number;
   live?: boolean;
+  countdown?: number;
 }) {
   const [time, setTime] = useState("");
   const [pill, setPill] = useState<MarketPill>("cached");
@@ -43,13 +45,11 @@ export function Topbar({
       fetch("/api/market/status")
         .then((r) => r.json())
         .then((json) => {
-          if (!json.ok) {
+          if (!json.ok || !json.configured) {
             setPill("offline");
             return;
           }
-          if (json.canPollLive) setPill("cached");
-          else if (json.configured) setPill("cached");
-          else setPill("offline");
+          setPill("cached");
         })
         .catch(() => setPill("offline"));
       return;
@@ -69,7 +69,7 @@ export function Topbar({
 
   const pillLabel =
     pill === "live" ? "LIVE" : pill === "cached" ? "CACHED" : "OFFLINE";
-  const pillOn = pill === "live";
+  const pillOn = pill === "live" || countdown > 0;
 
   const logout = async () => {
     const supabase = createClient();
@@ -91,10 +91,21 @@ export function Topbar({
       </div>
       <div className="hdr-r">
         <span className="clk">{time}</span>
+        {countdown > 0 && (
+          <span
+            className="countdown-box"
+            style={{
+              borderColor: countdown <= 5 ? "rgba(0,214,143,.35)" : "rgba(240,160,32,.35)",
+              color: countdown <= 5 ? "var(--bull)" : "var(--gold2)",
+            }}
+          >
+            {countdown <= 0 ? "REFRESHING..." : `REFRESH IN ${countdown}s`}
+          </span>
+        )}
         <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--m3)" }}>
           Scans today: {scansToday}
         </span>
-        <div className={`pill ${pillOn ? "on" : "off"}`} title="Market data mode (not an error)">
+        <div className={`pill ${pillOn ? "on" : "off"}`} title="Live signal engine active when scanning">
           <span className={`dot ${pillOn ? "on" : "off"}`} />
           <span>{pillLabel}</span>
         </div>

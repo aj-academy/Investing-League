@@ -2,21 +2,20 @@
 
 import {
   ALL_PAIRS,
+  autoRefreshOptionsForPlan,
   getLockedPairs,
   getPlanLimits,
-  liveUpdateOptionsForPlan,
   planAllowsTimeframe,
-  type LiveUpdateOption,
+  type AutoRefreshOption,
   type PlanName,
 } from "@/lib/billing/planLimits";
 import type { ScanSettings } from "./DashboardClient";
 
-const LIVE_LABELS: Record<LiveUpdateOption, string> = {
+const AUTO_REFRESH_LABELS: Record<AutoRefreshOption, string> = {
   off: "Off",
-  cached_only: "Cached Only",
-  "180": "Price Update every 180s",
-  "60": "Price Update every 60s",
-  "30": "Price Update every 30s",
+  "180": "Every 180 sec",
+  "60": "Every 60 sec",
+  "30": "Every 30 sec",
 };
 
 export function ScannerControls({
@@ -42,7 +41,7 @@ export function ScannerControls({
 }) {
   const limits = getPlanLimits(plan);
   const locked = new Set(getLockedPairs(plan));
-  const liveOptions = liveUpdateOptionsForPlan(plan);
+  const autoRefreshOptions = autoRefreshOptionsForPlan(plan);
   const can15 = planAllowsTimeframe(plan, "15min");
   const canBoth = limits.allowBothTimeframes;
 
@@ -116,16 +115,16 @@ export function ScannerControls({
           </select>
         </div>
         <div className="f">
-          <label title="Live Price Update refreshes market prices only. It does not run the signal engine or create journal records. New signals are generated only when you click SCAN MARKET.">
-            Live Price Update
+          <label title="Like the HTML template: re-runs the V4 signal engine on a timer and updates live setups. Each refresh counts toward your daily scan limit.">
+            Auto Refresh
           </label>
           <select
-            value={settings.liveUpdate}
-            onChange={(e) => onChange({ liveUpdate: e.target.value as LiveUpdateOption })}
+            value={settings.autoRefresh}
+            onChange={(e) => onChange({ autoRefresh: e.target.value as AutoRefreshOption })}
           >
-            {liveOptions.map((opt) => (
+            {autoRefreshOptions.map((opt) => (
               <option key={opt} value={opt}>
-                {LIVE_LABELS[opt]}
+                {AUTO_REFRESH_LABELS[opt]}
               </option>
             ))}
           </select>
@@ -154,9 +153,9 @@ export function ScannerControls({
             style={{ background: "var(--p2)", borderColor: "var(--bd2)", color: "var(--txt2)" }}
             disabled={scanning || refreshing}
             onClick={onRefreshPrices}
-            title="Refresh ticker prices only (no new signals)"
+            title="Run one signal scan now (same as SCAN MARKET)"
           >
-            {refreshing ? "..." : "↻ REFRESH PRICES"}
+            {refreshing ? "..." : "↻ REFRESH NOW"}
           </button>
         </div>
         <div className="f">

@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LiveUpdateOption } from "@/lib/billing/planLimits";
-import type { PlanName } from "@/lib/billing/planLimits";
-import { defaultLiveUpdateForPlan, pairsForAssetSelection } from "@/lib/billing/planLimits";
+import type { AutoRefreshOption, PlanName } from "@/lib/billing/planLimits";
+import {
+  autoRefreshToSeconds,
+  normalizeAutoRefresh,
+  pairsForAssetSelection,
+} from "@/lib/billing/planLimits";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { toast } from "sonner";
 import { DataProviderStatus } from "./DataProviderStatus";
@@ -26,7 +29,7 @@ export interface ScanSettings {
   minScore: number;
   showB: boolean;
   session: string;
-  liveUpdate: LiveUpdateOption;
+  autoRefresh: AutoRefreshOption;
   mode: "practice" | "live";
 }
 
@@ -48,7 +51,11 @@ export function DashboardClient({
 }) {
   const [settings, setSettings] = useState<ScanSettings>({
     ...initialSettings,
-    liveUpdate: initialSettings.liveUpdate || defaultLiveUpdateForPlan(planInfo.plan),
+    autoRefresh: normalizeAutoRefresh(
+      (initialSettings as ScanSettings & { liveUpdate?: string }).liveUpdate ??
+        initialSettings.autoRefresh,
+      planInfo.plan
+    ),
   });
   const [signals, setSignals] = useState<ComputedSignal[]>([]);
   const [ticker, setTicker] = useState<TickerItem[]>([]);
@@ -62,7 +69,11 @@ export function DashboardClient({
   const [scanUsage, setScanUsage] = useState(planInfo);
   const [refreshing, setRefreshing] = useState(false);
   const [lastScanNote, setLastScanNote] = useState<string | null>(null);
-  const tickerTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [autoScanning, setAutoScanning] = useState(false);
+  const autoScanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const runScanRef = useRef<(opts?: { auto?: boolean }) => Promise<void>>(async () => {});
 
   const applyLatestScan = useCallback((json: {
     signals?: ComputedSignal[];
@@ -87,37 +98,31 @@ export function DashboardClient({
     }
   }, [planInfo.plan, settings.asset]);
 
-  const refreshTicker = useCallback(async (): Promise<number> => {
-    const pairs = selectedPairs();
-    if (!pairs.length) return 0;
-    if (settings.liveUpdate === "off" || settings.liveUpdate === "cached_only") return 0;
+  const clearAutoSchedule = useCallback(() => {
+    if (autoScanTimerRef.current) clearTimeout(autoScanTimerRef.current);
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    autoScanTimerRef.current = null;
+    countdownTimerRef.current = null;
+    setCountdown(0);
+  }, []);
 
-    try {
-      const res = await fetch("/api/market/ticker", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pairs }),
-      });
-      const json = await res.json();
-      if (json.items?.length) {
-        setTicker(json.items);
-        setMarketLive(true);
-        setMarketHint(null);
-        return json.items.length;
-      }
-      if (json.empty) {
-        setMarketHint(json.message || "No cached prices yet — run SCAN MARKET first.");
-      } else {
-        setMarketHint(json.error || json.message || "Market data unavailable");
-      }
-      setMarketLive(false);
-      return 0;
-    } catch {
-      setMarketHint("Could not load market data.");
-      setMarketLive(false);
-      return 0;
-    }
-  }, [selectedPairs, settings.liveUpdate]);
+  const scheduleAutoScan = useCallback(
+    (seconds: number) => {
+      clearAutoSchedule();
+      if (seconds <= 0) return;
+
+      setCountdown(seconds);
+      countdownTimerRef.current = setInterval(() => {
+        setCountdown((c) => (c <= 1 ? 0 : c - 1));
+      }, 1000);
+
+      autoScanTimerRef.current = setTimeout(() => {
+        clearAutoSchedule();
+        void runScanRef.current({ auto: true });
+      }, seconds * 1000);
+    },
+    [clearAutoSchedule]
+  );
 
   const reloadLastScan = useCallback(async () => {
     setRefreshing(true);
@@ -171,41 +176,37 @@ export function DashboardClient({
   useEffect(() => {
     if (!configured) {
       setMarketHint("Add TWELVE_DATA_API_KEY in Vercel environment variables.");
-      return;
     }
-    if (settings.liveUpdate === "off") return;
-    refreshTicker();
-  }, [configured, settings.liveUpdate, refreshTicker]);
+  }, [configured]);
 
   useEffect(() => {
-    if (tickerTimerRef.current) clearInterval(tickerTimerRef.current);
-    const sec =
-      settings.liveUpdate === "cached_only" || settings.liveUpdate === "off"
-        ? 0
-        : Number(settings.liveUpdate);
-    if (sec > 0) {
-      tickerTimerRef.current = setInterval(refreshTicker, sec * 1000);
-    }
-    return () => {
-      if (tickerTimerRef.current) clearInterval(tickerTimerRef.current);
-    };
-  }, [settings.liveUpdate, refreshTicker]);
+    return () => clearAutoSchedule();
+  }, [clearAutoSchedule]);
 
-  const runScan = useCallback(async () => {
-    if (scanning) return;
-    setScanning(true);
-    setProgress(0);
-    setSignals([]);
-    setRestoreMessage(null);
-    setLoaderText("V4 SCANNING");
-    setLoaderSub("Running decision-support engine...");
+  const runScan = useCallback(async (opts?: { auto?: boolean }) => {
+    const isAuto = Boolean(opts?.auto);
+    if (scanning || autoScanning) return;
+
+    if (isAuto) {
+      setAutoScanning(true);
+      setLoaderText("AUTO REFRESH");
+      setLoaderSub("Updating live market setups...");
+    } else {
+      setScanning(true);
+      setProgress(0);
+      setSignals([]);
+      setRestoreMessage(null);
+      setLoaderText("V4 SCANNING");
+      setLoaderSub("Running decision-support engine...");
+    }
 
     let pairs: string[];
     try {
       pairs = pairsForAssetSelection(planInfo.plan, settings.asset);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Pair not allowed on your plan");
-      setScanning(false);
+      if (isAuto) setAutoScanning(false);
+      else setScanning(false);
       return;
     }
 
@@ -223,6 +224,7 @@ export function DashboardClient({
           minScore: settings.minScore,
           showBSignals: settings.showB,
           sessionFilter: settings.session,
+          auto: isAuto,
         }),
       });
       const json = await res.json();
@@ -231,10 +233,15 @@ export function DashboardClient({
           toast.error(json.message || "Plan limit reached");
         } else if (json.code === "DAILY_SCAN_LIMIT") {
           toast.error(json.message || "Daily scan limit reached");
+          if (isAuto) {
+            clearAutoSchedule();
+            setSettings((s) => ({ ...s, autoRefresh: "off" }));
+          }
         } else {
           toast.error(json.error || json.message || "Scan failed");
         }
-        setScanning(false);
+        if (isAuto) setAutoScanning(false);
+        else setScanning(false);
         return;
       }
       const list = json.signals || [];
@@ -265,34 +272,54 @@ export function DashboardClient({
             : null
       );
       setProgress(100);
-      if (json.journalSaved > 0) {
-        toast.success(json.message);
-      } else if (list.length > 0 && json.persistErrors?.length) {
-        toast.error(json.message || "Setups shown but could not save — check server config.");
-      } else if (list.length > 0) {
-        toast.success(`Scan complete — ${list.length} setup(s) on screen`);
-      } else {
-        toast.message(json.message || "Scan finished — adjust filters or check market data");
+      if (!isAuto) {
+        if (json.journalSaved > 0) {
+          toast.success(json.message);
+        } else if (list.length > 0 && json.persistErrors?.length) {
+          toast.error(json.message || "Setups shown but could not save — check server config.");
+        } else if (list.length > 0) {
+          toast.success(`Scan complete — ${list.length} setup(s) on screen`);
+        } else {
+          toast.message(json.message || "Scan finished — adjust filters or check market data");
+        }
       }
+
+      const intervalSec = autoRefreshToSeconds(settings.autoRefresh);
+      scheduleAutoScan(intervalSec);
     } catch {
-      toast.error("Scan request failed");
+      if (!isAuto) toast.error("Scan request failed");
     } finally {
-      setScanning(false);
-      setTimeout(() => setProgress(0), 1000);
+      if (isAuto) setAutoScanning(false);
+      else {
+        setScanning(false);
+        setTimeout(() => setProgress(0), 1000);
+      }
     }
-  }, [scanning, settings, planInfo.plan]);
+  }, [
+    scanning,
+    autoScanning,
+    settings,
+    planInfo.plan,
+    clearAutoSchedule,
+    scheduleAutoScan,
+  ]);
+
+  runScanRef.current = runScan;
 
   return (
     <>
-      <Topbar scansToday={scanUsage.scansUsedToday} live={marketLive} />
+      <Topbar
+        scansToday={scanUsage.scansUsedToday}
+        live={marketLive || autoScanning || scanning}
+        countdown={countdown}
+      />
       <div className="wrap z">
         <RiskDisclaimerBanner />
         <div className="disclaimer-banner" style={{ marginBottom: 10 }}>
-          <strong>SCAN MARKET</strong> generates a new signal decision using candle data and saves
-          it to your journal. <strong>LIVE PRICE UPDATE</strong> only refreshes visible market
-          prices — it does not run the signal engine or create journal entries. Your plan controls
-          how many pairs and timeframes you can scan. Market data is shared through secure server
-          cache to reduce unnecessary provider usage.
+          <strong>SCAN MARKET</strong> runs the V4 signal engine on live candle data.{" "}
+          <strong>AUTO REFRESH</strong> re-runs the same engine on a timer (like the HTML template)
+          and updates signals in real time — each refresh counts toward your daily scan limit.
+          Your plan controls pairs, timeframes, and refresh interval.
         </div>
         <PlanUsageCard
           plan={scanUsage.plan}
@@ -306,20 +333,14 @@ export function DashboardClient({
           plan={planInfo.plan}
           settings={settings}
           onChange={(p) => setSettings((s) => ({ ...s, ...p }))}
-          onScan={runScan}
+          onScan={() => runScan()}
           onRefreshPrices={async () => {
-            if (settings.liveUpdate === "cached_only") {
-              toast.message("Cached Only — run SCAN MARKET to refresh prices and signals.");
-              return;
-            }
             setRefreshing(true);
-            const n = await refreshTicker();
+            await runScan();
             setRefreshing(false);
-            if (n > 0) toast.success("Prices refreshed");
-            else toast.message("No live prices — run SCAN MARKET or upgrade plan interval.");
           }}
           onReloadLastScan={reloadLastScan}
-          scanning={scanning}
+          scanning={scanning || autoScanning}
           refreshing={refreshing}
           progress={progress}
         />
@@ -340,7 +361,11 @@ export function DashboardClient({
         </div>
         <SessionPills />
         <StatsRow signals={signals} mode={settings.mode} visible={!!signals.length} />
-        <LoadingScanner active={scanning} title={loaderText} sub={loaderSub} />
+        <LoadingScanner
+          active={scanning || autoScanning}
+          title={loaderText}
+          sub={loaderSub}
+        />
         <div className="sg">
           {!scanning && !signals.length ? (
             <div className="empty">

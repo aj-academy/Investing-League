@@ -23,7 +23,7 @@ export const PLAN_LIMITS = {
     dailyScanLimit: 10,
     liveUpdateMode: "cached_only" as const,
     quoteRefreshSeconds: 0,
-    allowAutoScan: false,
+    allowAutoScan: true,
   },
   starter: {
     label: "Starter",
@@ -34,7 +34,7 @@ export const PLAN_LIMITS = {
     dailyScanLimit: 30,
     liveUpdateMode: "quote_polling" as const,
     quoteRefreshSeconds: 180,
-    allowAutoScan: false,
+    allowAutoScan: true,
   },
   pro: {
     label: "Pro",
@@ -45,7 +45,7 @@ export const PLAN_LIMITS = {
     dailyScanLimit: 100,
     liveUpdateMode: "quote_polling" as const,
     quoteRefreshSeconds: 60,
-    allowAutoScan: false,
+    allowAutoScan: true,
   },
   admin: {
     label: "Admin",
@@ -174,5 +174,51 @@ export function defaultLiveUpdateForPlan(plan: PlanName): LiveUpdateOption {
   if (limits.quoteRefreshSeconds >= 180) return "180";
   if (limits.quoteRefreshSeconds >= 60) return "60";
   if (limits.quoteRefreshSeconds >= 30) return "30";
+  return "off";
+}
+
+/** HTML-style auto refresh: re-runs full signal engine on an interval. */
+export type AutoRefreshOption = "off" | "60" | "180" | "30";
+
+export function autoRefreshOptionsForPlan(plan: PlanName): AutoRefreshOption[] {
+  switch (plan) {
+    case "free":
+      return ["off", "60"];
+    case "starter":
+      return ["off", "180", "60"];
+    case "pro":
+      return ["off", "180", "60", "30"];
+    case "admin":
+      return ["off", "180", "60", "30"];
+    default:
+      return ["off", "60"];
+  }
+}
+
+export function autoRefreshToSeconds(option: AutoRefreshOption): number {
+  if (option === "off") return 0;
+  return Number(option);
+}
+
+export function defaultAutoRefreshForPlan(plan: PlanName): AutoRefreshOption {
+  return autoRefreshOptionsForPlan(plan).includes("60") ? "60" : "off";
+}
+
+/** Map legacy liveUpdate values from older sessions. */
+export function normalizeAutoRefresh(
+  value: string | number | undefined,
+  plan: PlanName
+): AutoRefreshOption {
+  const allowed = new Set(autoRefreshOptionsForPlan(plan));
+  if (value === "60" || value === "180" || value === "30") {
+    return allowed.has(value) ? value : "off";
+  }
+  if (value === "cached_only" || value === "off" || value === undefined || value === "") {
+    return "off";
+  }
+  const n = Number(value);
+  if (n === 60 && allowed.has("60")) return "60";
+  if (n === 180 && allowed.has("180")) return "180";
+  if (n === 30 && allowed.has("30")) return "30";
   return "off";
 }
