@@ -193,9 +193,10 @@ trading/
 │   ├── schema.sql                    # Tables + signup trigger
 │   ├── rls.sql                       # RLS policies
 │   └── migrations/
-│       ├── 20260530_auth_trigger_disclaimer.sql
-│       ├── 20260530_fix_missing_profiles.sql
-│       └── 20260531_profiles_rls_insert.sql
+│       ├── auth_trigger_disclaimer.sql
+│       ├── fix_missing_profiles.sql
+│       ├── profiles_rls_insert.sql
+│       └── subscription_plans.sql
 │
 ├── docs/
 │   └── PROJECT_OVERVIEW.md           # This file
@@ -790,7 +791,7 @@ Builds:
 | Invalid login credentials | Wrong password or unconfirmed email | Confirm user in Supabase; reset password |
 | Email link → localhost refused | Site URL = localhost in Supabase | Set Site URL to Vercel domain; add redirect URLs |
 | Settings saved but scan says accept disclaimer | Profile row missing or RLS read failed | Run fix migrations; redeploy latest code; save settings again |
-| RLS error on profiles | Missing insert policy | Run `20260531_profiles_rls_insert.sql` |
+| RLS error on profiles | Missing insert policy | Run `profiles_rls_insert.sql` |
 | 503 on `/api/market/ticker` | Twelve Data credits exhausted | Wait for daily reset or new API key |
 | Settings 500 service role | `SUPABASE_SERVICE_ROLE_KEY` missing on Vercel | Add env var and redeploy |
 | Empty email on settings | Profile row empty | Fixed: email from `auth.user.email` |
@@ -912,9 +913,10 @@ npm run lint
 |------|-------------|
 | `supabase/schema.sql` | Initial project setup |
 | `supabase/rls.sql` | After schema |
-| `20260530_auth_trigger_disclaimer.sql` | Update signup trigger for disclaimer metadata |
-| `20260530_fix_missing_profiles.sql` | Backfill profiles/settings for existing auth users |
-| `20260531_profiles_rls_insert.sql` | Fix profiles INSERT RLS for upsert |
+| `auth_trigger_disclaimer.sql` | Update signup trigger for disclaimer metadata |
+| `fix_missing_profiles.sql` | Backfill profiles/settings for existing auth users |
+| `profiles_rls_insert.sql` | Fix profiles INSERT RLS for upsert |
+| `subscription_plans.sql` | Plans, scan_sessions, usage columns, scan_sessions RLS |
 
 Run in **Supabase → SQL Editor** if production database was created before these files existed.
 

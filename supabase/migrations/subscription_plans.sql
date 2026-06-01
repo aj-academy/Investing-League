@@ -1,4 +1,19 @@
 -- Subscription plans, scan sessions, usage tracking (run in Supabase SQL Editor)
+-- Safe to re-run: uses IF NOT EXISTS / DROP IF EXISTS where needed.
+
+-- Required by scan_sessions RLS policies (skip if you already ran supabase/rls.sql)
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
 
 alter table public.profiles drop constraint if exists profiles_plan_check;
 alter table public.profiles
