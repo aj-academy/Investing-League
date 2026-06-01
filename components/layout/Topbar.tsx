@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
+type MarketPill = "live" | "cached" | "offline";
+
 export function Topbar({
   scansToday = 0,
   live,
@@ -12,10 +14,8 @@ export function Topbar({
   live?: boolean;
 }) {
   const [time, setTime] = useState("");
-  const [countdown, setCountdown] = useState("");
-  const [liveState, setLiveState] = useState(false);
+  const [pill, setPill] = useState<MarketPill>("cached");
   const router = useRouter();
-  const isLive = live !== undefined ? live : liveState;
 
   useEffect(() => {
     const tick = () => {
@@ -35,11 +35,41 @@ export function Topbar({
   }, []);
 
   useEffect(() => {
-    if (live !== undefined) return;
-    fetch("/api/market/ticker")
-      .then((r) => setLiveState(r.ok))
-      .catch(() => setLiveState(false));
+    if (live === true) {
+      setPill("live");
+      return;
+    }
+    if (live === false) {
+      fetch("/api/market/status")
+        .then((r) => r.json())
+        .then((json) => {
+          if (!json.ok) {
+            setPill("offline");
+            return;
+          }
+          if (json.canPollLive) setPill("cached");
+          else if (json.configured) setPill("cached");
+          else setPill("offline");
+        })
+        .catch(() => setPill("offline"));
+      return;
+    }
+
+    fetch("/api/market/status")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!json.ok || !json.configured) {
+          setPill("offline");
+          return;
+        }
+        setPill(json.canPollLive ? "cached" : "cached");
+      })
+      .catch(() => setPill("offline"));
   }, [live]);
+
+  const pillLabel =
+    pill === "live" ? "LIVE" : pill === "cached" ? "CACHED" : "OFFLINE";
+  const pillOn = pill === "live";
 
   const logout = async () => {
     const supabase = createClient();
@@ -61,15 +91,19 @@ export function Topbar({
       </div>
       <div className="hdr-r">
         <span className="clk">{time}</span>
-        {countdown && <span className="countdown-box">{countdown}</span>}
         <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--m3)" }}>
           Scans today: {scansToday}
         </span>
-        <div className={`pill ${isLive ? "on" : "off"}`}>
-          <span className={`dot ${isLive ? "on" : "off"}`} />
-          <span>{isLive ? "LIVE" : "OFFLINE"}</span>
+        <div className={`pill ${pillOn ? "on" : "off"}`} title="Market data mode (not an error)">
+          <span className={`dot ${pillOn ? "on" : "off"}`} />
+          <span>{pillLabel}</span>
         </div>
-        <button type="button" className="btn-sm" style={{ background: "var(--p2)", border: "1px solid var(--bd2)", color: "var(--txt)" }} onClick={logout}>
+        <button
+          type="button"
+          className="btn-sm"
+          style={{ background: "var(--p2)", border: "1px solid var(--bd2)", color: "var(--txt)" }}
+          onClick={logout}
+        >
           Logout
         </button>
       </div>

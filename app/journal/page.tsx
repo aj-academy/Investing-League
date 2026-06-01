@@ -4,24 +4,24 @@ import { RiskDisclaimerBanner } from "@/components/dashboard/RiskDisclaimerBanne
 import { ProtectedShell } from "@/components/layout/ProtectedShell";
 import { Topbar } from "@/components/layout/Topbar";
 import { getAuthContext } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { canScanToday } from "@/lib/billing/scanUsage";
+import { getProfileByUserId } from "@/lib/auth/profile";
+import { getUserPlan } from "@/lib/billing/planLimits";
+import { loadJournalForUser } from "@/lib/journal/loadJournal";
 import { redirect } from "next/navigation";
 
 export default async function JournalPage() {
   const auth = await getAuthContext();
   if (!auth) redirect("/login");
 
-  const supabase = await createClient();
-  const { data: rows } = await supabase
-    .from("trade_journal")
-    .select("*")
-    .eq("user_id", auth.user.id)
-    .order("created_at", { ascending: false })
-    .limit(200);
+  const rows = await loadJournalForUser(auth.user.id);
+  const profile = await getProfileByUserId(auth.user.id);
+  const plan = getUserPlan(profile);
+  const scanQuota = await canScanToday(auth.user.id, plan);
 
   return (
     <ProtectedShell isAdmin={auth.isAdmin}>
-      <Topbar />
+      <Topbar scansToday={scanQuota.scansUsedToday} />
       <div className="wrap z">
         <RiskDisclaimerBanner />
         <div className="journal-box">
@@ -34,7 +34,7 @@ export default async function JournalPage() {
             </div>
             <ExportButtons />
           </div>
-          <JournalClient initialRows={rows || []} />
+          <JournalClient initialRows={rows} />
         </div>
       </div>
     </ProtectedShell>

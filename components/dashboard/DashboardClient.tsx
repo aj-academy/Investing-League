@@ -18,6 +18,7 @@ import { StatsRow } from "./StatsRow";
 import { SupportPanel } from "./SupportPanel";
 import { Topbar } from "../layout/Topbar";
 import type { TickerItem } from "@/lib/market/tickerService";
+import { readScanFromSessionCache, saveScanToSessionCache } from "@/lib/signals/scanCache";
 
 export interface ScanSettings {
   asset: string;
@@ -86,10 +87,10 @@ export function DashboardClient({
     }
   }, [planInfo.plan, settings.asset]);
 
-  const refreshTicker = useCallback(async () => {
+  const refreshTicker = useCallback(async (): Promise<number> => {
     const pairs = selectedPairs();
-    if (!pairs.length) return;
-    if (settings.liveUpdate === "off") return;
+    if (!pairs.length) return 0;
+    if (settings.liveUpdate === "off" || settings.liveUpdate === "cached_only") return 0;
 
     try {
       const res = await fetch("/api/market/ticker", {
@@ -98,18 +99,23 @@ export function DashboardClient({
         body: JSON.stringify({ pairs }),
       });
       const json = await res.json();
-      if (res.ok && json.items?.length) {
+      if (json.items?.length) {
         setTicker(json.items);
         setMarketLive(true);
         setMarketHint(null);
-      } else if (!res.ok) {
-        setMarketHint(json.error || "Market data unavailable");
-        if (/cached/i.test(String(json.error))) {
-          setMarketLive(false);
-        }
+        return json.items.length;
       }
+      if (json.empty) {
+        setMarketHint(json.message || "No cached prices yet — run SCAN MARKET first.");
+      } else {
+        setMarketHint(json.error || json.message || "Market data unavailable");
+      }
+      setMarketLive(false);
+      return 0;
     } catch {
       setMarketHint("Could not load market data.");
+      setMarketLive(false);
+      return 0;
     }
   }, [selectedPairs, settings.liveUpdate]);
 
@@ -119,6 +125,12 @@ export function DashboardClient({
       const res = await fetch("/api/signals/latest");
       const json = await res.json();
       if (applyLatestScan(json)) {
+        saveScanToSessionCache({
+          ts: Date.now(),
+          scanSessionId: json.scanSessionId,
+          signals: json.signals || [],
+          ticker: json.ticker,
+        });
         toast.success(json.message || "Last scan loaded");
       } else {
         toast.message(json.message || "No recent scan to reload");
@@ -131,10 +143,24 @@ export function DashboardClient({
   }, [applyLatestScan]);
 
   useEffect(() => {
+    const cached = readScanFromSessionCache();
+    if (cached?.signals?.length) {
+      setSignals(cached.signals);
+      if (cached.ticker?.length) setTicker(cached.ticker);
+      setRestoreMessage("Restored your last scan from this browser session.");
+    }
+
     fetch("/api/signals/latest")
       .then((r) => r.json())
       .then((json) => {
-        applyLatestScan(json);
+        if (applyLatestScan(json)) {
+          saveScanToSessionCache({
+            ts: Date.now(),
+            scanSessionId: json.scanSessionId,
+            signals: json.signals || [],
+            ticker: json.ticker,
+          });
+        }
       })
       .catch(() => {
         /* no latest scan */
@@ -215,6 +241,14 @@ export function DashboardClient({
       setSignals(list);
       if (json.ticker?.length) setTicker(json.ticker);
       setMarketLive(Boolean(json.ticker?.length));
+      if (list.length) {
+        saveScanToSessionCache({
+          ts: Date.now(),
+          scanSessionId: json.scanSessionId,
+          signals: list,
+          ticker: json.ticker,
+        });
+      }
       if (json.usage) {
         setScanUsage({
           plan: json.usage.plan,
@@ -233,6 +267,8 @@ export function DashboardClient({
       setProgress(100);
       if (json.journalSaved > 0) {
         toast.success(json.message);
+      } else if (list.length > 0 && json.persistErrors?.length) {
+        toast.error(json.message || "Setups shown but could not save — check server config.");
       } else if (list.length > 0) {
         toast.success(`Scan complete — ${list.length} setup(s) on screen`);
       } else {
@@ -272,10 +308,15 @@ export function DashboardClient({
           onChange={(p) => setSettings((s) => ({ ...s, ...p }))}
           onScan={runScan}
           onRefreshPrices={async () => {
+            if (settings.liveUpdate === "cached_only") {
+              toast.message("Cached Only — run SCAN MARKET to refresh prices and signals.");
+              return;
+            }
             setRefreshing(true);
-            await refreshTicker();
+            const n = await refreshTicker();
             setRefreshing(false);
-            toast.success("Prices refreshed");
+            if (n > 0) toast.success("Prices refreshed");
+            else toast.message("No live prices — run SCAN MARKET or upgrade plan interval.");
           }}
           onReloadLastScan={reloadLastScan}
           scanning={scanning}

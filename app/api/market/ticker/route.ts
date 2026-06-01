@@ -48,22 +48,22 @@ async function handleTicker(request: Request) {
     const { items, providerCalls, cacheHits } = await buildTickerForPairs(pairs, plan);
 
     if (!items.length) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            limits.liveUpdateMode === "cached_only"
-              ? "Your plan uses cached market display. Fresh signals are generated only when you scan."
-              : "No market data available. Check Twelve Data API key and daily credits.",
-          usage: { providerCalls: 0, cacheHits: 0, liveUpdateMode: limits.liveUpdateMode },
-        },
-        { status: 503 }
-      );
+      const cachedOnly = limits.liveUpdateMode === "cached_only";
+      return NextResponse.json({
+        ok: true,
+        items: [],
+        empty: true,
+        message: cachedOnly
+          ? "Cached prices appear after your first SCAN MARKET. Use SCAN MARKET to load setups."
+          : "No market data available. Check Twelve Data API key and daily credits.",
+        usage: { providerCalls: 0, cacheHits: 0, liveUpdateMode: limits.liveUpdateMode },
+      });
     }
 
     return NextResponse.json({
       ok: true,
       items,
+      empty: false,
       usage: {
         providerCalls,
         cacheHits,

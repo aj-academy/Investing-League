@@ -163,7 +163,7 @@ export async function POST(request: Request) {
         estimated_provider_calls: estimatedProviderCalls,
         plan_at_scan: plan,
         status: "running",
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
       .select("id")
       .single();
@@ -234,12 +234,22 @@ export async function POST(request: Request) {
           ? rawSignals
           : [];
 
-    const admin =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : null;
+    const admin = process.env.SUPABASE_SERVICE_ROLE_KEY
+      ? createAdminClient()
+      : null;
+    const writer = admin ?? supabase;
+    const signalsToSave = toDisplay.length > 0 ? toDisplay : toPersist;
     let journalSaved = 0;
+    let signalsSaved = 0;
+    const persistErrors: string[] = [];
 
-    for (const sig of toPersist) {
-      const writer = admin ?? supabase;
+    if (!admin && signalsToSave.length > 0) {
+      persistErrors.push(
+        "Server missing SUPABASE_SERVICE_ROLE_KEY — scan results may not persist after you leave the page."
+      );
+    }
+
+    for (const sig of signalsToSave) {
       const { data: savedSignal, error: sigErr } = await writer
         .from("signals")
         .upsert(signalRow(auth!.user.id, scanSession.id, sig), {
@@ -248,14 +258,22 @@ export async function POST(request: Request) {
         .select("id")
         .single();
 
-      if (sigErr) continue;
+      if (sigErr) {
+        persistErrors.push(`${sig.pair}: ${sigErr.message}`);
+        continue;
+      }
+      signalsSaved++;
 
       const { error: journalErr } = await writer.from("trade_journal").upsert(
         journalRow(auth!.user.id, savedSignal?.id || null, sig),
         { onConflict: "user_id,signal_uid" }
       );
 
-      if (!journalErr) journalSaved++;
+      if (journalErr) {
+        persistErrors.push(`journal ${sig.pair}: ${journalErr.message}`);
+      } else {
+        journalSaved++;
+      }
     }
 
     const signals = toDisplay;
@@ -284,6 +302,8 @@ export async function POST(request: Request) {
         signalCount: filteredSignals.length,
         rawSignalCount: rawSignals.length,
         journalSaved,
+        signalsSaved,
+        persistErrors,
         marketErrors,
         scanSessionId: scanSession.id,
         plan,
@@ -313,15 +333,19 @@ export async function POST(request: Request) {
       rawSignalCount: rawSignals.length,
       filteredSignalCount: filteredSignals.length,
       journalSaved,
+      signalsSaved,
+      persistErrors,
       marketErrors,
       message:
         journalSaved > 0
           ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
-          : marketErrors.length > 0
-            ? `Scan finished but no market data: ${marketErrors[0]}`
-            : rawSignals.length === 0
-              ? "Scan complete — no setups found. Try another session filter or lower min score."
-              : "Scan complete — setups found but none matched your filters. Lower min score or enable B signals.",
+          : signals.length > 0 && persistErrors.length > 0
+            ? `Scan complete — ${signals.length} setup(s) on screen but save failed. Check Vercel SUPABASE_SERVICE_ROLE_KEY.`
+            : marketErrors.length > 0
+              ? `Scan finished but no market data: ${marketErrors[0]}`
+              : rawSignals.length === 0
+                ? "Scan complete — no setups found. Try another session filter or lower min score."
+                : "Scan complete — setups found but none matched your filters. Lower min score or enable B signals.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Scan failed";
