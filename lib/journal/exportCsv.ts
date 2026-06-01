@@ -1,3 +1,5 @@
+import { formatJournalDate, formatJournalTime, isCountedInWr } from "@/lib/journal/journalDisplay";
+
 export function csvEscape(v: unknown) {
   const s = String(v ?? "");
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -7,58 +9,67 @@ export function journalToCsv(rows: Record<string, unknown>[]) {
   const cols = [
     "Date",
     "Signal Time",
+    "Signal Type",
+    "Counted In Eligible WR",
+    "Signal Reason",
     "Pair",
-    "Timeframe",
+    "Expiry",
     "Direction",
     "Grade",
     "Confidence",
     "Score",
-    "Signal Type",
     "Signal Entry Time",
     "Signal Entry Price",
-    "Olymp Open Time",
-    "Olymp Opening Quote",
-    "Olymp Closing Quote",
-    "Olymp Trade ID",
-    "Expiry Time",
+    "Open Time",
+    "Opening Quote",
+    "Closing Quote",
+    "Entry Drift Pips",
+    "Entry Status",
+    "Expiry Close Time",
     "Expiry Minutes",
     "Result",
-    "Entry Status",
-    "Entry Drift",
-    "Loss Reason",
     "Marked Time",
+    "Loss Reason",
   ];
 
   const lines = [
     cols.join(","),
-    ...rows.map((r) =>
-      [
-        r.created_at,
-        r.signal_entry_time,
+    ...rows.map((r) => {
+      const counted = isCountedInWr(
+        r.signal_type as string,
+        r.grade as string,
+        r.result as string
+      )
+        ? "YES"
+        : "NO";
+      return [
+        r.created_at ? formatJournalDate(String(r.created_at)) : "",
+        r.created_at ? formatJournalTime(String(r.created_at)) : "",
+        r.signal_type,
+        counted,
+        r.signal_reason,
         r.pair,
-        r.timeframe,
+        `${r.timeframe} expiry`,
         r.direction,
         r.grade,
         r.confidence,
         r.score,
-        r.signal_type,
         r.signal_entry_time,
         r.signal_entry_price,
         r.olymp_open_time,
         r.olymp_opening_quote,
         r.olymp_closing_quote,
-        r.olymp_trade_id,
+        r.entry_drift,
+        r.entry_status,
         r.expiry_time,
         r.expiry_minutes,
         r.result,
-        r.entry_status,
-        r.entry_drift,
-        r.loss_reason,
         r.marked_time,
+        r.loss_reason,
       ]
         .map(csvEscape)
-        .join(",")
-    ),
+        .join(",");
+    }),
   ];
   return lines.join("\n");
 }

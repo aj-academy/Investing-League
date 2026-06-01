@@ -3,9 +3,6 @@
 import {
   ALL_PAIRS,
   autoRefreshOptionsForPlan,
-  getLockedPairs,
-  getPlanLimits,
-  planAllowsTimeframe,
   type AutoRefreshOption,
   type PlanName,
 } from "@/lib/billing/planLimits";
@@ -39,12 +36,7 @@ export function ScannerControls({
   refreshing?: boolean;
   progress: number;
 }) {
-  const limits = getPlanLimits(plan);
-  const locked = new Set(getLockedPairs(plan));
   const autoRefreshOptions = autoRefreshOptionsForPlan(plan);
-  const can15 = planAllowsTimeframe(plan, "15min");
-  const canBoth = limits.allowBothTimeframes;
-
   return (
     <div className="ctrl">
       <div className="ctrl-title">⚙ SIGNAL CONFIGURATION</div>
@@ -55,11 +47,10 @@ export function ScannerControls({
             value={settings.asset}
             onChange={(e) => onChange({ asset: e.target.value })}
           >
-            <option value="all">All Major Pairs (plan)</option>
+            <option value="all">All Major Pairs</option>
             {ALL_PAIRS.map((p) => (
-              <option key={p} value={p} disabled={locked.has(p)}>
+              <option key={p} value={p}>
                 {p}
-                {locked.has(p) ? " — Pro" : ""}
               </option>
             ))}
           </select>
@@ -71,12 +62,8 @@ export function ScannerControls({
             onChange={(e) => onChange({ timeframe: e.target.value })}
           >
             <option value="5min">5 Minutes Expiry</option>
-            <option value="15min" disabled={!can15}>
-              15 Minutes Expiry{!can15 ? " — Upgrade" : ""}
-            </option>
-            <option value="both" disabled={!canBoth}>
-              5 + 15 Min Expiry{!canBoth ? " — Pro" : ""}
-            </option>
+            <option value="15min">15 Minutes Expiry</option>
+            <option value="both">5 + 15 Min Expiry</option>
           </select>
         </div>
         <div className="f">

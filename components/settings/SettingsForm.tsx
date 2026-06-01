@@ -1,6 +1,5 @@
 "use client";
 
-import { getPlanLimits, getUserPlan, type PlanName } from "@/lib/billing/planLimits";
 import { DISCLAIMER } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -10,15 +9,11 @@ export function SettingsForm({
   profile,
   settings,
   email,
-  plan: planProp,
 }: {
   profile: Record<string, unknown> | null;
   settings: Record<string, unknown> | null;
   email: string;
-  plan?: PlanName;
 }) {
-  const plan = planProp ?? getUserPlan(profile as { plan?: string; role?: string });
-  const limits = getPlanLimits(plan);
   const router = useRouter();
   const [fullName, setFullName] = useState(String(profile?.full_name || ""));
   const [mode, setMode] = useState(String(settings?.default_mode || "practice"));
@@ -125,34 +120,6 @@ export function SettingsForm({
         <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
         <span>{DISCLAIMER}</span>
       </label>
-      <div className="ctrl-title">SUBSCRIPTION PLAN</div>
-      <div style={{ fontSize: 11, color: "var(--m3)", marginBottom: 12, lineHeight: 1.7 }}>
-        <div>
-          <strong style={{ color: "var(--txt2)" }}>Current plan:</strong> {limits.label}
-        </div>
-        <div>
-          <strong style={{ color: "var(--txt2)" }}>Pairs:</strong>{" "}
-          {limits.allowedPairs.join(", ")}
-        </div>
-        <div>
-          <strong style={{ color: "var(--txt2)" }}>Daily scans:</strong> {limits.dailyScanLimit}
-        </div>
-        <div>
-          <strong style={{ color: "var(--txt2)" }}>Timeframes:</strong>{" "}
-          {limits.allowBothTimeframes
-            ? "5min, 15min, both"
-            : limits.allowedTimeframes.join(", ")}
-        </div>
-        <div>
-          <strong style={{ color: "var(--txt2)" }}>Auto refresh:</strong>{" "}
-          {limits.allowAutoScan
-            ? "Available on Scanner (Off / 60s / 180s / 30s by plan)"
-            : "Not available on this plan"}
-        </div>
-        <p style={{ marginTop: 8, fontSize: 10 }}>
-          Stripe billing integration coming soon. Admins can change plans from the Admin page.
-        </p>
-      </div>
       <button type="button" className="btn-scan" onClick={save} disabled={saving}>
         {saving ? "Saving..." : "Save Settings"}
       </button>

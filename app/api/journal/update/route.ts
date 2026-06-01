@@ -28,17 +28,33 @@ export async function PATCH(request: Request) {
     }
 
     const opening =
-      body.olympOpeningQuote !== undefined
-        ? body.olympOpeningQuote === "" || body.olympOpeningQuote === null
+      body.openingQuote !== undefined
+        ? body.openingQuote === "" || body.openingQuote === null
           ? null
-          : Number(body.olympOpeningQuote)
-        : row.olymp_opening_quote;
+          : Number(body.openingQuote)
+        : body.olympOpeningQuote !== undefined
+          ? body.olympOpeningQuote === "" || body.olympOpeningQuote === null
+            ? null
+            : Number(body.olympOpeningQuote)
+          : row.olymp_opening_quote;
+
     const closing =
-      body.olympClosingQuote !== undefined
-        ? body.olympClosingQuote === "" || body.olympClosingQuote === null
+      body.closingQuote !== undefined
+        ? body.closingQuote === "" || body.closingQuote === null
           ? null
-          : Number(body.olympClosingQuote)
-        : row.olymp_closing_quote;
+          : Number(body.closingQuote)
+        : body.olympClosingQuote !== undefined
+          ? body.olympClosingQuote === "" || body.olympClosingQuote === null
+            ? null
+            : Number(body.olympClosingQuote)
+          : row.olymp_closing_quote;
+
+    const openTime =
+      body.openTime !== undefined
+        ? body.openTime === "" || body.openTime === null
+          ? null
+          : String(body.openTime)
+        : row.olymp_open_time;
 
     const { drift, status } = calculateEntryDrift(
       row.pair,
@@ -46,22 +62,28 @@ export async function PATCH(request: Request) {
       opening
     );
 
-    const result =
-      opening !== null && closing !== null
-        ? calculateResult(row.direction as "CALL" | "PUT", opening, closing)
-        : row.result;
+    let result = row.result as string;
+    let resultSource = row.result_source as string;
+
+    if (body.result !== undefined && body.result !== null) {
+      result = String(body.result);
+      resultSource = "Manual";
+    } else if (opening !== null && closing !== null) {
+      result = calculateResult(row.direction as "CALL" | "PUT", opening, closing);
+      resultSource = "Auto";
+    }
 
     const { data: updated, error: updateError } = await supabase
       .from("trade_journal")
       .update({
+        olymp_open_time: openTime,
         olymp_opening_quote: opening,
         olymp_closing_quote: closing,
-        olymp_trade_id: body.olympTradeId ?? row.olymp_trade_id,
         loss_reason: body.lossReason ?? row.loss_reason,
         entry_drift: drift,
         entry_status: status,
         result,
-        result_source: opening !== null && closing !== null ? "Auto" : row.result_source,
+        result_source: resultSource,
         marked_time: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

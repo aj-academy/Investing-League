@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { DataProviderStatus } from "./DataProviderStatus";
 import { LoadingScanner } from "./LoadingScanner";
 import { MarketTicker } from "./MarketTicker";
-import { PlanUsageCard } from "./PlanUsageCard";
 import { RiskDisclaimerBanner } from "./RiskDisclaimerBanner";
 import { ScannerControls } from "./ScannerControls";
 import { SessionPills } from "./SessionPills";
@@ -331,15 +330,8 @@ export function DashboardClient({
         <div className="disclaimer-banner" style={{ marginBottom: 10 }}>
           <strong>SCAN MARKET</strong> runs the V4 signal engine on live candle data.{" "}
           <strong>AUTO REFRESH</strong> re-runs the same engine on a timer (like the HTML template)
-          and updates signals in real time — each refresh counts toward your daily scan limit.
-          Your plan controls pairs, timeframes, and refresh interval.
+          and updates signals in real time.
         </div>
-        <PlanUsageCard
-          plan={scanUsage.plan}
-          scansUsedToday={scanUsage.scansUsedToday}
-          scansRemainingToday={scanUsage.scansRemainingToday}
-          dailyScanLimit={scanUsage.dailyScanLimit}
-        />
         <DataProviderStatus configured={configured} live={marketLive} hint={marketHint} />
         <MarketTicker items={ticker} />
         <ScannerControls

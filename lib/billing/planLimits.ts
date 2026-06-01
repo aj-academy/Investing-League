@@ -16,11 +16,11 @@ export type PairSymbol = (typeof ALL_PAIRS)[number];
 export const PLAN_LIMITS = {
   free: {
     label: "Free",
-    maxPairsPerScan: 2,
-    allowedPairs: ["EUR/USD", "GBP/USD"] as PairSymbol[],
-    allowedTimeframes: ["5min"] as const,
-    allowBothTimeframes: false,
-    dailyScanLimit: 10,
+    maxPairsPerScan: 8,
+    allowedPairs: [...ALL_PAIRS] as PairSymbol[],
+    allowedTimeframes: ["5min", "15min"] as const,
+    allowBothTimeframes: true,
+    dailyScanLimit: 999,
     liveUpdateMode: "cached_only" as const,
     quoteRefreshSeconds: 0,
     allowAutoScan: true,
@@ -183,7 +183,7 @@ export type AutoRefreshOption = "off" | "60" | "180" | "30";
 export function autoRefreshOptionsForPlan(plan: PlanName): AutoRefreshOption[] {
   switch (plan) {
     case "free":
-      return ["off", "60"];
+      return ["off", "180", "60", "30"];
     case "starter":
       return ["off", "180", "60"];
     case "pro":
