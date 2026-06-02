@@ -23,7 +23,13 @@ export async function GET() {
   if (forbidden) return forbidden;
 
   const admin = createAdminClient();
-  const [{ data, error: dbError }, { data: usageRows, error: usageError }] = await Promise.all([
+  const [
+    { data, error: dbError },
+    { data: usageRows, error: usageError },
+    { data: activeTerms },
+    { data: userAcceptances },
+    { data: assets },
+  ] = await Promise.all([
     admin
       .from("profiles")
       .select(
@@ -34,6 +40,18 @@ export async function GET() {
       .from("usage_logs")
       .select("user_id,action,provider_calls,cache_hits")
       .gte("created_at", startOfUtcDayIso()),
+    admin
+      .from("terms_documents")
+      .select("id,version")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("user_terms_acceptance")
+      .select("user_id,accepted_at,terms_id")
+      .order("accepted_at", { ascending: false }),
+    admin.from("user_asset_access").select("user_id,pair,is_allowed"),
   ]);
 
   if (dbError) {
@@ -60,13 +78,33 @@ export async function GET() {
     usageByUser.set(row.user_id, acc);
   }
 
+  const termsByUser = new Map<string, { accepted_at: string; accepted: boolean }>();
+  if (activeTerms?.id) {
+    for (const row of userAcceptances || []) {
+      if (row.terms_id !== activeTerms.id) continue;
+      if (!termsByUser.has(row.user_id)) {
+        termsByUser.set(row.user_id, { accepted_at: row.accepted_at, accepted: true });
+      }
+    }
+  }
+
+  const allowedAssetsCountByUser = new Map<string, number>();
+  for (const row of assets || []) {
+    if (!row.is_allowed) continue;
+    allowedAssetsCountByUser.set(
+      row.user_id,
+      (allowedAssetsCountByUser.get(row.user_id) || 0) + 1
+    );
+  }
+
   const users = (data || []).map((u) => {
     const usage = usageByUser.get(u.id);
+    const terms = termsByUser.get(u.id);
     return {
       ...u,
-      terms_accepted_version: null,
-      terms_accepted_at: null,
-      allowed_assets_count: null,
+      terms_accepted_version: terms?.accepted ? activeTerms?.version || null : null,
+      terms_accepted_at: terms?.accepted_at || null,
+      allowed_assets_count: allowedAssetsCountByUser.get(u.id) || null,
       scans_today: usage?.scans_today || 0,
       provider_calls_today: usage?.provider_calls_today || 0,
       cache_hits_today: usage?.cache_hits_today || 0,

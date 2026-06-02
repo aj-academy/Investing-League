@@ -7,6 +7,9 @@ alter table public.usage_logs enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.market_cache enable row level security;
 alter table public.scan_sessions enable row level security;
+alter table public.user_asset_access enable row level security;
+alter table public.terms_documents enable row level security;
+alter table public.user_terms_acceptance enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -58,3 +61,27 @@ create policy "market_cache_read_auth" on public.market_cache for select to auth
 create policy "scan_sessions_select_own" on public.scan_sessions for select using (auth.uid() = user_id or public.is_admin());
 create policy "scan_sessions_insert_own" on public.scan_sessions for insert with check (auth.uid() = user_id);
 create policy "scan_sessions_update_own" on public.scan_sessions for update using (auth.uid() = user_id or public.is_admin());
+
+-- user_asset_access
+create policy "asset_access_select_own_or_admin" on public.user_asset_access
+for select using (auth.uid() = user_id or public.is_admin());
+create policy "asset_access_admin_insert" on public.user_asset_access
+for insert with check (public.is_admin());
+create policy "asset_access_admin_update" on public.user_asset_access
+for update using (public.is_admin()) with check (public.is_admin());
+create policy "asset_access_admin_delete" on public.user_asset_access
+for delete using (public.is_admin());
+
+-- terms_documents
+create policy "terms_read_active_or_admin" on public.terms_documents
+for select using (is_active = true or public.is_admin());
+create policy "terms_admin_insert" on public.terms_documents
+for insert with check (public.is_admin());
+create policy "terms_admin_update" on public.terms_documents
+for update using (public.is_admin()) with check (public.is_admin());
+
+-- user_terms_acceptance
+create policy "terms_acceptance_select_own_or_admin" on public.user_terms_acceptance
+for select using (auth.uid() = user_id or public.is_admin());
+create policy "terms_acceptance_insert_own_or_admin" on public.user_terms_acceptance
+for insert with check (auth.uid() = user_id or public.is_admin());

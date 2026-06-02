@@ -17,6 +17,7 @@ const AUTO_REFRESH_LABELS: Record<AutoRefreshOption, string> = {
 
 export function ScannerControls({
   plan,
+  allowedPairs,
   settings,
   onChange,
   onScan,
@@ -27,6 +28,7 @@ export function ScannerControls({
   progress,
 }: {
   plan: PlanName;
+  allowedPairs: string[];
   settings: ScanSettings;
   onChange: (s: Partial<ScanSettings>) => void;
   onScan: () => void;
@@ -37,6 +39,7 @@ export function ScannerControls({
   progress: number;
 }) {
   const autoRefreshOptions = autoRefreshOptionsForPlan(plan);
+  const allowed = new Set(allowedPairs);
   return (
     <div className="ctrl">
       <div className="ctrl-title">⚙ SIGNAL CONFIGURATION</div>
@@ -49,8 +52,8 @@ export function ScannerControls({
           >
             <option value="all">All Major Pairs</option>
             {ALL_PAIRS.map((p) => (
-              <option key={p} value={p}>
-                {p}
+              <option key={p} value={p} disabled={!allowed.has(p)}>
+                {p}{!allowed.has(p) ? " — Locked" : ""}
               </option>
             ))}
           </select>

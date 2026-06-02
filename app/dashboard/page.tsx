@@ -1,4 +1,5 @@
 import { DashboardClient, type ScanSettings } from "@/components/dashboard/DashboardClient";
+import { resolveUserAllowedPairs } from "@/lib/access/assetAccess";
 import { ProtectedShell } from "@/components/layout/ProtectedShell";
 import { getAuthContext } from "@/lib/auth/session";
 import { getProfileByUserId } from "@/lib/auth/profile";
@@ -13,6 +14,7 @@ export default async function DashboardPage() {
 
   const profile = await getProfileByUserId(auth.user.id);
   const plan = getUserPlan(profile);
+  const allowedPairs = await resolveUserAllowedPairs(auth.user.id, plan);
   const scanQuota = await canScanToday(auth.user.id, plan);
 
   const supabase = await createClient();
@@ -41,6 +43,7 @@ export default async function DashboardPage() {
     <ProtectedShell isAdmin={auth.isAdmin}>
       <DashboardClient
         initialSettings={initialSettings}
+        allowedPairs={allowedPairs}
         planInfo={{
           plan,
           scansUsedToday: scanQuota.scansUsedToday,

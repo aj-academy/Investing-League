@@ -1,5 +1,6 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { hasAcceptedRiskDisclaimer, getProfileByUserId } from "@/lib/auth/profile";
+import { validatePairsForUser } from "@/lib/access/assetAccess";
+import { getProfileByUserId } from "@/lib/auth/profile";
 import { canScanToday } from "@/lib/billing/scanUsage";
 import {
   getLockedPairs,
@@ -16,6 +17,7 @@ import type { JournalHistoryRow } from "@/lib/signal-engine/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
+import { hasAcceptedLatestTerms } from "@/lib/terms/terms";
 import { resolveTimeZone } from "@/lib/datetime";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
@@ -91,13 +93,13 @@ export async function POST(request: Request) {
     const plan: PlanName = getUserPlan(profile);
     const planLimits = getPlanLimits(plan);
 
-    const disclaimerOk = await hasAcceptedRiskDisclaimer(auth!.user.id);
-    if (!disclaimerOk) {
+    const termsAccepted = await hasAcceptedLatestTerms(auth!.user.id);
+    if (!termsAccepted) {
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Risk disclaimer not saved yet. Open Settings, check the disclaimer box, click Save Settings, then scan again.",
+          code: "TERMS_REQUIRED",
+          error: "Please accept the latest Terms & Conditions before scanning.",
         },
         { status: 403 }
       );
@@ -130,6 +132,7 @@ export async function POST(request: Request) {
     const timeZone = resolveTimeZone(body.timezone);
 
     try {
+      pairs = await validatePairsForUser(auth!.user.id, plan, pairs);
       pairs = validatePairsForPlan(plan, pairs);
       timeframes = resolveTimeframesForScan(plan, timeframes);
     } catch (e) {

@@ -160,6 +160,41 @@ create table if not exists public.audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.user_asset_access (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  pair text not null,
+  is_allowed boolean not null default true,
+  assigned_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(user_id, pair)
+);
+
+create table if not exists public.terms_documents (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  version text not null,
+  content text,
+  file_url text,
+  is_active boolean not null default false,
+  requires_reacceptance boolean not null default true,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(version)
+);
+
+create table if not exists public.user_terms_acceptance (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  terms_id uuid not null references public.terms_documents(id) on delete cascade,
+  accepted_at timestamptz not null default now(),
+  ip_address text,
+  user_agent text,
+  unique(user_id, terms_id)
+);
+
 create table if not exists public.market_cache (
   id uuid primary key default gen_random_uuid(),
   pair text not null,
@@ -179,6 +214,9 @@ create index if not exists idx_usage_logs_user_created on public.usage_logs(user
 create index if not exists idx_usage_logs_scan_today on public.usage_logs(user_id, action, created_at desc);
 create index if not exists idx_scan_sessions_user_expires on public.scan_sessions(user_id, expires_at desc);
 create index if not exists idx_signals_scan_session on public.signals(scan_session_id);
+create index if not exists idx_user_asset_access_user on public.user_asset_access(user_id);
+create index if not exists idx_terms_documents_active on public.terms_documents(is_active, created_at desc);
+create index if not exists idx_user_terms_acceptance_user on public.user_terms_acceptance(user_id, accepted_at desc);
 
 alter table public.signals
   drop constraint if exists signals_scan_session_id_fkey,

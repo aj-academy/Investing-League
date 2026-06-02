@@ -1,4 +1,5 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
+import { resolveUserAllowedPairs } from "@/lib/access/assetAccess";
 import { getProfileByUserId } from "@/lib/auth/profile";
 import { getPlanLimits, getUserPlan, validatePairsForPlan } from "@/lib/billing/planLimits";
 import { buildTickerForPairs } from "@/lib/market/tickerService";
@@ -21,7 +22,8 @@ async function handleTicker(request: Request) {
     const plan = getUserPlan(profile);
     const limits = getPlanLimits(plan);
 
-    let pairs: string[] = [...limits.allowedPairs];
+    let pairs: string[] = await resolveUserAllowedPairs(auth!.user.id, plan);
+    if (!pairs.length) pairs = [...limits.allowedPairs];
     try {
       const url = new URL(request.url);
       const q = url.searchParams.get("pairs");
@@ -40,9 +42,14 @@ async function handleTicker(request: Request) {
     }
 
     try {
+      const allowed = await resolveUserAllowedPairs(auth!.user.id, plan);
+      if (allowed.length) {
+        pairs = pairs.filter((p) => allowed.includes(p));
+      }
       pairs = validatePairsForPlan(plan, pairs);
     } catch {
-      pairs = [...limits.allowedPairs];
+      pairs = await resolveUserAllowedPairs(auth!.user.id, plan);
+      if (!pairs.length) pairs = [...limits.allowedPairs];
     }
 
     const { items, providerCalls, cacheHits } = await buildTickerForPairs(pairs, plan);

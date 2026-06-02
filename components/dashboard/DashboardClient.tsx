@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { AutoRefreshOption, PlanName } from "@/lib/billing/planLimits";
 import {
   autoRefreshToSeconds,
   normalizeAutoRefresh,
-  pairsForAssetSelection,
 } from "@/lib/billing/planLimits";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { toast } from "sonner";
@@ -48,9 +48,11 @@ export interface PlanInfo {
 export function DashboardClient({
   initialSettings,
   planInfo,
+  allowedPairs,
 }: {
   initialSettings: ScanSettings;
   planInfo: PlanInfo;
+  allowedPairs: string[];
 }) {
   const [settings, setSettings] = useState<ScanSettings>({
     ...initialSettings,
@@ -73,6 +75,12 @@ export function DashboardClient({
   const [lastScanNote, setLastScanNote] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [autoScanning, setAutoScanning] = useState(false);
+  const [termsState, setTermsState] = useState<{
+    loading: boolean;
+    required: boolean;
+    active: null | { id: string; title: string; version: string; content: string | null; file_url: string | null };
+  }>({ loading: true, required: false, active: null });
+  const [acceptingTerms, setAcceptingTerms] = useState(false);
   const autoScanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runScanRef = useRef<(opts?: { auto?: boolean }) => Promise<void>>(async () => {});
@@ -95,12 +103,18 @@ export function DashboardClient({
   }, []);
 
   const selectedPairs = useCallback(() => {
-    try {
-      return pairsForAssetSelection(planInfo.plan, settings.asset);
-    } catch {
-      return [];
+    const allowed = new Set(allowedPairs);
+    if (settings.asset === "all") return allowedPairs;
+    if (!allowed.has(settings.asset)) return [];
+    return [settings.asset];
+  }, [allowedPairs, settings.asset]);
+
+  useEffect(() => {
+    if (!allowedPairs.length) return;
+    if (settings.asset !== "all" && !allowedPairs.includes(settings.asset)) {
+      setSettings((s) => ({ ...s, asset: "all" }));
     }
-  }, [planInfo.plan, settings.asset]);
+  }, [allowedPairs, settings.asset]);
 
   const clearAutoSchedule = useCallback(() => {
     if (autoScanTimerRef.current) clearTimeout(autoScanTimerRef.current);
@@ -178,11 +192,34 @@ export function DashboardClient({
   }, []);
 
   useEffect(() => {
+    fetch("/api/terms/active")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!json.ok) {
+          setTermsState({ loading: false, required: false, active: null });
+          return;
+        }
+        setTermsState({
+          loading: false,
+          required: Boolean(json.active && !json.accepted),
+          active: json.active || null,
+        });
+      })
+      .catch(() => {
+        setTermsState({ loading: false, required: false, active: null });
+      });
+  }, []);
+
+  useEffect(() => {
     return () => clearAutoSchedule();
   }, [clearAutoSchedule]);
 
   const runScan = useCallback(async (opts?: { auto?: boolean }) => {
     const isAuto = Boolean(opts?.auto);
+    if (termsState.required) {
+      if (!isAuto) toast.error("Accept the latest Terms & Conditions before scanning.");
+      return;
+    }
     if (scanning || autoScanning) return;
 
     if (isAuto) {
@@ -200,7 +237,8 @@ export function DashboardClient({
 
     let pairs: string[];
     try {
-      pairs = pairsForAssetSelection(planInfo.plan, settings.asset);
+      pairs = selectedPairs();
+      if (!pairs.length) throw new Error("This asset is not enabled for your account.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Pair not allowed on your plan");
       if (isAuto) setAutoScanning(false);
@@ -294,14 +332,7 @@ export function DashboardClient({
         setTimeout(() => setProgress(0), 1000);
       }
     }
-  }, [
-    scanning,
-    autoScanning,
-    settings,
-    planInfo.plan,
-    clearAutoSchedule,
-    scheduleAutoScan,
-  ]);
+  }, [scanning, autoScanning, settings, clearAutoSchedule, scheduleAutoScan, selectedPairs, termsState.required]);
 
   runScanRef.current = runScan;
 
@@ -318,6 +349,7 @@ export function DashboardClient({
         <MarketTicker items={ticker} />
         <ScannerControls
           plan={planInfo.plan}
+          allowedPairs={allowedPairs}
           settings={settings}
           onChange={(p) => setSettings((s) => ({ ...s, ...p }))}
           onScan={() => runScan()}
@@ -379,6 +411,85 @@ export function DashboardClient({
           )}
         </div>
       </div>
+      {termsState.required && termsState.active && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(2,6,12,.82)",
+            zIndex: 1500,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div className="ctrl" style={{ width: "min(900px, 96vw)", maxHeight: "86vh", overflow: "auto" }}>
+            <div className="ctrl-title">Terms & Conditions Acceptance Required</div>
+            <p style={{ fontSize: 11, color: "var(--m3)", marginBottom: 10 }}>
+              Version {termsState.active.version} — {termsState.active.title}
+            </p>
+            <div
+              style={{
+                whiteSpace: "pre-wrap",
+                fontSize: 11,
+                color: "var(--txt2)",
+                lineHeight: 1.6,
+                border: "1px solid var(--bd)",
+                borderRadius: 8,
+                background: "var(--p2)",
+                padding: 12,
+                maxHeight: 360,
+                overflow: "auto",
+              }}
+            >
+              {termsState.active.content || "Please review the latest Terms & Conditions."}
+              {termsState.active.file_url ? (
+                <>
+                  {"\n\n"}Reference: {termsState.active.file_url}
+                </>
+              ) : null}
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+              <button
+                type="button"
+                className="btn-scan"
+                disabled={acceptingTerms}
+                onClick={async () => {
+                  setAcceptingTerms(true);
+                  try {
+                    const res = await fetch("/api/terms/accept", { method: "POST" });
+                    const json = await res.json();
+                    if (!res.ok || !json.ok) {
+                      toast.error(json.error || "Could not accept terms");
+                    } else {
+                      toast.success("Terms accepted.");
+                      setTermsState((s) => ({ ...s, required: false }));
+                    }
+                  } catch {
+                    toast.error("Could not accept terms");
+                  } finally {
+                    setAcceptingTerms(false);
+                  }
+                }}
+              >
+                {acceptingTerms ? "Accepting..." : "I Accept & Continue"}
+              </button>
+              <button
+                type="button"
+                className="jbtn"
+                onClick={async () => {
+                  const supabase = createClient();
+                  await supabase.auth.signOut();
+                  window.location.href = "/login";
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
