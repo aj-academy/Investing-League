@@ -42,7 +42,7 @@ export function LoginForm() {
       const supabase = createClient();
       const signInEmail = adminPanel ? adminEmail.trim() : email.trim();
       const signInPassword = adminPanel ? adminPassword : password;
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: signInEmail,
         password: signInPassword,
       });
@@ -52,10 +52,17 @@ export function LoginForm() {
       }
 
       if (adminPanel) {
+        const signedInUserId = data.user?.id;
+        if (!signedInUserId) {
+          await supabase.auth.signOut();
+          toast.error("Admin login failed. Try again.");
+          return;
+        }
+
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role, is_active")
-          .eq("id", (await supabase.auth.getUser()).data.user?.id || "")
+          .eq("id", signedInUserId)
           .maybeSingle();
         if (
           profileError ||
