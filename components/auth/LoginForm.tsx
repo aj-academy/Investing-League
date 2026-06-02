@@ -52,28 +52,25 @@ export function LoginForm() {
       }
 
       if (adminPanel) {
-        const signedInUserId = data.user?.id;
-        if (!signedInUserId) {
+        const accessToken = data.session?.access_token;
+        if (!accessToken) {
           await supabase.auth.signOut();
           toast.error("Admin login failed. Try again.");
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role, is_active")
-          .eq("id", signedInUserId)
-          .maybeSingle();
-        if (
-          profileError ||
-          !profile ||
-          profile.role !== "admin" ||
-          profile.is_active === false
-        ) {
+        const verifyRes = await fetch("/api/auth/admin-verify", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const verifyJson = (await verifyRes.json()) as { ok?: boolean; error?: string };
+
+        if (!verifyRes.ok || !verifyJson.ok) {
           await supabase.auth.signOut();
-          toast.error("Admin access denied.");
+          toast.error(verifyJson.error || "Admin access denied.");
           return;
         }
+
         router.push("/admin");
         router.refresh();
         return;
