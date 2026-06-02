@@ -7,7 +7,7 @@ export async function getProfileByUserId(userId: string) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("profiles")
-    .select("full_name, email, role, plan, risk_disclaimer_accepted")
+    .select("full_name, email, role, plan, is_active, risk_disclaimer_accepted")
     .eq("id", userId)
     .maybeSingle();
 

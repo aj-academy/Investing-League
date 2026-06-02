@@ -3,12 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const { auth, error } = await requireApiAuth();
+  const { auth, error } = await requireApiAuth({ adminOnly: true });
   if (error) return error;
-
-  if (!auth!.isAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const admin = createAdminClient();
   const [users, signals, journal, usage] = await Promise.all([

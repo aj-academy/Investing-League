@@ -13,6 +13,7 @@ function supabaseConfigured() {
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isProtected = protectedPaths.some((p) => path.startsWith(p));
+  const isSuspendedPage = path.startsWith("/account-suspended");
 
   if (!supabaseConfigured()) {
     if (isProtected) {
@@ -54,13 +55,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (path.startsWith("/admin") && user) {
+  if ((isProtected || isSuspendedPage) && user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_active")
       .eq("id", user.id)
-      .single();
-    if (profile?.role !== "admin") {
+      .maybeSingle();
+
+    if (profile?.is_active === false && !isSuspendedPage) {
+      return NextResponse.redirect(new URL("/account-suspended", request.url));
+    }
+    if (profile?.is_active !== false && isSuspendedPage) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    if (path.startsWith("/admin") && profile?.role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
@@ -75,6 +84,7 @@ export const config = {
     "/analytics/:path*",
     "/settings/:path*",
     "/admin/:path*",
+    "/account-suspended",
     "/login",
   ],
 };

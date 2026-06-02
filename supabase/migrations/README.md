@@ -8,5 +8,6 @@ Run in **Supabase → SQL Editor** after `schema.sql` and `rls.sql`.
 | `fix_missing_profiles.sql` | Backfill profiles + user_settings for existing auth users |
 | `profiles_rls_insert.sql` | Profiles INSERT/UPDATE RLS for settings save |
 | `subscription_plans.sql` | Plans, `scan_sessions`, usage log columns, `is_admin()` |
+| `admin_core_phase1.sql` | Admin hardening: audit logs + usage columns safety checks |
 
-Recommended order: `fix_missing_profiles` → `profiles_rls_insert` → `subscription_plans` (or run only what you need).
+Recommended order: `fix_missing_profiles` → `profiles_rls_insert` → `subscription_plans` → `admin_core_phase1` (or run only what you need).

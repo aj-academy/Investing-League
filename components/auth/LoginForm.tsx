@@ -19,21 +19,59 @@ function loginErrorMessage(message: string) {
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminPanel, setAdminPanel] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!adminPanel && email.trim().toLowerCase() === "open-admin") {
+      setEmail("");
+      setPassword("");
+      setAdminPanel(true);
+      toast.message("Admin panel unlocked. Enter admin credentials.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const signInEmail = adminPanel ? adminEmail.trim() : email.trim();
+      const signInPassword = adminPanel ? adminPassword : password;
+      const { error } = await supabase.auth.signInWithPassword({
+        email: signInEmail,
+        password: signInPassword,
+      });
       if (error) {
         toast.error(loginErrorMessage(error.message));
         return;
       }
+
+      if (adminPanel) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role, is_active")
+          .eq("id", (await supabase.auth.getUser()).data.user?.id || "")
+          .maybeSingle();
+        if (
+          profileError ||
+          !profile ||
+          profile.role !== "admin" ||
+          profile.is_active === false
+        ) {
+          await supabase.auth.signOut();
+          toast.error("Admin access denied.");
+          return;
+        }
+        router.push("/admin");
+        router.refresh();
+        return;
+      }
+
       router.push("/dashboard");
       router.refresh();
     } catch {
@@ -73,22 +111,63 @@ export function LoginForm() {
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        required
+        required={!adminPanel}
       />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
+      {adminPanel ? (
+        <>
+          <input
+            type="email"
+            placeholder="Admin Email"
+            value={adminEmail}
+            onChange={(e) => setAdminEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Admin Password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+            required
+          />
+        </>
+      ) : (
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      )}
       <button type="submit" disabled={loading}>
-        {loading ? "Signing in..." : "Sign In"}
+        {loading ? "Signing in..." : adminPanel ? "Admin Sign In" : "Sign In"}
       </button>
+      {adminPanel && (
+        <button
+          type="button"
+          className="auth-link-btn"
+          onClick={() => {
+            setAdminPanel(false);
+            setAdminEmail("");
+            setAdminPassword("");
+          }}
+          style={{
+            marginTop: 8,
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            color: "var(--m3)",
+            fontSize: 10,
+            cursor: "pointer",
+          }}
+        >
+          Hide admin panel
+        </button>
+      )}
       <button
         type="button"
         className="auth-link-btn"
-        disabled={resetLoading}
+        disabled={resetLoading || adminPanel}
         onClick={resetPassword}
         style={{ marginTop: 10, width: "100%", background: "transparent", border: "none", color: "var(--m3)", fontSize: 10, cursor: "pointer" }}
       >
