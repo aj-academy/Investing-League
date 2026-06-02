@@ -1,3 +1,4 @@
+import { getProfileAccess } from "@/lib/auth/profile";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -48,7 +49,11 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (path === "/login" && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const access = await getProfileAccess(user.id);
+    const isAdmin = access?.role === "admin" && access.is_active !== false;
+    return NextResponse.redirect(
+      new URL(isAdmin ? "/admin" : "/dashboard", request.url)
+    );
   }
 
   if (isProtected && !user) {
@@ -56,11 +61,15 @@ export async function middleware(request: NextRequest) {
   }
 
   if ((isProtected || isSuspendedPage) && user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, is_active")
-      .eq("id", user.id)
-      .maybeSingle();
+    const profile =
+      (await getProfileAccess(user.id)) ??
+      (
+        await supabase
+          .from("profiles")
+          .select("role, is_active")
+          .eq("id", user.id)
+          .maybeSingle()
+      ).data;
 
     if (profile?.is_active === false && !isSuspendedPage) {
       return NextResponse.redirect(new URL("/account-suspended", request.url));

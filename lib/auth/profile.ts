@@ -19,3 +19,10 @@ export async function hasAcceptedRiskDisclaimer(userId: string) {
   const profile = await getProfileByUserId(userId);
   return Boolean(profile?.risk_disclaimer_accepted);
 }
+
+/** Server-only profile role check (service role when configured). */
+export async function getProfileAccess(userId: string) {
+  const profile = await getProfileByUserId(userId);
+  if (!profile) return null;
+  return { role: profile.role, is_active: profile.is_active };
+}

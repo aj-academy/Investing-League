@@ -1,3 +1,4 @@
+import { getProfileByUserId } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthContext = {
@@ -25,11 +26,15 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email, role, plan, is_active, risk_disclaimer_accepted")
-    .eq("id", user.id)
-    .maybeSingle();
+  const profile =
+    (await getProfileByUserId(user.id)) ??
+    (
+      await supabase
+        .from("profiles")
+        .select("full_name, email, role, plan, is_active, risk_disclaimer_accepted")
+        .eq("id", user.id)
+        .maybeSingle()
+    ).data;
 
   return {
     user: { id: user.id, email: user.email ?? "" },
