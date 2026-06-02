@@ -106,13 +106,15 @@ export function LoginForm() {
 
   return (
     <form onSubmit={submit}>
-      <input
-        type="text"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required={!adminPanel}
-      />
+      {!adminPanel && (
+        <input
+          type="text"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      )}
       {adminPanel ? (
         <>
           <input
