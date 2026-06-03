@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import SiteFooter from "@/components/layout/SiteFooter";
 import "./globals.css";
-import { DISCLAIMER } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "The Investing League Decision Lab",
@@ -19,9 +19,7 @@ export default function RootLayout({
       <body>
         {children}
         <Toaster theme="dark" position="top-right" richColors />
-        <footer className="z" style={{ textAlign: "center", padding: "20px", fontSize: 10, color: "var(--m3)" }}>
-          {DISCLAIMER}
-        </footer>
+        <SiteFooter />
       </body>
     </html>
   );
