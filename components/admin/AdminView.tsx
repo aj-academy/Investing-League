@@ -289,7 +289,7 @@ export function AdminView() {
         ADMIN DASHBOARD
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }} className="admin-tab-bar">
         {tabs.map((tab) => (
           <button
             key={tab.id}
