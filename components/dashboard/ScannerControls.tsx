@@ -100,6 +100,18 @@ export function ScannerControls({
             </select>
           </div>
           <div className="f">
+            <label>Daily Trade Limit</label>
+            <select
+              value={settings.dailyTradeLimit}
+              onChange={(e) => onChange({ dailyTradeLimit: Number(e.target.value) })}
+            >
+              <option value={3}>3</option>
+              <option value={5}>5</option>
+              <option value={8}>8</option>
+              <option value={999}>No Limit Practice</option>
+            </select>
+          </div>
+          <div className="f">
             <label title="Re-runs full signal engine on a timer. Each refresh counts toward daily scan limit.">
               Auto Refresh
             </label>

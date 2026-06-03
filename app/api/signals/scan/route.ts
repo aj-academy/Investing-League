@@ -12,8 +12,7 @@ import {
 } from "@/lib/billing/planLimits";
 import { getCandlesCached } from "@/lib/market/cachedCandles";
 import { buildTickerForPairs } from "@/lib/market/tickerService";
-import { computeSignal, filterSignals } from "@/lib/signal-engine";
-import type { JournalHistoryRow } from "@/lib/signal-engine/types";
+import { computeSignal, filterSignals, finalizeScanSignals, type V8JournalRow } from "@/lib/signal-engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
@@ -132,6 +131,7 @@ export async function POST(request: Request) {
         ? body.minGrade
         : undefined;
     const showBSignals = body.showBSignals !== false;
+    const dailyTradeLimit = Number(body.dailyTradeLimit ?? 5);
     const sessionFilter = String(body.sessionFilter || "any");
     const timeZone = resolveTimeZone(body.timezone);
 
@@ -189,18 +189,39 @@ export async function POST(request: Request) {
 
     const { data: journalRows } = await supabase
       .from("trade_journal")
-      .select("pair,timeframe,direction,signal_type,signal_entry_time")
+      .select(
+        "pair,timeframe,direction,signal_type,signal_entry_time,trade_eligible,result,created_at"
+      )
       .eq("user_id", auth!.user.id)
       .order("created_at", { ascending: false })
       .limit(500);
 
-    const history: JournalHistoryRow[] = (journalRows || []).map((r) => ({
-      pair: r.pair,
-      timeframe: r.timeframe,
-      direction: r.direction as "CALL" | "PUT",
-      signalType: r.signal_type || undefined,
-      signal_entry_time: r.signal_entry_time || undefined,
-    }));
+    const v8Journal: V8JournalRow[] = (journalRows || []).map((r) => {
+      const created = r.created_at ? new Date(r.created_at) : new Date();
+      const date = created.toLocaleDateString("en-GB", { timeZone });
+      const signalTime =
+        r.signal_entry_time ||
+        created.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+          timeZone,
+        });
+      const eligible =
+        r.trade_eligible &&
+        (r.signal_type === "FINAL TRADE" || r.signal_type === "STRONG FINAL");
+      return {
+        date,
+        signalTime,
+        type: r.signal_type || "WATCH ONLY",
+        counted: eligible ? "YES" : "NO",
+        pair: r.pair,
+        direction: r.direction,
+        result: r.result,
+        entryTime: r.signal_entry_time,
+      };
+    });
 
     let providerCalls = 0;
     let cacheHits = 0;
@@ -213,8 +234,9 @@ export async function POST(request: Request) {
           const candleResult = await getCandlesCached(pair, tf, 150);
           if (candleResult.providerCall) providerCalls++;
           if (candleResult.cacheHit) cacheHits++;
-          const sig = computeSignal(candleResult.candles, pair, tf, mode, history, {
+          const sig = computeSignal(candleResult.candles, pair, tf, mode, [], {
             timeZone,
+            minGrade,
           });
           if (sig) rawSignals.push(sig);
         } catch (e) {
@@ -225,11 +247,17 @@ export async function POST(request: Request) {
       }
     }
 
-    const filteredSignals = filterSignals(rawSignals, {
+    const finalized = finalizeScanSignals(rawSignals, {
+      mode,
+      journal: v8Journal,
+      dailyLimit: dailyTradeLimit,
+      timeZone,
+    });
+
+    const filteredSignals = filterSignals(finalized, {
       pairs,
       timeframes,
       mode,
-      minScore,
       minGrade,
       showBSignals,
       sessionFilter,
@@ -238,15 +266,15 @@ export async function POST(request: Request) {
     const toPersist =
       filteredSignals.length > 0
         ? filteredSignals
-        : mode === "practice" && rawSignals.length > 0
-          ? rawSignals
+        : mode === "practice" && finalized.length > 0
+          ? finalized
           : [];
 
     const toDisplay =
       filteredSignals.length > 0
         ? filteredSignals
-        : rawSignals.length > 0
-          ? rawSignals
+        : finalized.length > 0
+          ? finalized
           : [];
 
     const admin = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -360,8 +388,8 @@ export async function POST(request: Request) {
             : marketErrors.length > 0
               ? `Scan finished but no market data: ${marketErrors[0]}`
               : rawSignals.length === 0
-                ? "Scan complete — no setups found. Try another session filter or lower min score."
-                : "Scan complete — setups found but none matched your filters. Lower min score or enable B signals.",
+                ? "Scan complete — no setups found. Try another session filter or lower min grade."
+                : "Scan complete — setups found but none matched your min grade filter.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Scan failed";

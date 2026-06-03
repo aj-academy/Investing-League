@@ -8,6 +8,8 @@ const DO_NOT_TRADE_TYPES: SignalType[] = [
   "TREND EXHAUSTED",
 ];
 
+const OBSERVE_TYPES: SignalType[] = ["DAILY LIMIT", "NEWS CAUTION", "WATCH ONLY"];
+
 export function resolvePermission(sig: ComputedSignal): TradePermission {
   if (sig.permission) return sig.permission;
   if (DO_NOT_TRADE_TYPES.includes(sig.signalType)) return "DO NOT TRADE";
@@ -34,6 +36,7 @@ export function journalPermission(
 ): TradePermission {
   const t = (signalType || "WATCH ONLY") as SignalType;
   if (DO_NOT_TRADE_TYPES.includes(t) || t === "CORRELATION RISK") return "DO NOT TRADE";
+  if (OBSERVE_TYPES.includes(t)) return "OBSERVE ONLY";
   if (tradeEligible && (t === "FINAL TRADE" || t === "STRONG FINAL")) return "TRADE ALLOWED";
   return "OBSERVE ONLY";
 }

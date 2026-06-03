@@ -28,6 +28,7 @@ export default async function DashboardPage() {
     timeframe: settings?.default_timeframe || "5min",
     minGrade: settings?.show_b_signals === false ? "A" : "B",
     minScore: settings?.default_min_score || 5,
+    dailyTradeLimit: 5,
     session: "any",
     autoRefresh: normalizeAutoRefresh(
       settings?.auto_refresh_seconds != null

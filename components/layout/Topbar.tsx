@@ -92,7 +92,7 @@ export function Topbar({
         </div>
         <div>
           <div className="bname">THE INVESTING LEAGUE</div>
-          <div className="bsub">Decision Lab · V4 Power Engine</div>
+          <div className="bsub">Decision Lab · V8 Clean Engine</div>
         </div>
       </div>
       <div className="hdr-r">

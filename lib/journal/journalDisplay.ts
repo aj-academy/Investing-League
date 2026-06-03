@@ -35,6 +35,8 @@ export function signalTypeClass(type: string) {
   if (t === "LATE ENTRY") return "late-entry";
   if (t === "REPEATED SIGNAL") return "repeated";
   if (t === "TREND EXHAUSTED") return "exhausted";
+  if (t === "DAILY LIMIT") return "late-entry";
+  if (t === "NEWS CAUTION") return "watch-only";
   return "watch-only";
 }
 

@@ -87,13 +87,13 @@ export function SignalCard({
       <div className={`signal-type-box ${signalTypeClass(sig.signalType)}`}>
         <strong>{sig.signalType}</strong> — {sig.signalReason}
         <div style={{ marginTop: 6 }}>
-          <span className={`v4-badge ${Number(sig.adx) >= 22 ? "good" : Number(sig.adx) >= 16 ? "warn" : "bad"}`}>
+          <span className={`v8-badge ${Number(sig.adx) >= 22 ? "good" : Number(sig.adx) >= 16 ? "warn" : "bad"}`}>
             ADX {sig.adx}
           </span>
-          <span className={`v4-badge ${sig.candleStrengthText === "STRONG" ? "good" : sig.candleStrengthText === "OK" ? "warn" : "bad"}`}>
+          <span className={`v8-badge ${sig.candleStrengthText === "STRONG" ? "good" : sig.candleStrengthText === "OK" ? "warn" : "bad"}`}>
             CANDLE {sig.candleBodyRatio}% {sig.candleStrengthText}
           </span>
-          {sig.liveRank ? <span className="v4-badge good">RANK {sig.liveRank}</span> : null}
+          {sig.liveRank ? <span className="v8-badge good">RANK {sig.liveRank}</span> : null}
         </div>
       </div>
       <div className="score-section">

@@ -102,12 +102,12 @@
 .provider-box{border-color:var(--blue)!important}
 .provider-status{font-family:var(--mono);font-size:11px;color:var(--bull)}
 .provider-off{color:var(--warn)}
-.v4-mode-note{margin:0 0 14px;background:linear-gradient(135deg,rgba(0,170,255,.08),rgba(240,160,32,.05));border:1px solid var(--bd);border-radius:var(--r2);padding:11px 14px;font-size:11px;line-height:1.7;color:var(--txt)}
-.v4-mode-note strong{color:var(--blue2);font-family:var(--mono);letter-spacing:1px}
-.v4-badge{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:5px;border:1px solid var(--bd2);background:var(--p2);color:var(--txt2);margin-right:4px;white-space:nowrap;display:inline-block}
-.v4-badge.good{color:var(--bull);border-color:rgba(0,214,143,.35);background:var(--bulld)}
-.v4-badge.warn{color:var(--gold2);border-color:rgba(240,160,32,.35);background:var(--goldd)}
-.v4-badge.bad{color:var(--bear2);border-color:rgba(255,51,85,.35);background:var(--beard)}
+.v8-mode-note,.v4-mode-note{margin:0 0 14px;background:linear-gradient(135deg,rgba(0,170,255,.08),rgba(240,160,32,.05));border:1px solid var(--bd);border-radius:var(--r2);padding:11px 14px;font-size:11px;line-height:1.7;color:var(--txt)}
+.v8-mode-note strong,.v4-mode-note strong{color:var(--blue2);font-family:var(--mono);letter-spacing:1px}
+.v4-badge,.v8-badge{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:5px;border:1px solid var(--bd2);background:var(--p2);color:var(--txt2);margin-right:4px;white-space:nowrap;display:inline-block}
+.v4-badge.good,.v8-badge.good{color:var(--bull);border-color:rgba(0,214,143,.35);background:var(--bulld)}
+.v4-badge.warn,.v8-badge.warn{color:var(--gold2);border-color:rgba(240,160,32,.35);background:var(--goldd)}
+.v4-badge.bad,.v8-badge.bad{color:var(--bear2);border-color:rgba(255,51,85,.35);background:var(--beard)}
 .signal-type-box{margin:0 14px 10px;padding:8px 10px;border-radius:7px;border:1px solid var(--bd2);font-family:var(--mono);font-size:10px;letter-spacing:1px}
 .signal-type-box.strong-final{border-color:rgba(0,214,143,.45);background:var(--bulld);color:var(--bull)}
 .signal-type-box.final-trade{border-color:rgba(0,170,255,.35);background:var(--blued);color:var(--blue2)}

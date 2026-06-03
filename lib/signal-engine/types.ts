@@ -8,7 +8,9 @@ export type SignalType =
   | "TREND EXHAUSTED"
   | "LATE ENTRY"
   | "CORRELATION RISK"
-  | "LIVE SELECTOR WATCH";
+  | "LIVE SELECTOR WATCH"
+  | "DAILY LIMIT"
+  | "NEWS CAUTION";
 
 export type TradePermission = "TRADE ALLOWED" | "OBSERVE ONLY" | "DO NOT TRADE";
 

@@ -35,6 +35,7 @@ export interface ScanSettings {
   timeframe: string;
   minGrade: MinGradeFilter;
   minScore: number;
+  dailyTradeLimit: number;
   session: string;
   autoRefresh: AutoRefreshOption;
   mode: "practice" | "live";
@@ -271,6 +272,7 @@ export function DashboardClient({
           minScore: settings.minScore,
           minGrade: settings.minGrade,
           showBSignals: settings.minGrade === "B",
+          dailyTradeLimit: settings.dailyTradeLimit,
           sessionFilter: settings.session,
           auto: isAuto,
           timezone: timeZone,
@@ -401,7 +403,7 @@ export function DashboardClient({
             {restoreMessage}
           </div>
         )}
-        <div className="v4-mode-note">
+        <div className="v8-mode-note">
           <strong>V8 DECISION ENGINE:</strong> Grade is setup quality. The big permission box is
           what matters: <b>TRADE ALLOWED</b>, <b>OBSERVE ONLY</b>, or <b>DO NOT TRADE</b>. Practice
           shows all filtered setups; Live keeps the best signal per scan.

@@ -1,52 +1,59 @@
-import { classifyV4, enrichWithV4Metrics } from "./classification";
-import { applyLiveSelector } from "./liveSelector";
-import { applyPermission, gradeAllowed, type MinGradeFilter } from "./permission";
-import { buildSignalUid, computeBaseSignal } from "./scoring";
+import { gradeAllowed, type MinGradeFilter } from "./permission";
 import { sessionOk } from "./session";
 import type { ComputedSignal, JournalHistoryRow, OHLC, TradingMode } from "./types";
+import { computeV8Signal } from "./v8/adapter";
+import { applyV8HistoryAndMode, type V8JournalRow } from "./v8/historyMode";
+import { applyV8NewsBlock, isNewsBlocked } from "./v8/news";
+import { rankV8Signals } from "./v8/rank";
 
 export * from "./types";
 export * from "./session";
-export { rankSignal, applyLiveSelector, isEligible } from "./liveSelector";
+export { gradeAllowed, type MinGradeFilter } from "./permission";
+export { isNewsBlocked } from "./v8/news";
 
+/** Single-pair V8 compute (batch finalize via finalizeScanSignals). */
 export function computeSignal(
   ohlc: OHLC[],
   pair: string,
   tf: string,
   mode: TradingMode = "practice",
-  journalHistory: JournalHistoryRow[] = [],
-  options?: { timeZone?: string }
+  _journalHistory: JournalHistoryRow[] = [],
+  options?: { timeZone?: string; minGrade?: MinGradeFilter }
 ): ComputedSignal | null {
-  const base = computeBaseSignal(ohlc, pair, tf, options?.timeZone);
-  if (!base) return null;
+  const sig = computeV8Signal(ohlc, pair, tf, mode, options?.timeZone);
+  if (!sig) return null;
+  const minGrade = options?.minGrade ?? "A";
+  if (!gradeAllowed(sig.grade, minGrade)) return null;
+  return sig;
+}
 
-  const sig = enrichWithV4Metrics(
-    {
-      ...base,
-      signalUid: "",
-      signalType: "WATCH ONLY",
-      signalReason: "",
-      tradeEligible: false,
-      mode,
-      adx: 0,
-      candleBodyRatio: 0,
-      candleBullish: false,
-      candleBearish: false,
-      candleStrengthText: "OK",
-    },
-    ohlc
-  );
+export interface FinalizeScanOptions {
+  mode: TradingMode;
+  journal: V8JournalRow[];
+  dailyLimit?: number;
+  timeZone?: string;
+  applyNews?: boolean;
+}
 
-  classifyV4(sig, mode, journalHistory);
-  sig.signalUid = buildSignalUid(sig.pair, sig.tf, sig.direction, sig.entryTime, sig.expTime);
-  return applyPermission(sig);
+/** V8 post-scan: history cooldown, daily limit, live selector, news block, sort. */
+export function finalizeScanSignals(
+  signals: ComputedSignal[],
+  options: FinalizeScanOptions
+): ComputedSignal[] {
+  let out = applyV8HistoryAndMode(signals, options.mode, options.journal, {
+    dailyLimit: options.dailyLimit,
+    timeZone: options.timeZone,
+  });
+  if (options.applyNews !== false) {
+    out = applyV8NewsBlock(out, isNewsBlocked());
+  }
+  return out.sort(rankV8Signals);
 }
 
 export interface ScanOptions {
   pairs: string[];
   timeframes: string[];
   mode: TradingMode;
-  minScore: number;
   minGrade?: MinGradeFilter;
   showBSignals: boolean;
   sessionFilter: string;
@@ -60,24 +67,9 @@ export function filterSignals(
 
   const minGrade = options.minGrade ?? (options.showBSignals ? "B" : "A");
 
-  let filtered = signals.filter((sig) => {
-    const gradeOk =
-      gradeAllowed(sig.grade, minGrade) ||
-      (options.showBSignals && !options.minGrade && sig.grade === "B");
-    return gradeOk && sig.score >= options.minScore;
-  });
-
-  if (options.mode === "live") {
-    filtered = applyLiveSelector(filtered);
-    filtered = filtered.map(applyPermission);
-  }
-
-  filtered.sort((a, b) => {
-    const ar = a.tradeEligible ? 1 : 0;
-    const br = b.tradeEligible ? 1 : 0;
-    if (ar !== br) return br - ar;
-    return (b.liveRank || 0) - (a.liveRank || 0) || b.conf - a.conf;
-  });
-
-  return filtered;
+  return signals
+    .filter((sig) => gradeAllowed(sig.grade, minGrade))
+    .sort(rankV8Signals);
 }
+
+export type { V8JournalRow } from "./v8/historyMode";
