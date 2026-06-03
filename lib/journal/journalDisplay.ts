@@ -1,5 +1,19 @@
 import { isRealTradeSignal } from "@/lib/analytics/winRate";
 import { calculateEntryDrift, type EntryStatus } from "@/lib/journal/entryDrift";
+import { journalPermission } from "@/lib/signal-engine/permission";
+
+export function permissionClass(perm: string) {
+  if (perm === "TRADE ALLOWED") return "allowed";
+  if (perm === "DO NOT TRADE") return "blocked";
+  return "observe";
+}
+
+export function rowPermission(
+  signalType?: string | null,
+  tradeEligible?: boolean | null
+) {
+  return journalPermission(signalType, tradeEligible);
+}
 
 export function isEligibleType(signalType?: string | null, grade?: string | null) {
   return isRealTradeSignal(signalType, grade);

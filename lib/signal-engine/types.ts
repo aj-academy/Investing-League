@@ -10,6 +10,8 @@ export type SignalType =
   | "CORRELATION RISK"
   | "LIVE SELECTOR WATCH";
 
+export type TradePermission = "TRADE ALLOWED" | "OBSERVE ONLY" | "DO NOT TRADE";
+
 export interface OHLC {
   date: string;
   open: number;
@@ -109,6 +111,7 @@ export interface ComputedSignal {
   signalUid: string;
   signalType: SignalType;
   signalReason: string;
+  permission?: TradePermission;
   tradeEligible: boolean;
   mode: TradingMode;
   adx: number;

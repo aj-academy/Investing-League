@@ -23,7 +23,7 @@ export default async function AnalyticsPage() {
       <Topbar />
       <div className="wrap z">
         <RiskDisclaimerBanner />
-        <AnalyticsView summary={summary} />
+        <AnalyticsView summary={summary} rows={rows || []} />
       </div>
     </ProtectedShell>
   );

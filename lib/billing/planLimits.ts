@@ -177,22 +177,12 @@ export function defaultLiveUpdateForPlan(plan: PlanName): LiveUpdateOption {
   return "off";
 }
 
-/** HTML-style auto refresh: re-runs full signal engine on an interval. */
-export type AutoRefreshOption = "off" | "60" | "180" | "30";
+/** HTML template auto refresh: 60s, 2min, 5min, or manual. */
+export type AutoRefreshOption = "60" | "120" | "300" | "off";
 
-export function autoRefreshOptionsForPlan(plan: PlanName): AutoRefreshOption[] {
-  switch (plan) {
-    case "free":
-      return ["off", "180", "60", "30"];
-    case "starter":
-      return ["off", "180", "60"];
-    case "pro":
-      return ["off", "180", "60", "30"];
-    case "admin":
-      return ["off", "180", "60", "30"];
-    default:
-      return ["off", "60"];
-  }
+/** Same options as the HTML template for every plan. */
+export function autoRefreshOptionsForPlan(_plan: PlanName): AutoRefreshOption[] {
+  return ["60", "120", "300", "off"];
 }
 
 export function autoRefreshToSeconds(option: AutoRefreshOption): number {
@@ -200,25 +190,26 @@ export function autoRefreshToSeconds(option: AutoRefreshOption): number {
   return Number(option);
 }
 
-export function defaultAutoRefreshForPlan(plan: PlanName): AutoRefreshOption {
-  return autoRefreshOptionsForPlan(plan).includes("60") ? "60" : "off";
+export function defaultAutoRefreshForPlan(_plan: PlanName): AutoRefreshOption {
+  return "60";
 }
 
-/** Map legacy liveUpdate values from older sessions. */
+/** Map legacy stored values to HTML template options. */
 export function normalizeAutoRefresh(
   value: string | number | undefined,
   plan: PlanName
 ): AutoRefreshOption {
   const allowed = new Set(autoRefreshOptionsForPlan(plan));
-  if (value === "60" || value === "180" || value === "30") {
-    return allowed.has(value) ? value : "off";
+  if (value === "60" || value === "120" || value === "300" || value === "off") {
+    return allowed.has(value as AutoRefreshOption) ? (value as AutoRefreshOption) : "off";
   }
-  if (value === "cached_only" || value === "off" || value === undefined || value === "") {
+  if (value === "cached_only" || value === undefined || value === "") {
     return "off";
   }
   const n = Number(value);
-  if (n === 60 && allowed.has("60")) return "60";
-  if (n === 180 && allowed.has("180")) return "180";
-  if (n === 30 && allowed.has("30")) return "30";
+  if (n === 60) return "60";
+  if (n === 120 || n === 180) return "120";
+  if (n === 300) return "300";
+  if (n === 30) return "60";
   return "off";
 }

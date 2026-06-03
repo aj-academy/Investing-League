@@ -1,21 +1,20 @@
 import type { ComputedSignal } from "@/lib/signal-engine/types";
+import { resolvePermission } from "@/lib/signal-engine/permission";
 
 export function StatsRow({
   signals,
-  mode,
+  apiCalls,
   visible,
 }: {
   signals: ComputedSignal[];
-  mode: string;
+  apiCalls?: number;
   visible: boolean;
 }) {
   if (!visible || !signals.length) return null;
-  const calls = signals.filter((s) => s.direction === "CALL").length;
-  const puts = signals.filter((s) => s.direction === "PUT").length;
-  const finals = signals.filter(
-    (s) => s.signalType === "STRONG FINAL" || s.signalType === "FINAL TRADE"
-  ).length;
-  const avgS = Math.round(signals.reduce((a, s) => a + s.score, 0) / signals.length);
+
+  const allowed = signals.filter((s) => resolvePermission(s) === "TRADE ALLOWED").length;
+  const observe = signals.filter((s) => resolvePermission(s) === "OBSERVE ONLY").length;
+  const blocked = signals.filter((s) => resolvePermission(s) === "DO NOT TRADE").length;
   const top = signals[0];
 
   return (
@@ -28,33 +27,33 @@ export function StatsRow({
       </div>
       <div className="sb">
         <div className="sbv" style={{ color: "var(--bull)" }}>
-          {calls}
+          {allowed}
         </div>
-        <div className="sbl">CALL</div>
+        <div className="sbl">Trade Allowed</div>
+      </div>
+      <div className="sb">
+        <div className="sbv" style={{ color: "var(--gold2)" }}>
+          {observe}
+        </div>
+        <div className="sbl">Observation</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ color: "var(--bear)" }}>
-          {puts}
+          {blocked}
         </div>
-        <div className="sbl">PUT</div>
-      </div>
-      <div className="sb">
-        <div className="sbv" style={{ color: "var(--gold)" }}>
-          {avgS}
-        </div>
-        <div className="sbl">Avg Score</div>
+        <div className="sbl">Do Not Trade</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ fontSize: 12, color: "var(--txt)" }}>
-          {(top.pair + " " + top.direction + " " + top.signalType).slice(0, 18)}
+          {top ? `${top.pair} ${top.direction}` : "—"}
         </div>
-        <div className="sbl">Top Pick</div>
+        <div className="sbl">Top Setup</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ fontSize: 11, color: "var(--m3)" }}>
-          {mode === "live" ? `Live: ${finals} Final` : "Practice Mode"}
+          {apiCalls ?? "—"}
         </div>
-        <div className="sbl">Source</div>
+        <div className="sbl">API Calls</div>
       </div>
     </div>
   );

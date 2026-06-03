@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComputedSignal } from "@/lib/signal-engine/types";
+import { resolvePermission } from "@/lib/signal-engine/permission";
 import { decimalsForPair, isJpyPair } from "@/lib/utils";
 import { displayEntryTime, displayExpTime } from "./signalTime";
 import { ConfRing, MiniChart } from "./MiniChart";
@@ -40,9 +41,27 @@ export function SignalCard({
   const res1 = sig.nearRes ? sig.nearRes.toFixed(dp) : "—";
   const sup1 = sig.nearSup ? sig.nearSup.toFixed(dp) : "—";
   const piv = sig.pivs.P.toFixed(dp);
+  const permission = resolvePermission(sig);
+  const allowed = permission === "TRADE ALLOWED";
+  const blocked = permission === "DO NOT TRADE";
+  const decClass = allowed ? "allowed" : blocked ? "no" : "observe";
+  const permColor = allowed ? "var(--bull)" : blocked ? "var(--bear)" : "var(--gold)";
 
   return (
     <div className={`sc ${dc}`} style={{ animationDelay: `${delay}ms` }}>
+      <div className={`decision ${decClass}`}>
+        <div>
+          <div className="big" style={{ color: permColor }}>
+            {allowed ? "✅ TRADE ALLOWED" : blocked ? "⛔ DO NOT TRADE" : "⚠️ OBSERVE ONLY"}
+          </div>
+          <div className="small">
+            {sig.signalType} · {sig.grade} grade · gap {sig.scoreGap}
+          </div>
+        </div>
+        <div className="mono" style={{ color: permColor, fontFamily: "var(--mono)" }}>
+          {sig.conf}%
+        </div>
+      </div>
       <div className="ch">
         <div>
           <div className="ch-pair">
@@ -60,7 +79,7 @@ export function SignalCard({
           {chgUp ? "+" : ""}
           {sig.chgPct}%
         </span>
-        <span className="live-badge">REAL-TIME</span>
+        <span className="live-badge">LAST CLOSED CANDLE</span>
       </div>
       <div className="mini-chart">
         <MiniChart ohlc={sig.ohlc} direction={sig.direction} />
@@ -79,7 +98,7 @@ export function SignalCard({
       </div>
       <div className="score-section">
         <div className="score-header">
-          <span className="score-label">Weighted Confluence</span>
+          <span className="score-label">V8 Confluence Confidence</span>
           <span className="score-val" style={{ color: confColor }}>
             {sig.conf}% — {sig.tier}
           </span>
@@ -101,7 +120,7 @@ export function SignalCard({
         </div>
       </div>
       <div className="checks-section">
-        <div className="sec-title">Strategy Checklist</div>
+        <div className="sec-title">Decision Checks</div>
         <div className="checks-grid">
           {checks.map((c) => (
             <div key={c.name} className={`chk ${c.pass ? "pass" : "fail"}`}>

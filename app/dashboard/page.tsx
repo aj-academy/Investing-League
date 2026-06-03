@@ -25,10 +25,9 @@ export default async function DashboardPage() {
     .maybeSingle();
 
   const initialSettings: ScanSettings = {
-    asset: "all",
     timeframe: settings?.default_timeframe || "5min",
+    minGrade: settings?.show_b_signals === false ? "A" : "B",
     minScore: settings?.default_min_score || 5,
-    showB: settings?.show_b_signals ?? true,
     session: "any",
     autoRefresh: normalizeAutoRefresh(
       settings?.auto_refresh_seconds != null

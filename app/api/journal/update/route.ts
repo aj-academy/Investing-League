@@ -73,12 +73,20 @@ export async function PATCH(request: Request) {
       resultSource = "Auto";
     }
 
+    const tradeId =
+      body.tradeId !== undefined
+        ? body.tradeId === "" || body.tradeId === null
+          ? null
+          : String(body.tradeId)
+        : row.olymp_trade_id;
+
     const { data: updated, error: updateError } = await supabase
       .from("trade_journal")
       .update({
         olymp_open_time: openTime,
         olymp_opening_quote: opening,
         olymp_closing_quote: closing,
+        olymp_trade_id: tradeId,
         loss_reason: body.lossReason ?? row.loss_reason,
         entry_drift: drift,
         entry_status: status,

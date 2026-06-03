@@ -1,10 +1,23 @@
 import type { buildAnalyticsSummary } from "@/lib/analytics/summary";
+import { journalPermission } from "@/lib/signal-engine/permission";
 
 export function AnalyticsView({
   summary,
+  rows = [],
 }: {
   summary: ReturnType<typeof buildAnalyticsSummary>;
+  rows?: { signal_type?: string | null; trade_eligible?: boolean | null }[];
 }) {
+  let tradeAllowed = 0;
+  let observe = 0;
+  let blocked = 0;
+  for (const r of rows) {
+    const p = journalPermission(r.signal_type, r.trade_eligible);
+    if (p === "TRADE ALLOWED") tradeAllowed++;
+    else if (p === "OBSERVE ONLY") observe++;
+    else blocked++;
+  }
+
   return (
     <div>
       <div className="journal-title" style={{ marginBottom: 16 }}>
@@ -13,6 +26,9 @@ export function AnalyticsView({
       <div className="journal-stats">
         {[
           ["Total Signals", summary.totalSignals, "var(--blue2)"],
+          ["Trade Allowed", tradeAllowed, "var(--bull)"],
+          ["Observation", observe, "var(--gold2)"],
+          ["Do Not Trade", blocked, "var(--bear)"],
           ["Trade Eligible", summary.tradeEligible, "var(--txt2)"],
           ["Completed", summary.completedTrades, "var(--txt2)"],
           ["Final Trade WR", `${summary.finalTradeWinRate}%`, "var(--bull2)"],

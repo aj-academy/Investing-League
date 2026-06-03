@@ -1,5 +1,6 @@
 import { classifyV4, enrichWithV4Metrics } from "./classification";
 import { applyLiveSelector } from "./liveSelector";
+import { applyPermission, gradeAllowed, type MinGradeFilter } from "./permission";
 import { buildSignalUid, computeBaseSignal } from "./scoring";
 import { sessionOk } from "./session";
 import type { ComputedSignal, JournalHistoryRow, OHLC, TradingMode } from "./types";
@@ -38,7 +39,7 @@ export function computeSignal(
 
   classifyV4(sig, mode, journalHistory);
   sig.signalUid = buildSignalUid(sig.pair, sig.tf, sig.direction, sig.entryTime, sig.expTime);
-  return sig;
+  return applyPermission(sig);
 }
 
 export interface ScanOptions {
@@ -46,6 +47,7 @@ export interface ScanOptions {
   timeframes: string[];
   mode: TradingMode;
   minScore: number;
+  minGrade?: MinGradeFilter;
   showBSignals: boolean;
   sessionFilter: string;
 }
@@ -56,16 +58,18 @@ export function filterSignals(
 ): ComputedSignal[] {
   if (!sessionOk(options.sessionFilter)) return [];
 
+  const minGrade = options.minGrade ?? (options.showBSignals ? "B" : "A");
+
   let filtered = signals.filter((sig) => {
-    const gradeAllowed =
-      sig.grade === "A+" ||
-      sig.grade === "A" ||
-      (options.showBSignals && sig.grade === "B");
-    return gradeAllowed && sig.score >= options.minScore;
+    const gradeOk =
+      gradeAllowed(sig.grade, minGrade) ||
+      (options.showBSignals && !options.minGrade && sig.grade === "B");
+    return gradeOk && sig.score >= options.minScore;
   });
 
   if (options.mode === "live") {
     filtered = applyLiveSelector(filtered);
+    filtered = filtered.map(applyPermission);
   }
 
   filtered.sort((a, b) => {

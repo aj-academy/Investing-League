@@ -127,6 +127,10 @@ export async function POST(request: Request) {
     let timeframes: string[] = body.timeframes?.length ? body.timeframes : ["5min"];
     const mode = body.mode === "live" ? "live" : "practice";
     const minScore = Number(body.minScore ?? 5);
+    const minGrade =
+      body.minGrade === "A+" || body.minGrade === "A" || body.minGrade === "B"
+        ? body.minGrade
+        : undefined;
     const showBSignals = body.showBSignals !== false;
     const sessionFilter = String(body.sessionFilter || "any");
     const timeZone = resolveTimeZone(body.timezone);
@@ -226,6 +230,7 @@ export async function POST(request: Request) {
       timeframes,
       mode,
       minScore,
+      minGrade,
       showBSignals,
       sessionFilter,
     });

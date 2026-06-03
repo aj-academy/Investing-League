@@ -8,6 +8,8 @@ import {
   formatJournalTime,
   isCountedInWr,
   lossReasonText,
+  permissionClass,
+  rowPermission,
   signalTypeClass,
 } from "@/lib/journal/journalDisplay";
 
@@ -20,6 +22,7 @@ export interface JournalRow {
   confidence: number | null;
   score: number | null;
   signal_type: string | null;
+  trade_eligible?: boolean | null;
   signal_reason: string | null;
   signal_entry_time: string | null;
   signal_entry_price: number | null;
@@ -98,8 +101,10 @@ export function JournalTable({
         <tr>
           <th>Date</th>
           <th>Signal Time</th>
-          <th>Type</th>
+          <th>Permission</th>
+          <th>Signal Type</th>
           <th>Counted?</th>
+          <th>Trade ID</th>
           <th>Pair</th>
           <th>Expiry</th>
           <th>Direction</th>
@@ -119,6 +124,7 @@ export function JournalTable({
       <tbody>
         {rows.map((r) => {
           const type = r.signal_type || "WATCH ONLY";
+          const perm = rowPermission(type, r.trade_eligible);
           const drift = driftDisplay(
             r.pair,
             r.signal_entry_price,
@@ -133,6 +139,9 @@ export function JournalTable({
               <td>{formatJournalDate(r.created_at)}</td>
               <td>{formatJournalTime(r.created_at)}</td>
               <td>
+                <span className={`permission-pill ${permissionClass(perm)}`}>{perm}</span>
+              </td>
+              <td>
                 <span className={`signal-type-mini ${signalTypeClass(type)}`}>{type}</span>
               </td>
               <td>
@@ -141,6 +150,16 @@ export function JournalTable({
                 ) : (
                   <span style={{ color: "var(--m3)" }}>NO</span>
                 )}
+              </td>
+              <td>
+                <input
+                  className="jinput"
+                  style={{ width: 100 }}
+                  defaultValue={r.olymp_trade_id ?? ""}
+                  placeholder="ID"
+                  disabled={saving === r.id}
+                  onBlur={(e) => onBlurField(r.id, "tradeId", e.target.value)}
+                />
               </td>
               <td>{r.pair}</td>
               <td>{r.timeframe} expiry</td>

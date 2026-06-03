@@ -1,4 +1,5 @@
 import { usdLinked } from "./correlation";
+import { applyPermission } from "./permission";
 import type { ComputedSignal } from "./types";
 
 export function isEligible(type?: string) {
@@ -51,8 +52,9 @@ export function applyLiveSelector(signals: ComputedSignal[]) {
           "Live Mode: lower-ranked setup. Only the best signal is trade eligible.";
       }
       s.tradeEligible = false;
+      applyPermission(s);
     }
   });
 
-  return signals;
+  return signals.map(applyPermission);
 }

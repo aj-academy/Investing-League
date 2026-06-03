@@ -7,8 +7,11 @@ import {
   autoRefreshToSeconds,
   normalizeAutoRefresh,
 } from "@/lib/billing/planLimits";
+import type { MinGradeFilter } from "@/lib/signal-engine/permission";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
+import { playScanAlerts } from "@/lib/sound/signalAlerts";
 import { toast } from "sonner";
+import { AssetChipGrid, loadStoredPairs } from "./AssetChipGrid";
 import { LoadingScanner } from "./LoadingScanner";
 import { MarketTicker } from "./MarketTicker";
 import { ScannerControls } from "./ScannerControls";
@@ -29,10 +32,9 @@ function clientTimeZone() {
 }
 
 export interface ScanSettings {
-  asset: string;
   timeframe: string;
+  minGrade: MinGradeFilter;
   minScore: number;
-  showB: boolean;
   session: string;
   autoRefresh: AutoRefreshOption;
   mode: "practice" | "live";
@@ -62,6 +64,7 @@ export function DashboardClient({
       planInfo.plan
     ),
   });
+  const [selectedPairs, setSelectedPairs] = useState<string[]>([]);
   const [signals, setSignals] = useState<ComputedSignal[]>([]);
   const [ticker, setTicker] = useState<TickerItem[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -75,6 +78,8 @@ export function DashboardClient({
   const [lastScanNote, setLastScanNote] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [autoScanning, setAutoScanning] = useState(false);
+  const [apiCalls, setApiCalls] = useState<number | undefined>();
+  const [marketErrors, setMarketErrors] = useState<string[]>([]);
   const [termsState, setTermsState] = useState<{
     loading: boolean;
     required: boolean;
@@ -84,8 +89,15 @@ export function DashboardClient({
   const autoScanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runScanRef = useRef<(opts?: { auto?: boolean }) => Promise<void>>(async () => {});
+  const lockedPairsRef = useRef<string[] | null>(null);
   const [timeZone] = useState(() => clientTimeZone());
   const tzLabel = timeZoneAbbreviation(timeZone);
+
+  useEffect(() => {
+    if (allowedPairs.length) {
+      setSelectedPairs(loadStoredPairs(allowedPairs));
+    }
+  }, [allowedPairs]);
 
   const applyLatestScan = useCallback((json: {
     signals?: ComputedSignal[];
@@ -102,19 +114,16 @@ export function DashboardClient({
     return false;
   }, []);
 
-  const selectedPairs = useCallback(() => {
-    const allowed = new Set(allowedPairs);
-    if (settings.asset === "all") return allowedPairs;
-    if (!allowed.has(settings.asset)) return [];
-    return [settings.asset];
-  }, [allowedPairs, settings.asset]);
-
-  useEffect(() => {
-    if (!allowedPairs.length) return;
-    if (settings.asset !== "all" && !allowedPairs.includes(settings.asset)) {
-      setSettings((s) => ({ ...s, asset: "all" }));
-    }
-  }, [allowedPairs, settings.asset]);
+  const pairsForScan = useCallback(
+    (isAuto: boolean) => {
+      if (isAuto && lockedPairsRef.current?.length) {
+        return lockedPairsRef.current.filter((p) => allowedPairs.includes(p));
+      }
+      const sel = selectedPairs.filter((p) => allowedPairs.includes(p));
+      return sel.length ? sel : allowedPairs;
+    },
+    [allowedPairs, selectedPairs]
+  );
 
   const clearAutoSchedule = useCallback(() => {
     if (autoScanTimerRef.current) clearTimeout(autoScanTimerRef.current);
@@ -231,19 +240,21 @@ export function DashboardClient({
       setProgress(0);
       setSignals([]);
       setRestoreMessage(null);
-      setLoaderText("V4 SCANNING");
+      setMarketErrors([]);
+      setLoaderText("V8 SCANNING");
       setLoaderSub("Running decision-support engine...");
     }
 
-    let pairs: string[];
-    try {
-      pairs = selectedPairs();
-      if (!pairs.length) throw new Error("This asset is not enabled for your account.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Pair not allowed on your plan");
+    const pairs = pairsForScan(isAuto);
+    if (!pairs.length) {
+      toast.error("Select at least one asset to scan.");
       if (isAuto) setAutoScanning(false);
       else setScanning(false);
       return;
+    }
+
+    if (!isAuto) {
+      lockedPairsRef.current = [...pairs];
     }
 
     const timeframes =
@@ -258,7 +269,8 @@ export function DashboardClient({
           timeframes,
           mode: settings.mode,
           minScore: settings.minScore,
-          showBSignals: settings.showB,
+          minGrade: settings.minGrade,
+          showBSignals: settings.minGrade === "B",
           sessionFilter: settings.session,
           auto: isAuto,
           timezone: timeZone,
@@ -285,6 +297,8 @@ export function DashboardClient({
       setSignals(list);
       if (json.ticker?.length) setTicker(json.ticker);
       setMarketLive(Boolean(json.ticker?.length));
+      setApiCalls(json.usage?.providerCalls);
+      setMarketErrors(json.marketErrors || []);
       if (list.length) {
         saveScanToSessionCache({
           ts: Date.now(),
@@ -292,6 +306,7 @@ export function DashboardClient({
           signals: list,
           ticker: json.ticker,
         });
+        playScanAlerts(list);
       }
       if (json.usage) {
         setScanUsage({
@@ -332,7 +347,16 @@ export function DashboardClient({
         setTimeout(() => setProgress(0), 1000);
       }
     }
-  }, [scanning, autoScanning, settings, clearAutoSchedule, scheduleAutoScan, selectedPairs, termsState.required]);
+  }, [
+    scanning,
+    autoScanning,
+    settings,
+    clearAutoSchedule,
+    scheduleAutoScan,
+    pairsForScan,
+    termsState.required,
+    timeZone,
+  ]);
 
   runScanRef.current = runScan;
 
@@ -347,9 +371,13 @@ export function DashboardClient({
       />
       <div className="wrap z">
         <MarketTicker items={ticker} />
+        <AssetChipGrid
+          allowedPairs={allowedPairs}
+          selected={selectedPairs}
+          onChange={setSelectedPairs}
+        />
         <ScannerControls
           plan={planInfo.plan}
-          allowedPairs={allowedPairs}
           settings={settings}
           onChange={(p) => setSettings((s) => ({ ...s, ...p }))}
           onScan={() => runScan()}
@@ -374,41 +402,40 @@ export function DashboardClient({
           </div>
         )}
         <div className="v4-mode-note">
-          <strong>V4 POWER ENGINE:</strong> Practice Mode shows all signals for signal testing
-          and journal analytics. <b>Live Mode selects only the best signal per scan</b> and
-          downgrades others to Watch / Correlation Risk.
+          <strong>V8 DECISION ENGINE:</strong> Grade is setup quality. The big permission box is
+          what matters: <b>TRADE ALLOWED</b>, <b>OBSERVE ONLY</b>, or <b>DO NOT TRADE</b>. Practice
+          shows all filtered setups; Live keeps the best signal per scan.
         </div>
         <SessionPills />
-        <StatsRow signals={signals} mode={settings.mode} visible={!!signals.length} />
+        <StatsRow signals={signals} apiCalls={apiCalls} visible={!!signals.length} />
         <LoadingScanner
           active={scanning || autoScanning}
           title={loaderText}
           sub={loaderSub}
         />
-        <div className="sg">
-          {!scanning && !signals.length ? (
-            <div className="empty">
-              <div className="empty-icon">📡</div>
-              <div className="empty-txt">
-                Configure your scanner above, then click{" "}
-                <strong style={{ color: "var(--blue2)" }}>SCAN MARKET</strong> for educational
-                market setup analysis.
-                <br />
-                <br />
-                <span style={{ color: "var(--m2)" }}>
-                  Strategy: Fresh Entry + EMA/WMA Trend + Pullback Safety + ATR + Journal
-                  Analytics
-                </span>
+        <div className="main-grid">
+          <div className="signals-col">
+            {!scanning && !autoScanning && !signals.length ? (
+              <div className="empty">
+                <div className="empty-icon">📡</div>
+                <div className="empty-txt">
+                  Select assets above, configure filters, then click{" "}
+                  <strong style={{ color: "var(--blue2)" }}>SCAN SELECTED</strong> for educational
+                  market setup analysis.
+                  <br />
+                  <br />
+                  <span style={{ color: "var(--m2)" }}>
+                    V8: Permission box · Min Grade · Sound alerts · Journal autosave
+                  </span>
+                </div>
               </div>
-            </div>
-          ) : (
-            <>
-              {signals.length > 0 && <SupportPanel signals={signals} />}
-              {signals.map((sig, idx) => (
+            ) : (
+              signals.map((sig, idx) => (
                 <SignalCard key={sig.signalUid} sig={sig} delay={idx * 60} timeZone={timeZone} />
-              ))}
-            </>
-          )}
+              ))
+            )}
+          </div>
+          <SupportPanel signals={signals} errors={marketErrors} />
         </div>
       </div>
       {termsState.required && termsState.active && (

@@ -1,5 +1,6 @@
 import { M } from "./indicators";
 import { historyFinals } from "./cooldown";
+import { applyPermission } from "./permission";
 import type { ComputedSignal, JournalHistoryRow, OHLC, SignalType, TradingMode } from "./types";
 
 export const V4 = {
@@ -130,5 +131,5 @@ export function classifyV4(
   sig.signalReason = reason;
   sig.tradeEligible = type === "FINAL TRADE" || type === "STRONG FINAL";
   sig.mode = mode;
-  return sig;
+  return applyPermission(sig);
 }

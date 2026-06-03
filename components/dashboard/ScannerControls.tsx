@@ -1,23 +1,23 @@
 "use client";
 
 import {
-  ALL_PAIRS,
   autoRefreshOptionsForPlan,
   type AutoRefreshOption,
   type PlanName,
 } from "@/lib/billing/planLimits";
+import type { MinGradeFilter } from "@/lib/signal-engine/permission";
 import type { ScanSettings } from "./DashboardClient";
+import { SoundControls } from "./SoundControls";
 
 const AUTO_REFRESH_LABELS: Record<AutoRefreshOption, string> = {
-  off: "Off",
-  "180": "Every 180 sec",
   "60": "Every 60 sec",
-  "30": "Every 30 sec",
+  "120": "Every 2 min",
+  "300": "Every 5 min",
+  off: "Manual Only",
 };
 
 export function ScannerControls({
   plan,
-  allowedPairs,
   settings,
   onChange,
   onScan,
@@ -28,7 +28,6 @@ export function ScannerControls({
   progress,
 }: {
   plan: PlanName;
-  allowedPairs: string[];
   settings: ScanSettings;
   onChange: (s: Partial<ScanSettings>) => void;
   onScan: () => void;
@@ -39,132 +38,121 @@ export function ScannerControls({
   progress: number;
 }) {
   const autoRefreshOptions = autoRefreshOptionsForPlan(plan);
-  const allowed = new Set(allowedPairs);
+
   return (
-    <div className="ctrl">
-      <div className="ctrl-title">⚙ SIGNAL CONFIGURATION</div>
-      <div className="ctrl-row">
-        <div className="f">
-          <label>Asset</label>
-          <select
-            value={settings.asset}
-            onChange={(e) => onChange({ asset: e.target.value })}
-          >
-            <option value="all">All Major Pairs</option>
-            {ALL_PAIRS.map((p) => (
-              <option key={p} value={p} disabled={!allowed.has(p)}>
-                {p}{!allowed.has(p) ? " — Locked" : ""}
-              </option>
-            ))}
-          </select>
+    <>
+      <div className="box key-box">
+        <div className="key-top">
+          <h3>🔔 SIGNAL ALERTS</h3>
+          <span className="badge">V8 · TRADE ALLOWED only</span>
         </div>
-        <div className="f">
-          <label>Expiry Trade Time</label>
-          <select
-            value={settings.timeframe}
-            onChange={(e) => onChange({ timeframe: e.target.value })}
-          >
-            <option value="5min">5 Minutes Expiry</option>
-            <option value="15min">15 Minutes Expiry</option>
-            <option value="both">5 + 15 Min Expiry</option>
-          </select>
-        </div>
-        <div className="f">
-          <label>Min Score</label>
-          <select
-            value={settings.minScore}
-            onChange={(e) => onChange({ minScore: Number(e.target.value) })}
-          >
-            <option value={5}>5+ Balanced</option>
-            <option value={6}>6+ Quality</option>
-            <option value={7}>7+ Quality</option>
-            <option value={8}>8+ Precision</option>
-          </select>
-        </div>
-        <div className="f">
-          <label>Show B Signals</label>
-          <select
-            value={settings.showB ? "watch" : "hide"}
-            onChange={(e) => onChange({ showB: e.target.value === "watch" })}
-          >
-            <option value="watch">Include B Watch</option>
-            <option value="hide">Hide B Watch</option>
-          </select>
-        </div>
-        <div className="f">
-          <label>Session Filter</label>
-          <select
-            value={settings.session}
-            onChange={(e) => onChange({ session: e.target.value })}
-          >
-            <option value="any">Any Active Session</option>
-            <option value="london">London Only</option>
-            <option value="overlap">NY Overlap Only</option>
-            <option value="newyork">New York Only</option>
-            <option value="asian">Asian Only</option>
-          </select>
-        </div>
-        <div className="f">
-          <label title="Like the HTML template: re-runs the V4 signal engine on a timer and updates live setups. Each refresh counts toward your daily scan limit.">
-            Auto Refresh
-          </label>
-          <select
-            value={settings.autoRefresh}
-            onChange={(e) => onChange({ autoRefresh: e.target.value as AutoRefreshOption })}
-          >
-            {autoRefreshOptions.map((opt) => (
-              <option key={opt} value={opt}>
-                {AUTO_REFRESH_LABELS[opt]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="f">
-          <label>Trading Mode</label>
-          <select
-            value={settings.mode}
-            onChange={(e) => onChange({ mode: e.target.value as "practice" | "live" })}
-          >
-            <option value="practice">Practice — Show All Signals</option>
-            <option value="live">Live — Best Signal Only</option>
-          </select>
-        </div>
-        <div className="f">
-          <label>&nbsp;</label>
-          <button type="button" className="btn-scan" disabled={scanning} onClick={onScan}>
-            {scanning ? "SCANNING..." : "▶ SCAN MARKET"}
-          </button>
-        </div>
-        <div className="f">
-          <label>&nbsp;</label>
-          <button
-            type="button"
-            className="btn-scan"
-            style={{ background: "var(--p2)", borderColor: "var(--bd2)", color: "var(--txt2)" }}
-            disabled={scanning || refreshing}
-            onClick={onRefreshPrices}
-            title="Run one signal scan now (same as SCAN MARKET)"
-          >
-            {refreshing ? "..." : "↻ REFRESH NOW"}
-          </button>
-        </div>
-        <div className="f">
-          <label>&nbsp;</label>
-          <button
-            type="button"
-            className="btn-scan"
-            style={{ background: "var(--p2)", borderColor: "var(--bd2)", color: "var(--txt2)" }}
-            disabled={scanning || refreshing}
-            onClick={onReloadLastScan}
-            title="Reload your last scan from the server"
-          >
-            ↻ RELOAD LAST SCAN
-          </button>
+        <SoundControls />
+        <div className="risk" style={{ marginTop: 8 }}>
+          Educational decision-support only. Alerts play once per new STRONG FINAL / FINAL TRADE per day.
         </div>
       </div>
-      <div className="progress-wrap">
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
+
+      <div className="ctrl">
+        <div className="ctrl-title">⚙ SIGNAL CONFIGURATION</div>
+        <div className="ctrl-row">
+          <div className="f">
+            <label>Mode</label>
+            <select
+              value={settings.mode}
+              onChange={(e) => onChange({ mode: e.target.value as "practice" | "live" })}
+            >
+              <option value="practice">Practice · Show All</option>
+              <option value="live">Live · Best Signal Only</option>
+            </select>
+          </div>
+          <div className="f">
+            <label>Expiry</label>
+            <select
+              value={settings.timeframe}
+              onChange={(e) => onChange({ timeframe: e.target.value })}
+            >
+              <option value="5min">5-min expiry</option>
+              <option value="15min">15-min expiry</option>
+              <option value="both">5 + 15-min</option>
+            </select>
+          </div>
+          <div className="f">
+            <label>Min Grade</label>
+            <select
+              value={settings.minGrade}
+              onChange={(e) => onChange({ minGrade: e.target.value as MinGradeFilter })}
+            >
+              <option value="B">B+ Watch</option>
+              <option value="A">A and A+</option>
+              <option value="A+">A+ only</option>
+            </select>
+          </div>
+          <div className="f">
+            <label>Session Filter</label>
+            <select
+              value={settings.session}
+              onChange={(e) => onChange({ session: e.target.value })}
+            >
+              <option value="any">Any Liquid Session</option>
+              <option value="london">London</option>
+              <option value="newyork">New York</option>
+              <option value="overlap">London + NY Overlap</option>
+            </select>
+          </div>
+          <div className="f">
+            <label title="Re-runs full signal engine on a timer. Each refresh counts toward daily scan limit.">
+              Auto Refresh
+            </label>
+            <select
+              value={settings.autoRefresh}
+              onChange={(e) => onChange({ autoRefresh: e.target.value as AutoRefreshOption })}
+            >
+              {autoRefreshOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {AUTO_REFRESH_LABELS[opt]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="f">
+            <label>&nbsp;</label>
+            <button type="button" className="btn-scan" disabled={scanning} onClick={onScan}>
+              {scanning ? "SCANNING..." : "▶ SCAN SELECTED"}
+            </button>
+          </div>
+          <div className="f">
+            <label>&nbsp;</label>
+            <button
+              type="button"
+              className="btn-scan"
+              style={{ background: "var(--p2)", borderColor: "var(--bd2)", color: "var(--txt2)" }}
+              disabled={scanning || refreshing}
+              onClick={onRefreshPrices}
+            >
+              {refreshing ? "..." : "↻ REFRESH NOW"}
+            </button>
+          </div>
+          <div className="f">
+            <label>&nbsp;</label>
+            <button
+              type="button"
+              className="btn-scan"
+              style={{ background: "var(--p2)", borderColor: "var(--bd2)", color: "var(--txt2)" }}
+              disabled={scanning || refreshing}
+              onClick={onReloadLastScan}
+            >
+              ↻ RELOAD LAST SCAN
+            </button>
+          </div>
+        </div>
+        <div className="progress-wrap">
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+        <div className="msg warn show scan-note-v8">
+          V8 rule: Grade is setup quality. Trade permission is only the big box: TRADE ALLOWED /
+          OBSERVE ONLY / DO NOT TRADE.
+        </div>
       </div>
-    </div>
+    </>
   );
 }
