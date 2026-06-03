@@ -42,7 +42,7 @@ create policy "signals_update_own" on public.signals for update using (auth.uid(
 -- trade_journal
 create policy "journal_select_own" on public.trade_journal for select using (auth.uid() = user_id or public.is_admin());
 create policy "journal_insert_own" on public.trade_journal for insert with check (auth.uid() = user_id);
-create policy "journal_update_own" on public.trade_journal for update using (auth.uid() = user_id);
+create policy "journal_update_own" on public.trade_journal for update using (auth.uid() = user_id or public.is_admin()) with check (auth.uid() = user_id or public.is_admin());
 
 -- subscriptions
 create policy "subs_select_own" on public.subscriptions for select using (auth.uid() = user_id or public.is_admin());

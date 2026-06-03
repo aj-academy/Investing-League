@@ -2,6 +2,7 @@
 
 import { formatClockTime, resolveTimeZone, timeZoneAbbreviation } from "@/lib/datetime";
 import { useEffect, useState } from "react";
+import { clearAdminSession } from "@/lib/auth/clearAdminSession";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -78,6 +79,7 @@ export function Topbar({
   const pillOn = pill === "live" || countdown > 0;
 
   const logout = async () => {
+    await clearAdminSession();
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");

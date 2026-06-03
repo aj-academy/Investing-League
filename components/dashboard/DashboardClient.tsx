@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { clearAdminSession } from "@/lib/auth/clearAdminSession";
 import { createClient } from "@/lib/supabase/client";
 import type { AutoRefreshOption, PlanName } from "@/lib/billing/planLimits";
 import {
@@ -508,6 +509,7 @@ export function DashboardClient({
                 type="button"
                 className="jbtn"
                 onClick={async () => {
+                  await clearAdminSession();
                   const supabase = createClient();
                   await supabase.auth.signOut();
                   window.location.href = "/login";

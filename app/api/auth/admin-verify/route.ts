@@ -1,3 +1,4 @@
+import { ADMIN_SESSION_COOKIE, adminSessionCookieOptions } from "@/lib/auth/adminSession";
 import { getProfileByUserId } from "@/lib/auth/profile";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
@@ -72,5 +73,7 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true, userId: user.id });
+  const response = NextResponse.json({ ok: true, userId: user.id });
+  response.cookies.set(ADMIN_SESSION_COOKIE, "1", adminSessionCookieOptions());
+  return response;
 }

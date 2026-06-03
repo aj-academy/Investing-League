@@ -1,7 +1,7 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { calculateEntryDrift } from "@/lib/journal/entryDrift";
+import { fetchJournalRowForUser, saveJournalRowForUser } from "@/lib/journal/journalAccess";
 import { calculateResult } from "@/lib/journal/resultCalculator";
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function PATCH(request: Request) {
@@ -11,19 +11,13 @@ export async function PATCH(request: Request) {
 
     const body = await request.json();
     const journalId = body.journalId as string;
+    const signalUid = (body.signalUid as string | undefined) ?? null;
     if (!journalId) {
       return NextResponse.json({ error: "journalId required" }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { data: row, error: fetchError } = await supabase
-      .from("trade_journal")
-      .select("*")
-      .eq("id", journalId)
-      .eq("user_id", auth!.user.id)
-      .single();
-
-    if (fetchError || !row) {
+    const row = await fetchJournalRowForUser(auth!.user.id, journalId, signalUid);
+    if (!row) {
       return NextResponse.json({ error: "Journal record not found" }, { status: 404 });
     }
 
@@ -59,7 +53,7 @@ export async function PATCH(request: Request) {
     const { drift, status } = calculateEntryDrift(
       row.pair,
       row.signal_entry_price,
-      opening
+      opening,
     );
 
     let result = row.result as string;
@@ -80,9 +74,10 @@ export async function PATCH(request: Request) {
           : String(body.tradeId)
         : row.olymp_trade_id;
 
-    const { data: updated, error: updateError } = await supabase
-      .from("trade_journal")
-      .update({
+    const { row: updated, error: updateError } = await saveJournalRowForUser(
+      auth!.user.id,
+      row.id,
+      {
         olymp_open_time: openTime,
         olymp_opening_quote: opening,
         olymp_closing_quote: closing,
@@ -94,14 +89,14 @@ export async function PATCH(request: Request) {
         result_source: resultSource,
         marked_time: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", journalId)
-      .eq("user_id", auth!.user.id)
-      .select()
-      .single();
+      },
+    );
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (updateError || !updated) {
+      return NextResponse.json(
+        { error: updateError || "Update failed" },
+        { status: updateError === "Journal record not found" ? 404 : 500 },
+      );
     }
 
     return NextResponse.json({ row: updated });

@@ -1,5 +1,7 @@
+import { hasAdminSessionCookie } from "@/lib/auth/adminSession";
 import { getProfileByUserId } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
 export type AuthContext = {
   user: { id: string; email: string };
@@ -36,9 +38,12 @@ export async function getAuthContext(): Promise<AuthContext | null> {
         .maybeSingle()
     ).data;
 
+  const cookieStore = await cookies();
+  const adminSession = hasAdminSessionCookie(cookieStore);
+
   return {
     user: { id: user.id, email: user.email ?? "" },
-    isAdmin: profile?.role === "admin",
+    isAdmin: profile?.role === "admin" && adminSession,
     isActive: profile?.is_active !== false,
     profile: profile ?? null,
   };

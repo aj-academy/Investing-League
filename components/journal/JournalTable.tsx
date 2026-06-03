@@ -15,6 +15,7 @@ import {
 
 export interface JournalRow {
   id: string;
+  signal_uid?: string | null;
   pair: string;
   timeframe: string;
   direction: string;
@@ -33,6 +34,7 @@ export interface JournalRow {
   expiry_time: string | null;
   expiry_minutes: number | null;
   result: string;
+  result_source?: string | null;
   entry_status: string | null;
   entry_drift: number | null;
   loss_reason: string | null;
@@ -57,12 +59,16 @@ export function JournalTable({
   const [saving, setSaving] = useState<string | null>(null);
 
   const patch = useCallback(
-    async (id: string, body: Record<string, string | null>) => {
-      setSaving(id);
+    async (row: JournalRow, body: Record<string, string | null>) => {
+      setSaving(row.id);
       const res = await fetch("/api/journal/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ journalId: id, ...body }),
+        body: JSON.stringify({
+          journalId: row.id,
+          signalUid: row.signal_uid ?? null,
+          ...body,
+        }),
       });
       setSaving(null);
       if (!res.ok) {
@@ -76,13 +82,13 @@ export function JournalTable({
     [onUpdated]
   );
 
-  const onBlurField = async (id: string, field: string, value: string) => {
-    const ok = await patch(id, { [field]: value });
+  const onBlurField = async (row: JournalRow, field: string, value: string) => {
+    const ok = await patch(row, { [field]: value });
     if (ok) toast.success("Saved");
   };
 
-  const markResult = async (id: string, result: string) => {
-    const ok = await patch(id, { result });
+  const markResult = async (row: JournalRow, result: string) => {
+    const ok = await patch(row, { result });
     if (ok) toast.success(`Marked ${result}`);
   };
 
@@ -158,7 +164,7 @@ export function JournalTable({
                   defaultValue={r.olymp_trade_id ?? ""}
                   placeholder="ID"
                   disabled={saving === r.id}
-                  onBlur={(e) => onBlurField(r.id, "tradeId", e.target.value)}
+                  onBlur={(e) => onBlurField(r, "tradeId", e.target.value)}
                 />
               </td>
               <td>{r.pair}</td>
@@ -174,7 +180,7 @@ export function JournalTable({
                   defaultValue={r.olymp_open_time ?? ""}
                   placeholder="12:00:00"
                   disabled={saving === r.id}
-                  onBlur={(e) => onBlurField(r.id, "openTime", e.target.value)}
+                  onBlur={(e) => onBlurField(r, "openTime", e.target.value)}
                 />
               </td>
               <td>
@@ -183,7 +189,7 @@ export function JournalTable({
                   defaultValue={r.olymp_opening_quote ?? ""}
                   placeholder="1.33371"
                   disabled={saving === r.id}
-                  onBlur={(e) => onBlurField(r.id, "openingQuote", e.target.value)}
+                  onBlur={(e) => onBlurField(r, "openingQuote", e.target.value)}
                 />
               </td>
               <td>
@@ -192,7 +198,7 @@ export function JournalTable({
                   defaultValue={r.olymp_closing_quote ?? ""}
                   placeholder="1.33471"
                   disabled={saving === r.id}
-                  onBlur={(e) => onBlurField(r.id, "closingQuote", e.target.value)}
+                  onBlur={(e) => onBlurField(r, "closingQuote", e.target.value)}
                 />
               </td>
               <td>
@@ -218,7 +224,7 @@ export function JournalTable({
                         type="radio"
                         name={`result-${r.id}`}
                         checked={r.result === res}
-                        onChange={() => markResult(r.id, res)}
+                        onChange={() => markResult(r, res)}
                         disabled={saving === r.id}
                       />
                       {res}

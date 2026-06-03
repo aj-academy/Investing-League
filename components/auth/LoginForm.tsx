@@ -75,6 +75,22 @@ export function LoginForm() {
         return;
       }
 
+      const accessToken = data.session?.access_token;
+      if (accessToken) {
+        const roleRes = await fetch("/api/auth/is-admin", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const roleJson = (await roleRes.json()) as { isAdmin?: boolean };
+        if (roleRes.ok && roleJson.isAdmin) {
+          await supabase.auth.signOut();
+          toast.error(
+            "Admin accounts must use the admin sign-in. Type open-admin in the email field first.",
+          );
+          return;
+        }
+      }
+
       router.push("/dashboard");
       router.refresh();
     } catch {

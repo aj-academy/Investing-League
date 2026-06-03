@@ -1,4 +1,5 @@
 import { getProfileAccess } from "@/lib/auth/profile";
+import { hasAdminSessionCookie } from "@/lib/auth/adminSession";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -49,11 +50,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (path === "/login" && user) {
-    const access = await getProfileAccess(user.id);
-    const isAdmin = access?.role === "admin" && access.is_active !== false;
-    return NextResponse.redirect(
-      new URL(isAdmin ? "/admin" : "/dashboard", request.url)
-    );
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   if (isProtected && !user) {
@@ -78,8 +75,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    if (path.startsWith("/admin") && profile?.role !== "admin") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    if (path.startsWith("/admin")) {
+      const adminSession = hasAdminSessionCookie(request.cookies);
+      if (profile?.role !== "admin" || !adminSession) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
     }
   }
 

@@ -1,4 +1,6 @@
+import { hasAdminSessionCookie } from "@/lib/auth/adminSession";
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { AppShell } from "./AppShell";
 
 export async function ProtectedShell({
@@ -21,7 +23,8 @@ export async function ProtectedShell({
         .select("role")
         .eq("id", user.id)
         .single();
-      isAdmin = profile?.role === "admin";
+      const cookieStore = await cookies();
+      isAdmin = profile?.role === "admin" && hasAdminSessionCookie(cookieStore);
     }
   }
 
