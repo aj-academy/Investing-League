@@ -2,26 +2,46 @@ import type { JournalRow } from "@/components/journal/JournalTable";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+export type LoadJournalOptions = {
+  pair?: string;
+  result?: string;
+  limit?: number;
+};
+
+function applyJournalFilters<T extends { eq: (col: string, val: string) => T }>(
+  query: T,
+  options?: LoadJournalOptions,
+) {
+  let next = query;
+  if (options?.pair) next = next.eq("pair", options.pair);
+  if (options?.result) next = next.eq("result", options.result);
+  return next;
+}
+
 /** Load journal rows for the authenticated user (service role when available). */
-export async function loadJournalForUser(userId: string): Promise<JournalRow[]> {
+export async function loadJournalForUser(
+  userId: string,
+  options?: LoadJournalOptions,
+): Promise<JournalRow[]> {
+  const limit = options?.limit ?? 200;
+
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const admin = createAdminClient();
-    const { data, error } = await admin
+    let query = admin
       .from("trade_journal")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", userId);
+    query = applyJournalFilters(query, options);
+    const { data, error } = await query
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(limit);
     if (!error && data) return data as JournalRow[];
   }
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("trade_journal")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(200);
+  let query = supabase.from("trade_journal").select("*").eq("user_id", userId);
+  query = applyJournalFilters(query, options);
+  const { data } = await query.order("created_at", { ascending: false }).limit(limit);
 
   return (data || []) as JournalRow[];
 }
