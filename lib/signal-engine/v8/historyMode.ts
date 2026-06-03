@@ -32,17 +32,20 @@ function parseDateTime(dateStr: string, timeStr: string): Date | null {
   }
 }
 
-function isRecentFullDate(
-  d1: string,
-  t1: string,
-  d2: string,
-  t2: string,
-  mins: number
-): boolean {
-  const a = parseDateTime(d1, t1);
-  const b = parseDateTime(d2, t2);
-  if (!a || !b) return false;
-  return Math.abs(b.getTime() - a.getTime()) / 60_000 <= mins;
+function journalEntryMs(r: V8JournalRow): number | null {
+  return parseDateTime(r.date, r.entryTime || r.signalTime)?.getTime() ?? null;
+}
+
+function signalEntryMs(sig: ComputedSignal): number | null {
+  if (sig.entryAtIso) return new Date(sig.entryAtIso).getTime();
+  return parseDateTime("", sig.entryTime)?.getTime() ?? null;
+}
+
+function isRecentEntry(journalRow: V8JournalRow, signal: ComputedSignal, mins: number): boolean {
+  const sigMs = signalEntryMs(signal);
+  const jMs = journalEntryMs(journalRow);
+  if (sigMs == null || jMs == null) return false;
+  return Math.abs(sigMs - jMs) / 60_000 <= mins;
 }
 
 function journalDateToday(timeZone: string): string {
@@ -83,7 +86,7 @@ export function applyV8HistoryAndMode(
           r.pair === s.pair &&
           r.direction === s.direction &&
           ELIGIBLE_TYPES.includes(r.type as (typeof ELIGIBLE_TYPES)[number]) &&
-          isRecentFullDate(r.date, r.signalTime, today, s.entryTime, cd)
+          isRecentEntry(r, s, cd)
       );
       if (recent) {
         s.permission = "DO NOT TRADE";

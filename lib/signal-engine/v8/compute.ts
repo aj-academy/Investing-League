@@ -78,9 +78,9 @@ function candleStats(c: OHLC): V8CandleStats {
   };
 }
 
-function nextCandleTime(interval: string) {
+function nextCandleTime(interval: string, asOf = Date.now()) {
   const ms = parseInt(interval, 10) * 60_000;
-  return new Date(Math.ceil(Date.now() / ms) * ms);
+  return new Date(Math.ceil(asOf / ms) * ms);
 }
 
 function formatTime(d: Date, timeZone: string) {
@@ -111,7 +111,8 @@ export function computeV8Raw(
   ohlc: OHLC[],
   pair: string,
   tf: string,
-  timeZone?: string
+  timeZone?: string,
+  asOf?: Date
 ): V8RawSignal | null {
   if (ohlc.length < 90) return null;
 
@@ -310,7 +311,7 @@ export function computeV8Raw(
     reason = "B-grade setup. Use only for data collection.";
   }
 
-  const entry = nextCandleTime(tf);
+  const entry = nextCandleTime(tf, asOf?.getTime() ?? Date.now());
   const expiry = new Date(entry.getTime() + parseInt(tf, 10) * 60_000);
   const dp = decimalsForPair(pair);
 

@@ -107,9 +107,10 @@ export function computeV8Signal(
   pair: string,
   tf: string,
   mode: TradingMode,
-  timeZone?: string
+  timeZone?: string,
+  asOf?: Date
 ): ComputedSignal | null {
-  const raw = computeV8Raw(ohlc, pair, tf, timeZone);
+  const raw = computeV8Raw(ohlc, pair, tf, timeZone, asOf);
   if (!raw) return null;
   return v8RawToComputed(raw, mode);
 }
