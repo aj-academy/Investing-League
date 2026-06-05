@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
@@ -11,13 +10,8 @@ const links = [
   { href: "/settings", label: "Settings", short: "Set" },
 ];
 
-function NavLabel({ label }: { label: string }) {
-  const { pending } = useLinkStatus();
-  return (
-    <span className="nav-label-full" style={{ opacity: pending ? 0.55 : 1 }}>
-      {pending ? "..." : label}
-    </span>
-  );
+function hardNavHref(href: string) {
+  return href === "/admin" || href === "/auth/admin-unlock";
 }
 
 export function Sidebar({
@@ -35,9 +29,17 @@ export function Sidebar({
   const adminLink = isAdmin
     ? { href: "/admin", label: "Admin", short: "Adm" }
     : hasAdminRole
-      ? { href: "/login?admin=1", label: "Admin", short: "Adm" }
+      ? { href: "/auth/admin-unlock", label: "Admin", short: "Adm" }
       : null;
   const items = adminLink ? [...links, adminLink] : links;
+
+  const onNavClick = (event: React.MouseEvent, href: string) => {
+    onNavigate?.();
+    if (hardNavHref(href)) {
+      event.preventDefault();
+      window.location.assign(href);
+    }
+  };
 
   return (
     <aside className={`app-sidebar z ${open ? "open" : ""}`}>
@@ -53,19 +55,22 @@ export function Sidebar({
         </div>
       </div>
       <nav className="app-nav">
-        {items.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            prefetch
-            className={pathname.startsWith(l.href) ? "active" : ""}
-            onClick={onNavigate}
-            title={l.label}
-          >
-            <NavLabel label={l.label} />
-            <span className="nav-label-short">{l.short}</span>
-          </Link>
-        ))}
+        {items.map((l) => {
+          const pathOnly = l.href.split("?")[0];
+          return (
+            <Link
+              key={l.href}
+              href={l.href}
+              prefetch={!hardNavHref(l.href)}
+              className={pathname.startsWith(pathOnly) ? "active" : ""}
+              onClick={(event) => onNavClick(event, l.href)}
+              title={l.label}
+            >
+              <span className="nav-label-full">{l.label}</span>
+              <span className="nav-label-short">{l.short}</span>
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

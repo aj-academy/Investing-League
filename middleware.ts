@@ -1,4 +1,5 @@
 import { hasAdminSessionCookie } from "@/lib/auth/adminSession";
+import { getProfileAccess } from "@/lib/auth/profile";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -55,6 +56,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  if (path === "/auth/admin-unlock" && !user) {
+    return NextResponse.redirect(new URL("/login?admin=1", request.url));
+  }
+
   if (isProtected && !user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -75,7 +80,15 @@ export async function middleware(request: NextRequest) {
 
     if (path.startsWith("/admin")) {
       const adminSession = hasAdminSessionCookie(request.cookies);
-      if (profile?.role !== "admin" || !adminSession) {
+      if (!adminSession) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+      let role = profile?.role;
+      if (role !== "admin" && user) {
+        const access = await getProfileAccess(user.id);
+        role = access?.role;
+      }
+      if (role !== "admin") {
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }
@@ -94,5 +107,6 @@ export const config = {
     "/admin/:path*",
     "/account-suspended",
     "/login",
+    "/auth/admin-unlock",
   ],
 };

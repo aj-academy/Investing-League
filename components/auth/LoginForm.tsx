@@ -24,14 +24,18 @@ export function LoginForm() {
   const [adminPassword, setAdminPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [canQuickUnlock, setCanQuickUnlock] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (searchParams.get("admin") === "1") {
-      setAdminPanel(true);
-      toast.message("Enter admin credentials to unlock the admin panel.");
-    }
+    if (searchParams.get("admin") !== "1") return;
+    setAdminPanel(true);
+    toast.message("Enter admin credentials to unlock the admin panel.");
+    const supabase = createClient();
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      setCanQuickUnlock(Boolean(user));
+    });
   }, [searchParams]);
 
   const submit = async (e: React.FormEvent) => {
@@ -60,28 +64,14 @@ export function LoginForm() {
       }
 
       if (adminPanel) {
-        const accessToken = data.session?.access_token;
-        if (!accessToken) {
+        if (!data.session) {
           await supabase.auth.signOut();
           toast.error("Admin login failed. Try again.");
           return;
         }
 
-        const verifyRes = await fetch("/api/auth/admin-verify", {
-          method: "POST",
-          credentials: "include",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        const verifyJson = (await verifyRes.json()) as { ok?: boolean; error?: string };
-
-        if (!verifyRes.ok || !verifyJson.ok) {
-          await supabase.auth.signOut();
-          toast.error(verifyJson.error || "Admin access denied.");
-          return;
-        }
-
-        // Full navigation so middleware receives the new admin session cookie.
-        window.location.assign("/admin");
+        // Cookie must be set via document navigation — fetch ignores Set-Cookie.
+        window.location.assign("/auth/admin-unlock");
         return;
       }
 
@@ -172,6 +162,28 @@ export function LoginForm() {
       <button type="submit" disabled={loading}>
         {loading ? "Signing in..." : adminPanel ? "Admin Sign In" : "Sign In"}
       </button>
+      {adminPanel && canQuickUnlock && (
+        <button
+          type="button"
+          className="auth-link-btn"
+          disabled={loading}
+          onClick={() => window.location.assign("/auth/admin-unlock")}
+          style={{
+            marginTop: 8,
+            width: "100%",
+            background: "var(--blued)",
+            border: "1px solid rgba(0,170,255,.25)",
+            color: "var(--blue2)",
+            fontSize: 11,
+            fontWeight: 600,
+            padding: "10px 12px",
+            borderRadius: 8,
+            cursor: "pointer",
+          }}
+        >
+          Unlock Admin Panel (already signed in)
+        </button>
+      )}
       {adminPanel && (
         <button
           type="button"
