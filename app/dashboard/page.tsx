@@ -37,7 +37,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <ProtectedShell isAdmin={auth.isAdmin}>
+    <ProtectedShell isAdmin={auth.isAdmin} hasAdminRole={auth.hasAdminRole}>
       <DashboardClient
         initialSettings={initialSettings}
         allowedPairs={allowedPairs}

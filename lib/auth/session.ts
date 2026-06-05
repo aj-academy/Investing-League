@@ -6,7 +6,10 @@ import { cache } from "react";
 
 export type AuthContext = {
   user: { id: string; email: string };
+  /** Admin role in DB + explicit admin-panel session cookie. */
   isAdmin: boolean;
+  /** Admin role in DB (may still need open-admin sign-in for panel access). */
+  hasAdminRole: boolean;
   isActive: boolean;
   profile: {
     full_name: string | null;
@@ -39,10 +42,12 @@ export const getAuthContext = cache(async function getAuthContext(): Promise<Aut
 
   const cookieStore = await cookies();
   const adminSession = hasAdminSessionCookie(cookieStore);
+  const hasAdminRole = profile?.role === "admin" && profile?.is_active !== false;
 
   return {
     user: { id: user.id, email: user.email ?? "" },
-    isAdmin: profile?.role === "admin" && adminSession,
+    hasAdminRole,
+    isAdmin: hasAdminRole && adminSession,
     isActive: profile?.is_active !== false,
     profile: profile ?? null,
   };

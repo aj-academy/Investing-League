@@ -1,8 +1,8 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 function loginErrorMessage(message: string) {
@@ -25,6 +25,14 @@ export function LoginForm() {
   const [resetLoading, setResetLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("admin") === "1") {
+      setAdminPanel(true);
+      toast.message("Enter admin credentials to unlock the admin panel.");
+    }
+  }, [searchParams]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +69,7 @@ export function LoginForm() {
 
         const verifyRes = await fetch("/api/auth/admin-verify", {
           method: "POST",
+          credentials: "include",
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         const verifyJson = (await verifyRes.json()) as { ok?: boolean; error?: string };
@@ -71,7 +80,8 @@ export function LoginForm() {
           return;
         }
 
-        router.replace("/admin");
+        // Full navigation so middleware receives the new admin session cookie.
+        window.location.assign("/admin");
         return;
       }
 

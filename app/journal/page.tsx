@@ -14,7 +14,7 @@ export default async function JournalPage() {
   const rows = await loadJournalForUser(auth.user.id);
 
   return (
-    <ProtectedShell isAdmin={auth.isAdmin}>
+    <ProtectedShell isAdmin={auth.isAdmin} hasAdminRole={auth.hasAdminRole}>
       <Topbar />
       <div className="wrap z">
         <RiskDisclaimerBanner />

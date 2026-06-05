@@ -23,16 +23,21 @@ function NavLabel({ label }: { label: string }) {
 export function Sidebar({
   open,
   isAdmin,
+  hasAdminRole,
   onNavigate,
 }: {
   open: boolean;
   isAdmin?: boolean;
+  hasAdminRole?: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const items = isAdmin
-    ? [...links, { href: "/admin", label: "Admin", short: "Adm" }]
-    : links;
+  const adminLink = isAdmin
+    ? { href: "/admin", label: "Admin", short: "Adm" }
+    : hasAdminRole
+      ? { href: "/login?admin=1", label: "Admin", short: "Adm" }
+      : null;
+  const items = adminLink ? [...links, adminLink] : links;
 
   return (
     <aside className={`app-sidebar z ${open ? "open" : ""}`}>

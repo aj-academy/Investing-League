@@ -18,7 +18,7 @@ export default async function AnalyticsPage() {
   );
 
   return (
-    <ProtectedShell isAdmin={auth.isAdmin}>
+    <ProtectedShell isAdmin={auth.isAdmin} hasAdminRole={auth.hasAdminRole}>
       <Topbar />
       <div className="wrap z">
         <RiskDisclaimerBanner />

@@ -6,9 +6,11 @@ import { Sidebar } from "./Sidebar";
 export function AppShell({
   children,
   isAdmin,
+  hasAdminRole,
 }: {
   children: React.ReactNode;
   isAdmin?: boolean;
+  hasAdminRole?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -30,7 +32,12 @@ export function AppShell({
           onClick={() => setOpen(false)}
         />
       )}
-      <Sidebar open={open} isAdmin={isAdmin} onNavigate={() => setOpen(false)} />
+      <Sidebar
+        open={open}
+        isAdmin={isAdmin}
+        hasAdminRole={hasAdminRole}
+        onNavigate={() => setOpen(false)}
+      />
       <div className="app-main">
         {children}
         <button

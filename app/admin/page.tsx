@@ -11,7 +11,7 @@ export default async function AdminPage() {
   if (!auth.isAdmin) redirect("/dashboard");
 
   return (
-    <ProtectedShell isAdmin>
+    <ProtectedShell isAdmin hasAdminRole>
       <Topbar />
       <div className="wrap z">
         <AdminView />

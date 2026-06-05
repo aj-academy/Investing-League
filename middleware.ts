@@ -49,7 +49,10 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (path === "/login" && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const unlockingAdmin = request.nextUrl.searchParams.get("admin") === "1";
+    if (!unlockingAdmin) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   if (isProtected && !user) {
@@ -87,6 +90,7 @@ export const config = {
     "/journal/:path*",
     "/analytics/:path*",
     "/settings/:path*",
+    "/admin",
     "/admin/:path*",
     "/account-suspended",
     "/login",
