@@ -48,30 +48,31 @@ export function Topbar({
       setPill("live");
       return;
     }
-    if (live === false) {
-      fetch("/api/market/status")
+
+    let cancelled = false;
+    const loadStatus = () => {
+      fetch("/api/market/status", { cache: "no-store" })
         .then((r) => r.json())
         .then((json) => {
+          if (cancelled) return;
           if (!json.ok || !json.configured) {
             setPill("offline");
             return;
           }
           setPill("cached");
         })
-        .catch(() => setPill("offline"));
-      return;
-    }
+        .catch(() => {
+          if (!cancelled) setPill("offline");
+        });
+    };
 
-    fetch("/api/market/status")
-      .then((r) => r.json())
-      .then((json) => {
-        if (!json.ok || !json.configured) {
-          setPill("offline");
-          return;
-        }
-        setPill(json.canPollLive ? "cached" : "cached");
-      })
-      .catch(() => setPill("offline"));
+    const delayId = window.setTimeout(loadStatus, 0);
+    const intervalId = window.setInterval(loadStatus, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(delayId);
+      window.clearInterval(intervalId);
+    };
   }, [live]);
 
   const pillLabel =
@@ -79,11 +80,9 @@ export function Topbar({
   const pillOn = pill === "live" || countdown > 0;
 
   const logout = async () => {
-    await clearAdminSession();
     const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+    await Promise.all([clearAdminSession(), supabase.auth.signOut()]);
+    router.replace("/login");
   };
 
   return (

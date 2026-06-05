@@ -54,7 +54,7 @@ export function JournalTable({
   onUpdated,
 }: {
   rows: JournalRow[];
-  onUpdated: () => void;
+  onUpdated: (row: JournalRow) => void;
 }) {
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -71,12 +71,12 @@ export function JournalTable({
         }),
       });
       setSaving(null);
+      const json = (await res.json()) as { row?: JournalRow; error?: string };
       if (!res.ok) {
-        const json = await res.json();
         toast.error(json.error || "Update failed");
         return false;
       }
-      onUpdated();
+      if (json.row) onUpdated(json.row);
       return true;
     },
     [onUpdated]

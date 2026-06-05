@@ -1,12 +1,8 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { getProfileByUserId } from "@/lib/auth/profile";
+import { getPlatformScanTotalsToday } from "@/lib/billing/scanMetrics";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-
-function startOfUtcDayIso() {
-  const d = new Date();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
-}
 
 export async function GET() {
   const { auth, error } = await requireApiAuth({ adminOnly: true });
@@ -18,26 +14,22 @@ export async function GET() {
   }
 
   const admin = createAdminClient();
-  const dayStart = startOfUtcDayIso();
 
   const [
     { data: profiles, error: profilesError },
     { count: signalCount, error: signalError },
     { count: journalCount, error: journalError },
-    { data: usageRows, error: usageError },
+    scanTotals,
   ] = await Promise.all([
     admin
       .from("profiles")
       .select("id, role, plan, is_active, risk_disclaimer_accepted"),
     admin.from("signals").select("id", { head: true, count: "exact" }),
     admin.from("trade_journal").select("id", { head: true, count: "exact" }),
-    admin
-      .from("usage_logs")
-      .select("action,provider_calls,cache_hits")
-      .gte("created_at", dayStart),
+    getPlatformScanTotalsToday(),
   ]);
 
-  const apiError = profilesError || signalError || journalError || usageError;
+  const apiError = profilesError || signalError || journalError;
   if (apiError) {
     return NextResponse.json({ error: apiError.message }, { status: 500 });
   }
@@ -57,19 +49,10 @@ export async function GET() {
     totalJournalRecords: journalCount || 0,
   };
 
-  let totalScansToday = 0;
-  let totalProviderCallsToday = 0;
-  let totalCacheHitsToday = 0;
-  for (const row of usageRows || []) {
-    if (row.action === "scan_market") totalScansToday += 1;
-    totalProviderCallsToday += Number(row.provider_calls || 0);
-    totalCacheHitsToday += Number(row.cache_hits || 0);
-  }
-
   return NextResponse.json({
     ...totals,
-    totalScansToday,
-    totalProviderCallsToday,
-    totalCacheHitsToday,
+    totalScansToday: scanTotals.totalScansToday,
+    totalProviderCallsToday: scanTotals.totalProviderCallsToday,
+    totalCacheHitsToday: scanTotals.totalCacheHitsToday,
   });
 }

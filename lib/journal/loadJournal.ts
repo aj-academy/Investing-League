@@ -1,6 +1,7 @@
 import type { JournalRow } from "@/components/journal/JournalTable";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
 
 export type LoadJournalOptions = {
   pair?: string;
@@ -19,7 +20,7 @@ function applyJournalFilters<T extends { eq: (col: string, val: string) => T }>(
 }
 
 /** Load journal rows for the authenticated user (service role when available). */
-export async function loadJournalForUser(
+export const loadJournalForUser = cache(async function loadJournalForUser(
   userId: string,
   options?: LoadJournalOptions,
 ): Promise<JournalRow[]> {
@@ -44,4 +45,4 @@ export async function loadJournalForUser(
   const { data } = await query.order("created_at", { ascending: false }).limit(limit);
 
   return (data || []) as JournalRow[];
-}
+});

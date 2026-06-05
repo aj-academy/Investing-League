@@ -70,9 +70,10 @@
 .app-sidebar{width:220px;background:rgba(5,8,15,.98);border-right:1px solid var(--bd2);padding:16px 12px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;z-index:450}
 .sidebar-brand{display:flex;align-items:center;gap:10px;margin-bottom:20px;min-width:0}
 .sidebar-brand-text{min-width:0}
-.app-main{flex:1;min-width:0}
+.app-main{flex:1;min-width:0;transition:opacity .12s ease}
 .app-nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--m3);font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:4px;text-decoration:none;white-space:nowrap}
 .app-nav a:hover,.app-nav a.active{background:var(--blued);color:var(--blue2);border:1px solid rgba(0,170,255,.2)}
+.app-nav a:active{transform:scale(.98)}
 .nav-label-short{display:none}
 .sidebar-backdrop{display:none}
 .mobile-nav-toggle{display:none}

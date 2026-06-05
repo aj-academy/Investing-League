@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { clearAdminSession } from "@/lib/auth/clearAdminSession";
 import { createClient } from "@/lib/supabase/client";
 import type { AutoRefreshOption, PlanName } from "@/lib/billing/planLimits";
@@ -23,6 +24,7 @@ import { SupportPanel } from "./SupportPanel";
 import { Topbar } from "../layout/Topbar";
 import type { TickerItem } from "@/lib/market/tickerService";
 import { resolveTimeZone, timeZoneAbbreviation } from "@/lib/datetime";
+import { loadScannerPrefs, saveScannerPrefs } from "@/lib/scanner/scannerPrefs";
 import { readScanFromSessionCache, saveScanToSessionCache } from "@/lib/signals/scanCache";
 
 function clientTimeZone() {
@@ -58,14 +60,21 @@ export function DashboardClient({
   planInfo: PlanInfo;
   allowedPairs: string[];
 }) {
-  const [settings, setSettings] = useState<ScanSettings>({
+  const router = useRouter();
+  const serverDefaults: ScanSettings = {
     ...initialSettings,
     autoRefresh: normalizeAutoRefresh(
       (initialSettings as ScanSettings & { liveUpdate?: string }).liveUpdate ??
         initialSettings.autoRefresh,
-      planInfo.plan
+      planInfo.plan,
     ),
-  });
+  };
+  const [settings, setSettings] = useState<ScanSettings>(() =>
+    loadScannerPrefs(serverDefaults, planInfo.plan),
+  );
+  const settingsRef = useRef(settings);
+  const pairsInitializedRef = useRef(false);
+  const hasScannedRef = useRef(false);
   const [selectedPairs, setSelectedPairs] = useState<string[]>([]);
   const [signals, setSignals] = useState<ComputedSignal[]>([]);
   const [ticker, setTicker] = useState<TickerItem[]>([]);
@@ -96,9 +105,22 @@ export function DashboardClient({
   const tzLabel = timeZoneAbbreviation(timeZone);
 
   useEffect(() => {
-    if (allowedPairs.length) {
-      setSelectedPairs(loadStoredPairs(allowedPairs));
-    }
+    settingsRef.current = settings;
+  }, [settings]);
+
+  const updateSettings = useCallback((patch: Partial<ScanSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveScannerPrefs(next);
+      settingsRef.current = next;
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (pairsInitializedRef.current || !allowedPairs.length) return;
+    pairsInitializedRef.current = true;
+    setSelectedPairs(loadStoredPairs(allowedPairs));
   }, [allowedPairs]);
 
   const applyLatestScan = useCallback((json: {
@@ -187,6 +209,7 @@ export function DashboardClient({
     fetch("/api/signals/latest")
       .then((r) => r.json())
       .then((json) => {
+        if (hasScannedRef.current) return;
         if (applyLatestScan(json)) {
           saveScanToSessionCache({
             ts: Date.now(),
@@ -247,6 +270,7 @@ export function DashboardClient({
       setLoaderSub("Running decision-support engine...");
     }
 
+    const activeSettings = settingsRef.current;
     const pairs = pairsForScan(isAuto);
     if (!pairs.length) {
       toast.error("Select at least one asset to scan.");
@@ -260,7 +284,7 @@ export function DashboardClient({
     }
 
     const timeframes =
-      settings.timeframe === "both" ? ["both"] : [settings.timeframe];
+      activeSettings.timeframe === "both" ? ["both"] : [activeSettings.timeframe];
 
     try {
       const res = await fetch("/api/signals/scan", {
@@ -269,12 +293,12 @@ export function DashboardClient({
         body: JSON.stringify({
           pairs,
           timeframes,
-          mode: settings.mode,
-          minScore: settings.minScore,
-          minGrade: settings.minGrade,
-          showBSignals: settings.minGrade === "B",
-          dailyTradeLimit: settings.dailyTradeLimit,
-          sessionFilter: settings.session,
+          mode: activeSettings.mode,
+          minScore: activeSettings.minScore,
+          minGrade: activeSettings.minGrade,
+          showBSignals: activeSettings.minGrade === "B",
+          dailyTradeLimit: activeSettings.dailyTradeLimit,
+          sessionFilter: activeSettings.session,
           auto: isAuto,
           timezone: timeZone,
         }),
@@ -287,7 +311,7 @@ export function DashboardClient({
           toast.error(json.message || "Daily scan limit reached");
           if (isAuto) {
             clearAutoSchedule();
-            setSettings((s) => ({ ...s, autoRefresh: "off" }));
+            updateSettings({ autoRefresh: "off" });
           }
         } else {
           toast.error(json.error || json.message || "Scan failed");
@@ -296,6 +320,7 @@ export function DashboardClient({
         else setScanning(false);
         return;
       }
+      hasScannedRef.current = true;
       const list = json.signals || [];
       setSignals(list);
       if (json.ticker?.length) setTicker(json.ticker);
@@ -339,7 +364,7 @@ export function DashboardClient({
         }
       }
 
-      const intervalSec = autoRefreshToSeconds(settings.autoRefresh);
+      const intervalSec = autoRefreshToSeconds(activeSettings.autoRefresh);
       scheduleAutoScan(intervalSec);
     } catch {
       if (!isAuto) toast.error("Scan request failed");
@@ -353,12 +378,12 @@ export function DashboardClient({
   }, [
     scanning,
     autoScanning,
-    settings,
     clearAutoSchedule,
     scheduleAutoScan,
     pairsForScan,
     termsState.required,
     timeZone,
+    updateSettings,
   ]);
 
   runScanRef.current = runScan;
@@ -377,12 +402,14 @@ export function DashboardClient({
         <AssetChipGrid
           allowedPairs={allowedPairs}
           selected={selectedPairs}
+          disabled={scanning || autoScanning}
           onChange={setSelectedPairs}
         />
         <ScannerControls
           plan={planInfo.plan}
           settings={settings}
-          onChange={(p) => setSettings((s) => ({ ...s, ...p }))}
+          onChange={updateSettings}
+          filtersLocked={scanning || autoScanning}
           onScan={() => runScan()}
           onRefreshPrices={async () => {
             setRefreshing(true);
@@ -509,10 +536,9 @@ export function DashboardClient({
                 type="button"
                 className="jbtn"
                 onClick={async () => {
-                  await clearAdminSession();
                   const supabase = createClient();
-                  await supabase.auth.signOut();
-                  window.location.href = "/login";
+                  await Promise.all([clearAdminSession(), supabase.auth.signOut()]);
+                  router.replace("/login");
                 }}
               >
                 Logout

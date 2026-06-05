@@ -1,7 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { cache } from "react";
 
 /** Server-only: read profile fields after the user is authenticated. */
-export async function getProfileByUserId(userId: string) {
+export const getProfileByUserId = cache(async function getProfileByUserId(userId: string) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
 
   const admin = createAdminClient();
@@ -13,7 +14,7 @@ export async function getProfileByUserId(userId: string) {
 
   if (error) return null;
   return data;
-}
+});
 
 export async function hasAcceptedRiskDisclaimer(userId: string) {
   const profile = await getProfileByUserId(userId);

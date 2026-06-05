@@ -331,7 +331,7 @@ export async function POST(request: Request) {
       })
       .eq("id", scanSession.id);
 
-    await supabase.from("usage_logs").insert({
+    await writer.from("usage_logs").insert({
       user_id: auth!.user.id,
       action: "scan_market",
       mode,

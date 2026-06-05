@@ -1,5 +1,6 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { getProfileByUserId } from "@/lib/auth/profile";
+import { getTodayScanCountsByUser } from "@/lib/billing/scanMetrics";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -11,11 +12,6 @@ async function requireAdmin(userId: string) {
   return null;
 }
 
-function startOfUtcDayIso() {
-  const d = new Date();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
-}
-
 export async function GET() {
   const { auth, error } = await requireApiAuth({ adminOnly: true });
   if (error) return error;
@@ -25,7 +21,7 @@ export async function GET() {
   const admin = createAdminClient();
   const [
     { data, error: dbError },
-    { data: usageRows, error: usageError },
+    usageByUser,
     { data: activeTerms },
     { data: userAcceptances },
     { data: assets },
@@ -36,10 +32,7 @@ export async function GET() {
         "id, email, full_name, role, plan, is_active, risk_disclaimer_accepted, created_at"
       )
       .order("created_at", { ascending: false }),
-    admin
-      .from("usage_logs")
-      .select("user_id,action,provider_calls,cache_hits")
-      .gte("created_at", startOfUtcDayIso()),
+    getTodayScanCountsByUser(),
     admin
       .from("terms_documents")
       .select("id,version")
@@ -57,27 +50,6 @@ export async function GET() {
   if (dbError) {
     return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
-  if (usageError) {
-    return NextResponse.json({ error: usageError.message }, { status: 500 });
-  }
-
-  const usageByUser = new Map<
-    string,
-    { scans_today: number; provider_calls_today: number; cache_hits_today: number }
-  >();
-  for (const row of usageRows || []) {
-    if (!row.user_id) continue;
-    const acc = usageByUser.get(row.user_id) || {
-      scans_today: 0,
-      provider_calls_today: 0,
-      cache_hits_today: 0,
-    };
-    if (row.action === "scan_market") acc.scans_today += 1;
-    acc.provider_calls_today += Number(row.provider_calls || 0);
-    acc.cache_hits_today += Number(row.cache_hits || 0);
-    usageByUser.set(row.user_id, acc);
-  }
-
   const termsByUser = new Map<string, { accepted_at: string; accepted: boolean }>();
   if (activeTerms?.id) {
     for (const row of userAcceptances || []) {

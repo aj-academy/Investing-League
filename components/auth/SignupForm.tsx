@@ -65,8 +65,7 @@ export function SignupForm() {
 
       setLoading(false);
       toast.success("Account created. Welcome!");
-      router.push("/dashboard");
-      router.refresh();
+      router.replace("/dashboard");
       return;
     }
 

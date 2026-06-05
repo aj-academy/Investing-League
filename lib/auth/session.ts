@@ -2,6 +2,7 @@ import { hasAdminSessionCookie } from "@/lib/auth/adminSession";
 import { getProfileByUserId } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 export type AuthContext = {
   user: { id: string; email: string };
@@ -17,7 +18,7 @@ export type AuthContext = {
   } | null;
 };
 
-export async function getAuthContext(): Promise<AuthContext | null> {
+export const getAuthContext = cache(async function getAuthContext(): Promise<AuthContext | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
@@ -28,15 +29,13 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const profile =
-    (await getProfileByUserId(user.id)) ??
-    (
-      await supabase
-        .from("profiles")
-        .select("full_name, email, role, plan, is_active, risk_disclaimer_accepted")
-        .eq("id", user.id)
-        .maybeSingle()
-    ).data;
+  const { data: sessionProfile } = await supabase
+    .from("profiles")
+    .select("full_name, email, role, plan, is_active, risk_disclaimer_accepted")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const profile = sessionProfile ?? (await getProfileByUserId(user.id));
 
   const cookieStore = await cookies();
   const adminSession = hasAdminSessionCookie(cookieStore);
@@ -47,4 +46,4 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     isActive: profile?.is_active !== false,
     profile: profile ?? null,
   };
-}
+});

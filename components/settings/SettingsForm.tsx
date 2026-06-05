@@ -1,7 +1,6 @@
 "use client";
 
 import { DISCLAIMER } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -14,7 +13,6 @@ export function SettingsForm({
   settings: Record<string, unknown> | null;
   email: string;
 }) {
-  const router = useRouter();
   const [fullName, setFullName] = useState(String(profile?.full_name || ""));
   const [mode, setMode] = useState(String(settings?.default_mode || "practice"));
   const [tf, setTf] = useState(String(settings?.default_timeframe || "5min"));
@@ -53,7 +51,6 @@ export function SettingsForm({
         return;
       }
       toast.success("Settings saved — you can run Scan Market now.");
-      router.refresh();
     } catch {
       toast.error("Could not save settings");
     } finally {

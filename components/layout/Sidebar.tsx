@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
@@ -9,6 +10,15 @@ const links = [
   { href: "/analytics", label: "Analytics", short: "Stats" },
   { href: "/settings", label: "Settings", short: "Set" },
 ];
+
+function NavLabel({ label }: { label: string }) {
+  const { pending } = useLinkStatus();
+  return (
+    <span className="nav-label-full" style={{ opacity: pending ? 0.55 : 1 }}>
+      {pending ? "..." : label}
+    </span>
+  );
+}
 
 export function Sidebar({
   open,
@@ -42,11 +52,12 @@ export function Sidebar({
           <Link
             key={l.href}
             href={l.href}
+            prefetch
             className={pathname.startsWith(l.href) ? "active" : ""}
             onClick={onNavigate}
             title={l.label}
           >
-            <span className="nav-label-full">{l.label}</span>
+            <NavLabel label={l.label} />
             <span className="nav-label-short">{l.short}</span>
           </Link>
         ))}

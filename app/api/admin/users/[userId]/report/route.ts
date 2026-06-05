@@ -1,6 +1,7 @@
 import { requireAdminApi } from "@/lib/admin/guard";
 import { isRealTradeSignal } from "@/lib/analytics/winRate";
 import { resolveUserAllowedPairs } from "@/lib/access/assetAccess";
+import { getUserScanMetrics } from "@/lib/billing/scanMetrics";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -45,7 +46,6 @@ export async function GET(
   const admin = createAdminClient();
   const [
     { data: profile },
-    { data: usage },
     { data: signals },
     { data: journal },
     { data: recentScans },
@@ -56,11 +56,6 @@ export async function GET(
       .select("id,email,full_name,role,plan,is_active,risk_disclaimer_accepted,created_at")
       .eq("id", userId)
       .maybeSingle(),
-    admin
-      .from("usage_logs")
-      .select("action,provider_calls,cache_hits,metadata,created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false }),
     admin
       .from("signals")
       .select("pair,signal_type,grade,created_at")
@@ -92,14 +87,7 @@ export async function GET(
     (profile.plan || "free") as "free" | "starter" | "pro" | "admin"
   );
 
-  const usageRows = usage || [];
-  const scansToday = usageRows.filter((u) => {
-    if (u.action !== "scan_market") return false;
-    return new Date(u.created_at).toDateString() === new Date().toDateString();
-  }).length;
-  const totalScans = usageRows.filter((u) => u.action === "scan_market").length;
-  const providerCalls = usageRows.reduce((a, u) => a + Number(u.provider_calls || 0), 0);
-  const cacheHits = usageRows.reduce((a, u) => a + Number(u.cache_hits || 0), 0);
+  const scanMetrics = await getUserScanMetrics(userId);
 
   const journalRows = journal || [];
   const wins = journalRows.filter((r) => r.result === "Win").length;
@@ -122,10 +110,10 @@ export async function GET(
     allowedAssets,
     termsAcceptances: termsAcceptances || [],
     usage: {
-      scansToday,
-      totalScans,
-      providerCalls,
-      cacheHits,
+      scansToday: scanMetrics.scansToday,
+      totalScans: scanMetrics.totalScans,
+      providerCalls: scanMetrics.providerCalls,
+      cacheHits: scanMetrics.cacheHits,
     },
     totals: {
       signalsGenerated: (signals || []).length,

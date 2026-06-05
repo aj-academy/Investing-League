@@ -24,16 +24,18 @@ export function saveStoredPairs(pairs: string[]) {
 export function AssetChipGrid({
   allowedPairs,
   selected,
+  disabled,
   onChange,
 }: {
   allowedPairs: string[];
   selected: string[];
+  disabled?: boolean;
   onChange: (pairs: string[]) => void;
 }) {
   const set = new Set(selected);
 
   const toggle = (pair: string) => {
-    if (!allowedPairs.includes(pair)) return;
+    if (disabled || !allowedPairs.includes(pair)) return;
     const next = new Set(selected);
     if (next.has(pair)) next.delete(pair);
     else next.add(pair);
@@ -43,6 +45,7 @@ export function AssetChipGrid({
   };
 
   const preset = (type: "all" | "major4" | "eurgbp" | "clear") => {
+    if (disabled) return;
     let next: string[] = [];
     if (type === "all") next = [...allowedPairs];
     else if (type === "major4")
@@ -69,7 +72,7 @@ export function AssetChipGrid({
               key={p}
               type="button"
               className={`asset-chip ${set.has(p) ? "on" : ""}`}
-              disabled={!allowed}
+              disabled={disabled || !allowed}
               onClick={() => toggle(p)}
               title={allowed ? p : `${p} — not on your plan`}
             >

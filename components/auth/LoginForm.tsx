@@ -71,7 +71,7 @@ export function LoginForm() {
           return;
         }
 
-        window.location.assign("/admin");
+        router.replace("/admin");
         return;
       }
 
@@ -91,8 +91,7 @@ export function LoginForm() {
         }
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      router.replace("/dashboard");
     } catch {
       toast.error("Unable to sign in. Check your Supabase configuration.");
     } finally {

@@ -25,6 +25,7 @@ export function ScannerControls({
   onReloadLastScan,
   scanning,
   refreshing,
+  filtersLocked,
   progress,
 }: {
   plan: PlanName;
@@ -35,8 +36,10 @@ export function ScannerControls({
   onReloadLastScan: () => void;
   scanning: boolean;
   refreshing?: boolean;
+  filtersLocked?: boolean;
   progress: number;
 }) {
+  const lockFilters = Boolean(filtersLocked || scanning);
   const autoRefreshOptions = autoRefreshOptionsForPlan(plan);
 
   return (
@@ -59,6 +62,7 @@ export function ScannerControls({
             <label>Mode</label>
             <select
               value={settings.mode}
+              disabled={lockFilters}
               onChange={(e) => onChange({ mode: e.target.value as "practice" | "live" })}
             >
               <option value="practice">Practice · Show All</option>
@@ -69,6 +73,7 @@ export function ScannerControls({
             <label>Expiry</label>
             <select
               value={settings.timeframe}
+              disabled={lockFilters}
               onChange={(e) => onChange({ timeframe: e.target.value })}
             >
               <option value="5min">5-min expiry</option>
@@ -80,6 +85,7 @@ export function ScannerControls({
             <label>Min Grade</label>
             <select
               value={settings.minGrade}
+              disabled={lockFilters}
               onChange={(e) => onChange({ minGrade: e.target.value as MinGradeFilter })}
             >
               <option value="B">B+ Watch</option>
@@ -91,6 +97,7 @@ export function ScannerControls({
             <label>Session Filter</label>
             <select
               value={settings.session}
+              disabled={lockFilters}
               onChange={(e) => onChange({ session: e.target.value })}
             >
               <option value="any">Any Liquid Session</option>
@@ -102,7 +109,8 @@ export function ScannerControls({
           <div className="f">
             <label>Daily Trade Limit</label>
             <select
-              value={settings.dailyTradeLimit}
+              value={String(settings.dailyTradeLimit)}
+              disabled={lockFilters}
               onChange={(e) => onChange({ dailyTradeLimit: Number(e.target.value) })}
             >
               <option value={3}>3</option>
@@ -117,6 +125,7 @@ export function ScannerControls({
             </label>
             <select
               value={settings.autoRefresh}
+              disabled={lockFilters}
               onChange={(e) => onChange({ autoRefresh: e.target.value as AutoRefreshOption })}
             >
               {autoRefreshOptions.map((opt) => (
