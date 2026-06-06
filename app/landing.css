@@ -126,6 +126,21 @@ body:has(.lp-root){background:#030508}
 .lp-wf-step .t{font-size:12px;color:var(--lp-txt2);font-weight:600;line-height:1.4}
 .lp-wf-arrow{color:var(--lp-muted);font-size:18px;padding:0 2px}
 
+.lp-pricing-wrap{background:var(--lp-glass);border:1px solid var(--lp-border);border-radius:var(--lp-r2);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.lp-pricing-table{width:100%;border-collapse:collapse}
+.lp-pricing-table thead th{font-family:var(--lp-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--lp-muted);text-align:left;padding:14px 20px;background:rgba(0,0,0,.25);border-bottom:1px solid rgba(255,255,255,.06)}
+.lp-pricing-table tbody td{padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;vertical-align:top}
+.lp-pricing-table tbody tr{transition:.2s}
+.lp-pricing-table tbody tr:hover{background:rgba(0,212,255,.04)}
+.lp-pricing-highlight{background:rgba(240,180,41,.05)}
+.lp-pricing-plan strong{font-family:var(--lp-mono);color:var(--lp-txt2);letter-spacing:.5px}
+.lp-pricing-badge{display:inline-block;margin-left:8px;font-size:9px;font-family:var(--lp-mono);letter-spacing:1px;text-transform:uppercase;color:var(--lp-gold2);border:1px solid var(--lp-border2);border-radius:6px;padding:2px 8px;background:rgba(240,180,41,.1)}
+.lp-pricing-price{font-family:var(--lp-mono);font-weight:700;color:var(--lp-cyan2);white-space:nowrap}
+.lp-pricing-access{font-size:13px;color:var(--lp-txt);line-height:1.55;max-width:360px}
+.lp-pricing-pay{padding:10px 16px!important;font-size:11px!important;white-space:nowrap}
+.lp-pricing-empty{text-align:center;color:var(--lp-muted);font-size:14px;padding:32px 0}
+.lp-pricing-note{text-align:center;color:var(--lp-muted);font-size:12px;margin-top:20px;max-width:720px;margin-left:auto;margin-right:auto;line-height:1.65}
+
 .lp-disclaimer{background:rgba(240,180,41,.06);border:1px solid var(--lp-border2);border-radius:var(--lp-r);padding:24px 28px;max-width:860px;margin:0 auto;text-align:center}
 .lp-disclaimer p{font-size:14px;color:var(--lp-gold2);line-height:1.75}
 
@@ -159,4 +174,12 @@ body:has(.lp-root){background:#030508}
   .lp-scanner-table tbody tr{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
   .lp-scanner-table tbody td{padding:4px 0;border:none;display:flex;justify-content:space-between;gap:12px}
   .lp-scanner-table tbody td::before{content:attr(data-label);color:var(--lp-muted);font-size:11px;font-family:var(--lp-mono);text-transform:uppercase;letter-spacing:1px}
+  .lp-pricing-table thead{display:none}
+  .lp-pricing-table,.lp-pricing-table tbody,.lp-pricing-table tr,.lp-pricing-table td{display:block;width:100%}
+  .lp-pricing-table tbody tr{padding:16px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .lp-pricing-table tbody td{padding:6px 0;border:none;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .lp-pricing-table tbody td::before{content:attr(data-label);color:var(--lp-muted);font-size:11px;font-family:var(--lp-mono);text-transform:uppercase;letter-spacing:1px;flex-shrink:0}
+  .lp-pricing-table tbody td[data-label="Action"]{justify-content:flex-start;margin-top:8px}
+  .lp-pricing-table tbody td[data-label="Action"]::before{display:none}
+  .lp-pricing-pay{width:100%}
 }

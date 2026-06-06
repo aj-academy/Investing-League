@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PricingSection } from "@/components/landing/PricingSection";
 
 type Bias = "buy" | "sell" | "wait";
 type Risk = "low" | "med" | "high";
@@ -116,6 +117,7 @@ export default function PremiumLanding() {
           <div className="lp-nav-links">
             <a href="#scanner">Scanner</a>
             <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
             <a href="#workflow">Workflow</a>
             <Link href="/login" className="lp-btn lp-btn-primary" style={{ padding: "10px 18px" }}>
               Start Decision Lab
@@ -295,6 +297,8 @@ export default function PremiumLanding() {
         </div>
       </section>
 
+      <PricingSection />
+
       <section className="lp-section" id="workflow">
         <div className="lp-wrap">
           <div className="lp-sec-head">
@@ -359,6 +363,7 @@ export default function PremiumLanding() {
             <div className="lp-footer-links">
               <a href="#scanner">Scanner</a>
               <a href="#features">Features</a>
+              <a href="#pricing">Pricing</a>
               <Link href="/login">Login</Link>
               <Link href="/terms">Terms</Link>
             </div>

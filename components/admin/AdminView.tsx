@@ -10,9 +10,23 @@ type AdminTab =
   | "users"
   | "assets"
   | "terms"
+  | "pricing"
   | "reports"
   | "api"
   | "audit";
+
+type PricingPlanRow = {
+  id: string;
+  name: string;
+  price_label: string;
+  best_for: string;
+  access_description: string;
+  sort_order: number;
+  is_active: boolean;
+  is_highlighted: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 type OverviewMetrics = {
   totalUsers: number;
@@ -53,6 +67,7 @@ const tabs: { id: AdminTab; label: string }[] = [
   { id: "users", label: "Users" },
   { id: "assets", label: "Asset Access" },
   { id: "terms", label: "Terms & Conditions" },
+  { id: "pricing", label: "Pricing Plans" },
   { id: "reports", label: "User Reports" },
   { id: "api", label: "API Usage" },
   { id: "audit", label: "Audit Logs" },
@@ -124,6 +139,17 @@ export function AdminView() {
     plan: "free",
     is_active: true,
   });
+  const [pricingPlans, setPricingPlans] = useState<PricingPlanRow[]>([]);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+  const [newPricingPlan, setNewPricingPlan] = useState({
+    name: "",
+    price_label: "",
+    best_for: "",
+    access_description: "",
+    sort_order: 0,
+    is_active: true,
+    is_highlighted: false,
+  });
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   const loadOverview = () => {
@@ -156,6 +182,15 @@ export function AdminView() {
       .catch(() => setTermsData(null));
   };
 
+  const loadPricing = () => {
+    setLoadingPricing(true);
+    fetch("/api/admin/pricing")
+      .then((r) => r.json())
+      .then((json) => setPricingPlans(json.plans || []))
+      .catch(() => setPricingPlans([]))
+      .finally(() => setLoadingPricing(false));
+  };
+
   const loadUsage = () => {
     fetch("/api/admin/usage")
       .then((r) => r.json())
@@ -178,6 +213,7 @@ export function AdminView() {
   useEffect(() => {
     if (activeTab === "assets") loadAssets();
     if (activeTab === "terms") loadTerms();
+    if (activeTab === "pricing") loadPricing();
     if (activeTab === "api") loadUsage();
     if (activeTab === "audit") loadAudit();
   }, [activeTab]);
@@ -248,6 +284,76 @@ export function AdminView() {
     setNewTerms({ title: "", version: "", content: "", file_url: "", activate: true });
     loadTerms();
     loadOverview();
+  };
+
+  const createPricingPlan = async () => {
+    if (
+      !newPricingPlan.name.trim() ||
+      !newPricingPlan.price_label.trim() ||
+      !newPricingPlan.best_for.trim() ||
+      !newPricingPlan.access_description.trim()
+    ) {
+      toast.error("Plan name, price, best for, and access are required");
+      return;
+    }
+    const res = await fetch("/api/admin/pricing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newPricingPlan),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      toast.error(json.error || "Could not create pricing plan");
+      return;
+    }
+    toast.success("Pricing plan created");
+    setNewPricingPlan({
+      name: "",
+      price_label: "",
+      best_for: "",
+      access_description: "",
+      sort_order: 0,
+      is_active: true,
+      is_highlighted: false,
+    });
+    loadPricing();
+  };
+
+  const updatePricingPlan = async (
+    planId: string,
+    patch: Partial<
+      Pick<
+        PricingPlanRow,
+        "name" | "price_label" | "best_for" | "access_description" | "sort_order" | "is_active" | "is_highlighted"
+      >
+    >
+  ) => {
+    const res = await fetch("/api/admin/pricing", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId, ...patch }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      toast.error(json.error || "Could not update pricing plan");
+      return;
+    }
+    toast.success("Pricing plan updated");
+    loadPricing();
+  };
+
+  const deletePricingPlan = async (planId: string) => {
+    if (!window.confirm("Delete this pricing plan from the home page?")) return;
+    const res = await fetch(`/api/admin/pricing?planId=${encodeURIComponent(planId)}`, {
+      method: "DELETE",
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      toast.error(json.error || "Could not delete pricing plan");
+      return;
+    }
+    toast.success("Pricing plan deleted");
+    loadPricing();
   };
 
   const setTermsActive = async (termsId: string) => {
@@ -780,6 +886,238 @@ export function AdminView() {
                 <p className="empty-txt">No users found.</p>
               )}
             </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === "pricing" && (
+        <>
+          <div className="ctrl" style={{ marginTop: 16 }}>
+            <div className="ctrl-title">Create Pricing Plan</div>
+            <p className="empty-txt" style={{ marginBottom: 10 }}>
+              Plans shown on the home page pricing section. Users click Pay to open WhatsApp for
+              enrollment.
+            </p>
+            <div className="ctrl-row">
+              <div className="f">
+                <label>Plan name</label>
+                <input
+                  value={newPricingPlan.name}
+                  onChange={(e) => setNewPricingPlan((s) => ({ ...s, name: e.target.value }))}
+                />
+              </div>
+              <div className="f">
+                <label>Price</label>
+                <input
+                  value={newPricingPlan.price_label}
+                  onChange={(e) => setNewPricingPlan((s) => ({ ...s, price_label: e.target.value }))}
+                  placeholder="₹999 / month"
+                />
+              </div>
+              <div className="f">
+                <label>Best for</label>
+                <input
+                  value={newPricingPlan.best_for}
+                  onChange={(e) => setNewPricingPlan((s) => ({ ...s, best_for: e.target.value }))}
+                />
+              </div>
+              <div className="f">
+                <label>Sort order</label>
+                <input
+                  type="number"
+                  value={newPricingPlan.sort_order}
+                  onChange={(e) =>
+                    setNewPricingPlan((s) => ({ ...s, sort_order: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="f" style={{ marginTop: 10 }}>
+              <label>Access / features</label>
+              <textarea
+                value={newPricingPlan.access_description}
+                onChange={(e) =>
+                  setNewPricingPlan((s) => ({ ...s, access_description: e.target.value }))
+                }
+                style={{
+                  minHeight: 90,
+                  width: "100%",
+                  background: "var(--p2)",
+                  border: "1px solid var(--bd2)",
+                  color: "var(--txt)",
+                  borderRadius: 8,
+                  padding: 10,
+                }}
+              />
+            </div>
+            <div className="ctrl-row" style={{ marginTop: 10 }}>
+              <div className="f">
+                <label>Active on home page</label>
+                <select
+                  value={newPricingPlan.is_active ? "yes" : "no"}
+                  onChange={(e) =>
+                    setNewPricingPlan((s) => ({ ...s, is_active: e.target.value === "yes" }))
+                  }
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+              <div className="f">
+                <label>Highlight as popular</label>
+                <select
+                  value={newPricingPlan.is_highlighted ? "yes" : "no"}
+                  onChange={(e) =>
+                    setNewPricingPlan((s) => ({ ...s, is_highlighted: e.target.value === "yes" }))
+                  }
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" className="btn-scan" onClick={createPricingPlan}>
+              Create Plan
+            </button>
+          </div>
+
+          <div className="ctrl" style={{ marginTop: 16 }}>
+            <div className="ctrl-title">Home Page Pricing Plans</div>
+            {loadingPricing ? (
+              <p className="empty-txt">Loading pricing plans...</p>
+            ) : (
+              <div className="journal-table-wrap" style={{ maxHeight: 520 }}>
+                <table className="journal-table">
+                  <thead>
+                    <tr>
+                      <th>Order</th>
+                      <th>Plan</th>
+                      <th>Price</th>
+                      <th>Best For</th>
+                      <th>Access</th>
+                      <th>Active</th>
+                      <th>Popular</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pricingPlans.map((plan) => (
+                      <tr key={plan.id}>
+                        <td>
+                          <input
+                            type="number"
+                            defaultValue={plan.sort_order}
+                            style={{ width: 56, fontSize: 10 }}
+                            onBlur={(e) => {
+                              const next = Number(e.target.value) || 0;
+                              if (next !== plan.sort_order) {
+                                void updatePricingPlan(plan.id, { sort_order: next });
+                              }
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            defaultValue={plan.name}
+                            style={{ width: 120, fontSize: 10 }}
+                            onBlur={(e) => {
+                              const next = e.target.value.trim();
+                              if (next && next !== plan.name) {
+                                void updatePricingPlan(plan.id, { name: next });
+                              }
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            defaultValue={plan.price_label}
+                            style={{ width: 110, fontSize: 10 }}
+                            onBlur={(e) => {
+                              const next = e.target.value.trim();
+                              if (next && next !== plan.price_label) {
+                                void updatePricingPlan(plan.id, { price_label: next });
+                              }
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            defaultValue={plan.best_for}
+                            style={{ width: 110, fontSize: 10 }}
+                            onBlur={(e) => {
+                              const next = e.target.value.trim();
+                              if (next && next !== plan.best_for) {
+                                void updatePricingPlan(plan.id, { best_for: next });
+                              }
+                            }}
+                          />
+                        </td>
+                        <td style={{ whiteSpace: "normal", maxWidth: 220 }}>
+                          <textarea
+                            defaultValue={plan.access_description}
+                            style={{
+                              width: "100%",
+                              minHeight: 48,
+                              fontSize: 10,
+                              background: "var(--p2)",
+                              border: "1px solid var(--bd2)",
+                              color: "var(--txt)",
+                              borderRadius: 6,
+                              padding: 6,
+                            }}
+                            onBlur={(e) => {
+                              const next = e.target.value.trim();
+                              if (next && next !== plan.access_description) {
+                                void updatePricingPlan(plan.id, { access_description: next });
+                              }
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="jbtn"
+                            onClick={() =>
+                              updatePricingPlan(plan.id, { is_active: !plan.is_active })
+                            }
+                          >
+                            {plan.is_active ? "Yes" : "No"}
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="jbtn"
+                            onClick={() =>
+                              updatePricingPlan(plan.id, {
+                                is_highlighted: !plan.is_highlighted,
+                              })
+                            }
+                          >
+                            {plan.is_highlighted ? "Yes" : "No"}
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="jbtn"
+                            onClick={() => deletePricingPlan(plan.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {pricingPlans.length === 0 && (
+                  <p className="empty-txt">
+                    No pricing plans yet. Run `supabase/migrations/pricing_plans.sql` in Supabase SQL
+                    Editor, or create plans above.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
