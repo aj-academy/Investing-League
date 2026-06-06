@@ -15,6 +15,7 @@ import { playScanAlerts } from "@/lib/sound/signalAlerts";
 import { toast } from "sonner";
 import { AssetChipGrid, loadStoredPairs } from "./AssetChipGrid";
 import { PlanUsageCard } from "./PlanUsageCard";
+import { RulesModal } from "@/components/rules/RulesModal";
 import { LoadingScanner } from "./LoadingScanner";
 import { MarketTicker } from "./MarketTicker";
 import { ScannerControls } from "./ScannerControls";
@@ -100,6 +101,13 @@ export function DashboardClient({
     active: null | { id: string; title: string; version: string; content: string | null; file_url: string | null };
   }>({ loading: true, required: false, active: null });
   const [acceptingTerms, setAcceptingTerms] = useState(false);
+  const [rulesState, setRulesState] = useState<{
+    loading: boolean;
+    required: boolean;
+    active: null | { id: string; title: string; content: string; updated_at: string };
+  }>({ loading: true, required: false, active: null });
+  const [acknowledgingRules, setAcknowledgingRules] = useState(false);
+  const [rulesModalOpen, setRulesModalOpen] = useState(false);
   const autoScanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runScanRef = useRef<(opts?: { auto?: boolean }) => Promise<void>>(async () => {});
@@ -258,6 +266,62 @@ export function DashboardClient({
   }, []);
 
   useEffect(() => {
+    fetch("/api/rules/active")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!json.ok) {
+          setRulesState({ loading: false, required: false, active: null });
+          return;
+        }
+        setRulesState({
+          loading: false,
+          required: Boolean(json.acknowledgementRequired),
+          active: json.active || null,
+        });
+      })
+      .catch(() => {
+        setRulesState({ loading: false, required: false, active: null });
+      });
+  }, []);
+
+  useEffect(() => {
+    if (
+      !termsState.loading &&
+      !termsState.required &&
+      !rulesState.loading &&
+      rulesState.required &&
+      rulesState.active
+    ) {
+      setRulesModalOpen(true);
+    }
+  }, [
+    termsState.loading,
+    termsState.required,
+    rulesState.loading,
+    rulesState.required,
+    rulesState.active,
+  ]);
+
+  const acknowledgeRules = useCallback(async () => {
+    setAcknowledgingRules(true);
+    try {
+      const res = await fetch("/api/rules/acknowledge", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        toast.error(json.error || "Could not acknowledge rules");
+        return;
+      }
+      toast.success("Platform rules acknowledged.");
+      setRulesState((s) => ({ ...s, required: false }));
+      setRulesModalOpen(false);
+    } catch {
+      toast.error("Could not acknowledge rules");
+    } finally {
+      setAcknowledgingRules(false);
+    }
+  }, []);
+
+  useEffect(() => {
     return () => clearAutoSchedule();
   }, [clearAutoSchedule]);
 
@@ -265,6 +329,13 @@ export function DashboardClient({
     const isAuto = Boolean(opts?.auto);
     if (termsState.required) {
       if (!isAuto) toast.error("Accept the latest Terms & Conditions before scanning.");
+      return;
+    }
+    if (rulesState.required) {
+      if (!isAuto) {
+        toast.error("Acknowledge the latest Platform Rules before scanning.");
+        setRulesModalOpen(true);
+      }
       return;
     }
     if (scanning || autoScanning) return;
@@ -396,6 +467,7 @@ export function DashboardClient({
     scheduleAutoScan,
     pairsForScan,
     termsState.required,
+    rulesState.required,
     timeZone,
     updateSettings,
   ]);
@@ -418,6 +490,13 @@ export function DashboardClient({
           scansRemainingToday={scanUsage.scansRemainingToday}
           dailyScanLimit={scanUsage.dailyScanLimit}
           totalScans={scanUsage.totalScans}
+          onRulesClick={() => {
+            if (rulesState.active) {
+              setRulesModalOpen(true);
+            } else {
+              toast.message("Platform rules are not available yet.");
+            }
+          }}
         />
         <MarketTicker items={ticker} />
         <AssetChipGrid
@@ -489,6 +568,17 @@ export function DashboardClient({
           <SupportPanel signals={signals} errors={marketErrors} />
         </div>
       </div>
+      {rulesModalOpen && rulesState.active && !termsState.required && (
+        <RulesModal
+          rules={rulesState.active}
+          required={rulesState.required}
+          acknowledging={acknowledgingRules}
+          onAcknowledge={acknowledgeRules}
+          onClose={() => {
+            if (!rulesState.required) setRulesModalOpen(false);
+          }}
+        />
+      )}
       {termsState.required && termsState.active && (
         <div
           style={{
@@ -543,6 +633,9 @@ export function DashboardClient({
                     } else {
                       toast.success("Terms accepted.");
                       setTermsState((s) => ({ ...s, required: false }));
+                      if (rulesState.required && rulesState.active) {
+                        setRulesModalOpen(true);
+                      }
                     }
                   } catch {
                     toast.error("Could not accept terms");

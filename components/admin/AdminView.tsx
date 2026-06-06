@@ -10,6 +10,7 @@ type AdminTab =
   | "users"
   | "assets"
   | "terms"
+  | "rules"
   | "pricing"
   | "reports"
   | "api"
@@ -67,6 +68,7 @@ const tabs: { id: AdminTab; label: string }[] = [
   { id: "users", label: "Users" },
   { id: "assets", label: "Asset Access" },
   { id: "terms", label: "Terms & Conditions" },
+  { id: "rules", label: "Platform Rules" },
   { id: "pricing", label: "Pricing Plans" },
   { id: "reports", label: "User Reports" },
   { id: "api", label: "API Usage" },
@@ -150,6 +152,17 @@ export function AdminView() {
     is_active: true,
     is_highlighted: false,
   });
+  const [rulesData, setRulesData] = useState<{
+    active: {
+      id: string;
+      title: string;
+      content: string;
+      updated_at: string;
+      created_at: string;
+    } | null;
+  } | null>(null);
+  const [rulesDraft, setRulesDraft] = useState({ title: "Platform Rules", content: "" });
+  const [savingRules, setSavingRules] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   const loadOverview = () => {
@@ -180,6 +193,21 @@ export function AdminView() {
       .then((r) => r.json())
       .then((json) => setTermsData(json))
       .catch(() => setTermsData(null));
+  };
+
+  const loadRules = () => {
+    fetch("/api/admin/rules")
+      .then((r) => r.json())
+      .then((json) => {
+        setRulesData(json);
+        if (json.active) {
+          setRulesDraft({
+            title: json.active.title || "Platform Rules",
+            content: json.active.content || "",
+          });
+        }
+      })
+      .catch(() => setRulesData(null));
   };
 
   const loadPricing = () => {
@@ -213,6 +241,7 @@ export function AdminView() {
   useEffect(() => {
     if (activeTab === "assets") loadAssets();
     if (activeTab === "terms") loadTerms();
+    if (activeTab === "rules") loadRules();
     if (activeTab === "pricing") loadPricing();
     if (activeTab === "api") loadUsage();
     if (activeTab === "audit") loadAudit();
@@ -284,6 +313,27 @@ export function AdminView() {
     setNewTerms({ title: "", version: "", content: "", file_url: "", activate: true });
     loadTerms();
     loadOverview();
+  };
+
+  const saveRules = async () => {
+    if (!rulesDraft.content.trim()) {
+      toast.error("Rules content is required");
+      return;
+    }
+    setSavingRules(true);
+    const res = await fetch("/api/admin/rules", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rulesDraft),
+    });
+    const json = await res.json();
+    setSavingRules(false);
+    if (!res.ok) {
+      toast.error(json.error || "Could not save rules");
+      return;
+    }
+    toast.success("Platform rules updated. Users will see a popup on next login.");
+    loadRules();
   };
 
   const createPricingPlan = async () => {
@@ -888,6 +938,53 @@ export function AdminView() {
             </div>
           </div>
         </>
+      )}
+
+      {activeTab === "rules" && (
+        <div className="ctrl" style={{ marginTop: 16 }}>
+          <div className="ctrl-title">Platform Rules</div>
+          <p className="empty-txt" style={{ marginBottom: 10 }}>
+            Rules shown to all users. When you save changes, users who have not acknowledged the
+            latest version will see a popup on login.
+            {rulesData?.active?.updated_at
+              ? ` Last updated: ${formatAppDateTime(rulesData.active.updated_at)}`
+              : ""}
+          </p>
+          <div className="f">
+            <label>Title</label>
+            <input
+              value={rulesDraft.title}
+              onChange={(e) => setRulesDraft((s) => ({ ...s, title: e.target.value }))}
+            />
+          </div>
+          <div className="f" style={{ marginTop: 10 }}>
+            <label>Rules content</label>
+            <textarea
+              value={rulesDraft.content}
+              onChange={(e) => setRulesDraft((s) => ({ ...s, content: e.target.value }))}
+              style={{
+                minHeight: 280,
+                width: "100%",
+                background: "var(--p2)",
+                border: "1px solid var(--bd2)",
+                color: "var(--txt)",
+                borderRadius: 8,
+                padding: 10,
+                lineHeight: 1.6,
+                fontSize: 12,
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn-scan"
+            style={{ marginTop: 12 }}
+            disabled={savingRules}
+            onClick={saveRules}
+          >
+            {savingRules ? "Saving..." : "Save Platform Rules"}
+          </button>
+        </div>
       )}
 
       {activeTab === "pricing" && (

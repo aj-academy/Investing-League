@@ -11,12 +11,14 @@ export function PlanUsageCard({
   scansRemainingToday,
   dailyScanLimit,
   totalScans,
+  onRulesClick,
 }: {
   plan: PlanName;
   scansUsedToday: number;
   scansRemainingToday: number;
   dailyScanLimit: number;
   totalScans: number;
+  onRulesClick?: () => void;
 }) {
   const router = useRouter();
   const limits = getPlanLimits(plan);
@@ -48,17 +50,27 @@ export function PlanUsageCard({
         {scansRemainingToday} / {dailyScanLimit} · Pairs: {limits.allowedPairs.length}/8 · Live:{" "}
         {liveLabel}
       </div>
-      <button
-        type="button"
-        className="btn-scan"
-        style={{ padding: "8px 14px", fontSize: 10 }}
-        onClick={() => {
-          toast.message("Subscription billing coming soon.");
-          router.push("/settings");
-        }}
-      >
-        Upgrade to unlock all pairs
-      </button>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="btn-scan"
+          style={{ padding: "8px 14px", fontSize: 10 }}
+          onClick={onRulesClick}
+        >
+          Platform Rules
+        </button>
+        <button
+          type="button"
+          className="btn-scan"
+          style={{ padding: "8px 14px", fontSize: 10 }}
+          onClick={() => {
+            toast.message("Subscription billing coming soon.");
+            router.push("/settings");
+          }}
+        >
+          Upgrade to unlock all pairs
+        </button>
+      </div>
     </div>
   );
 }
