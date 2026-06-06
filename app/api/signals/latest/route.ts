@@ -1,14 +1,17 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { getProfileByUserId } from "@/lib/auth/profile";
 import { getUserPlan } from "@/lib/billing/planLimits";
+import { sanitizeProviderError } from "@/lib/market/providerErrors";
 import { buildTickerForPairs, readLatestScanTicker } from "@/lib/market/tickerService";
 import { loadLatestScanForUser } from "@/lib/signals/loadLatestScan";
 import { NextResponse } from "next/server";
 
 export async function GET() {
+  let isAdmin = false;
   try {
     const { auth, error } = await requireApiAuth();
     if (error) return error;
+    isAdmin = auth!.isAdmin;
 
     const latest = await loadLatestScanForUser(auth!.user.id);
 
@@ -44,6 +47,9 @@ export async function GET() {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Could not load latest scan";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: sanitizeProviderError(message, isAdmin) },
+      { status: 500 }
+    );
   }
 }

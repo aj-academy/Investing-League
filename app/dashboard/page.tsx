@@ -2,6 +2,7 @@ import { DashboardClient, type ScanSettings } from "@/components/dashboard/Dashb
 import { resolveUserAllowedPairs } from "@/lib/access/assetAccess";
 import { ProtectedShell } from "@/components/layout/ProtectedShell";
 import { getAuthContext } from "@/lib/auth/session";
+import { getUserScanMetrics } from "@/lib/billing/scanMetrics";
 import { canScanToday } from "@/lib/billing/scanUsage";
 import { getUserPlan, normalizeAutoRefresh } from "@/lib/billing/planLimits";
 import { createClient } from "@/lib/supabase/server";
@@ -14,9 +15,10 @@ export default async function DashboardPage() {
   const plan = getUserPlan(auth.profile);
   const supabase = await createClient();
 
-  const [allowedPairs, scanQuota, { data: settings }] = await Promise.all([
+  const [allowedPairs, scanQuota, scanMetrics, { data: settings }] = await Promise.all([
     resolveUserAllowedPairs(auth.user.id, plan),
     canScanToday(auth.user.id, plan),
+    getUserScanMetrics(auth.user.id),
     supabase.from("user_settings").select("*").eq("user_id", auth.user.id).maybeSingle(),
   ]);
 
@@ -46,6 +48,7 @@ export default async function DashboardPage() {
           scansUsedToday: scanQuota.scansUsedToday,
           scansRemainingToday: scanQuota.scansRemainingToday,
           dailyScanLimit: scanQuota.dailyScanLimit,
+          totalScans: scanMetrics.totalScans,
         }}
       />
     </ProtectedShell>

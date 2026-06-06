@@ -14,6 +14,7 @@ import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { playScanAlerts } from "@/lib/sound/signalAlerts";
 import { toast } from "sonner";
 import { AssetChipGrid, loadStoredPairs } from "./AssetChipGrid";
+import { PlanUsageCard } from "./PlanUsageCard";
 import { LoadingScanner } from "./LoadingScanner";
 import { MarketTicker } from "./MarketTicker";
 import { ScannerControls } from "./ScannerControls";
@@ -49,6 +50,7 @@ export interface PlanInfo {
   scansUsedToday: number;
   scansRemainingToday: number;
   dailyScanLimit: number;
+  totalScans: number;
 }
 
 export function DashboardClient({
@@ -348,12 +350,13 @@ export function DashboardClient({
         playScanAlerts(list);
       }
       if (json.usage) {
-        setScanUsage({
+        setScanUsage((prev) => ({
           plan: json.usage.plan,
           scansUsedToday: json.usage.scansUsedToday,
           scansRemainingToday: json.usage.scansRemainingToday,
           dailyScanLimit: json.usage.dailyScanLimit,
-        });
+          totalScans: prev.totalScans + 1,
+        }));
       }
       setLastScanNote(
         list.length === 0
@@ -409,6 +412,13 @@ export function DashboardClient({
         timeZoneLabel={tzLabel}
       />
       <div className="wrap z">
+        <PlanUsageCard
+          plan={scanUsage.plan}
+          scansUsedToday={scanUsage.scansUsedToday}
+          scansRemainingToday={scanUsage.scansRemainingToday}
+          dailyScanLimit={scanUsage.dailyScanLimit}
+          totalScans={scanUsage.totalScans}
+        />
         <MarketTicker items={ticker} />
         <AssetChipGrid
           allowedPairs={allowedPairs}

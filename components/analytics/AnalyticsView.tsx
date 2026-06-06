@@ -1,12 +1,21 @@
 import type { buildAnalyticsSummary } from "@/lib/analytics/summary";
 import { journalPermission } from "@/lib/signal-engine/permission";
 
+export type AnalyticsScanUsage = {
+  scansToday: number;
+  totalScans: number;
+  dailyScanLimit: number;
+  scansRemainingToday: number;
+};
+
 export function AnalyticsView({
   summary,
   rows = [],
+  scanUsage,
 }: {
   summary: ReturnType<typeof buildAnalyticsSummary>;
   rows?: { signal_type?: string | null; trade_eligible?: boolean | null }[];
+  scanUsage?: AnalyticsScanUsage;
 }) {
   let tradeAllowed = 0;
   let observe = 0;
@@ -23,6 +32,39 @@ export function AnalyticsView({
       <div className="journal-title" style={{ marginBottom: 16 }}>
         PERFORMANCE ANALYTICS
       </div>
+
+      {scanUsage && (
+        <div className="journal-stats" style={{ marginBottom: 14 }}>
+          <div className="jstat">
+            <div className="jstat-v" style={{ color: "var(--blue2)" }}>
+              {scanUsage.scansToday}
+            </div>
+            <div className="jstat-l">Scans Today</div>
+          </div>
+          <div className="jstat">
+            <div className="jstat-v" style={{ color: "var(--cyan)" }}>
+              {scanUsage.totalScans}
+            </div>
+            <div className="jstat-l">Total Scans</div>
+          </div>
+          <div className="jstat">
+            <div className="jstat-v" style={{ color: "var(--gold2)" }}>
+              {scanUsage.dailyScanLimit}
+            </div>
+            <div className="jstat-l">Daily Limit</div>
+          </div>
+          <div className="jstat">
+            <div
+              className="jstat-v"
+              style={{ color: scanUsage.scansRemainingToday > 0 ? "var(--bull)" : "var(--bear)" }}
+            >
+              {scanUsage.scansRemainingToday}
+            </div>
+            <div className="jstat-l">Remaining Today</div>
+          </div>
+        </div>
+      )}
+
       <div className="journal-stats">
         {[
           ["Total Signals", summary.totalSignals, "var(--blue2)"],

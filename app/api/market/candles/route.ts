@@ -1,12 +1,15 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { getCandlesCached } from "@/lib/market/cachedCandles";
+import { isInternalProviderError, sanitizeProviderError } from "@/lib/market/providerErrors";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
+  let isAdmin = false;
   try {
-    const { error } = await requireApiAuth();
+    const { auth, error } = await requireApiAuth();
     if (error) return error;
+    isAdmin = auth!.isAdmin;
 
     const body = await request.json();
     const pair = String(body.pair || "");
@@ -34,7 +37,10 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Market data unavailable";
-    const status = /api limit|api credits/i.test(message) ? 429 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const status = isInternalProviderError(message) ? 429 : 500;
+    return NextResponse.json(
+      { error: sanitizeProviderError(message, isAdmin) },
+      { status }
+    );
   }
 }

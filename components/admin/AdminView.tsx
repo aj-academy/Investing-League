@@ -793,7 +793,7 @@ export function AdminView() {
                   <tr key={log.id}>
                     <td>{log.action}</td>
                     <td>{log.entity_type || "—"}</td>
-                    <td>{log.user_id || "—"}</td>
+                    <td title={log.user_id || undefined}>{log.user_name || log.user_id || "—"}</td>
                     <td>{new Date(log.created_at).toLocaleString()}</td>
                     <td style={{ whiteSpace: "normal", maxWidth: 360 }}>
                       <code>{JSON.stringify(log.metadata || {})}</code>

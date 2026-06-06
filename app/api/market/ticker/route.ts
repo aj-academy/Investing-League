@@ -2,6 +2,11 @@ import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { resolveUserAllowedPairs } from "@/lib/access/assetAccess";
 import { getProfileByUserId } from "@/lib/auth/profile";
 import { getPlanLimits, getUserPlan, validatePairsForPlan } from "@/lib/billing/planLimits";
+import {
+  isInternalProviderError,
+  sanitizeProviderError,
+  USER_PROVIDER_ERROR,
+} from "@/lib/market/providerErrors";
 import { buildTickerForPairs } from "@/lib/market/tickerService";
 import { NextResponse } from "next/server";
 
@@ -14,9 +19,11 @@ export async function POST(request: Request) {
 }
 
 async function handleTicker(request: Request) {
+  let isAdmin = false;
   try {
     const { auth, error } = await requireApiAuth();
     if (error) return error;
+    isAdmin = auth!.isAdmin;
 
     const profile = await getProfileByUserId(auth!.user.id);
     const plan = getUserPlan(profile);
@@ -62,7 +69,9 @@ async function handleTicker(request: Request) {
         empty: true,
         message: cachedOnly
           ? "Cached prices appear after your first SCAN MARKET. Use SCAN MARKET to load setups."
-          : "No market data available. Check Twelve Data API key and daily credits.",
+          : isAdmin
+            ? "No market data available. Check Twelve Data API key and daily credits."
+            : USER_PROVIDER_ERROR,
         usage: { providerCalls: 0, cacheHits: 0, liveUpdateMode: limits.liveUpdateMode },
       });
     }
@@ -80,7 +89,10 @@ async function handleTicker(request: Request) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Market data unavailable";
-    const status = /api limit|api credits/i.test(message) ? 429 : 500;
-    return NextResponse.json({ ok: false, error: message }, { status });
+    const status = isInternalProviderError(message) ? 429 : 500;
+    return NextResponse.json(
+      { ok: false, error: sanitizeProviderError(message, isAdmin) },
+      { status }
+    );
   }
 }

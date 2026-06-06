@@ -22,5 +22,27 @@ export async function GET(request: Request) {
   if (dbError) {
     return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
-  return NextResponse.json({ logs: data || [] });
+
+  const logs = data || [];
+  const userIds = [...new Set(logs.map((log) => log.user_id).filter(Boolean))] as string[];
+  const nameByUserId = new Map<string, string>();
+
+  if (userIds.length) {
+    const { data: profiles } = await admin
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", userIds);
+
+    for (const profile of profiles || []) {
+      const label = profile.full_name?.trim() || profile.email?.trim() || profile.id;
+      nameByUserId.set(profile.id, label);
+    }
+  }
+
+  return NextResponse.json({
+    logs: logs.map((log) => ({
+      ...log,
+      user_name: log.user_id ? nameByUserId.get(log.user_id) || null : null,
+    })),
+  });
 }

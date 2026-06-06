@@ -10,11 +10,13 @@ export function PlanUsageCard({
   scansUsedToday,
   scansRemainingToday,
   dailyScanLimit,
+  totalScans,
 }: {
   plan: PlanName;
   scansUsedToday: number;
   scansRemainingToday: number;
   dailyScanLimit: number;
+  totalScans: number;
 }) {
   const router = useRouter();
   const limits = getPlanLimits(plan);
@@ -41,8 +43,10 @@ export function PlanUsageCard({
       <div style={{ fontSize: 11, color: "var(--m3)", lineHeight: 1.6 }}>
         <strong style={{ color: "var(--blue2)" }}>Current Plan: {limits.label}</strong>
         <br />
-        Pairs allowed: {limits.allowedPairs.length}/8 · Scans left today: {scansRemainingToday} /{" "}
-        {dailyScanLimit} · Live update: {liveLabel}
+        Scans today: <strong style={{ color: "var(--txt2)" }}>{scansUsedToday}</strong> · Total
+        scans: <strong style={{ color: "var(--txt2)" }}>{totalScans}</strong> · Remaining today:{" "}
+        {scansRemainingToday} / {dailyScanLimit} · Pairs: {limits.allowedPairs.length}/8 · Live:{" "}
+        {liveLabel}
       </div>
       <button
         type="button"

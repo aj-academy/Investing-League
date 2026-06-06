@@ -11,6 +11,11 @@ import {
   type PlanName,
 } from "@/lib/billing/planLimits";
 import { getCandlesCached } from "@/lib/market/cachedCandles";
+import {
+  isInternalProviderError,
+  sanitizeProviderError,
+  sanitizeProviderErrors,
+} from "@/lib/market/providerErrors";
 import { buildTickerForPairs } from "@/lib/market/tickerService";
 import { computeSignal, filterSignals, finalizeScanSignals, type V8JournalRow } from "@/lib/signal-engine";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -84,9 +89,11 @@ function journalRow(userId: string, signalId: string | null, sig: ComputedSignal
 }
 
 export async function POST(request: Request) {
+  let isAdmin = false;
   try {
     const { auth, error } = await requireApiAuth();
     if (error) return error;
+    isAdmin = auth!.isAdmin;
 
     const profile = await getProfileByUserId(auth!.user.id);
     const plan: PlanName = getUserPlan(profile);
@@ -355,6 +362,7 @@ export async function POST(request: Request) {
 
     const tickerResult = await buildTickerForPairs(pairs, plan);
     const scansUsedAfter = scanQuota.scansUsedToday + 1;
+    const clientMarketErrors = sanitizeProviderErrors(marketErrors, isAdmin);
 
     return NextResponse.json({
       ok: true,
@@ -379,21 +387,22 @@ export async function POST(request: Request) {
       journalSaved,
       signalsSaved,
       persistErrors,
-      marketErrors,
+      marketErrors: clientMarketErrors,
       message:
         journalSaved > 0
           ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
           : signals.length > 0 && persistErrors.length > 0
             ? `Scan complete — ${signals.length} setup(s) on screen but save failed. Check Vercel SUPABASE_SERVICE_ROLE_KEY.`
-            : marketErrors.length > 0
-              ? `Scan finished but no market data: ${marketErrors[0]}`
+            : clientMarketErrors.length > 0
+              ? `Scan finished but no market data: ${clientMarketErrors[0]}`
               : rawSignals.length === 0
                 ? "Scan complete — no setups found. Try another session filter or lower min grade."
                 : "Scan complete — setups found but none matched your min grade filter.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Scan failed";
-    const status = /api limit|api credits/i.test(message) ? 429 : 500;
-    return NextResponse.json({ ok: false, error: message }, { status });
+    const status = isInternalProviderError(message) ? 429 : 500;
+    const clientError = sanitizeProviderError(message, isAdmin);
+    return NextResponse.json({ ok: false, error: clientError }, { status });
   }
 }

@@ -173,3 +173,14 @@
 .permission-pill.blocked{color:var(--bear);background:var(--beard);border:1px solid rgba(255,51,85,.3)}
 @media(max-width:1100px){.main-grid{grid-template-columns:1fr}.side{position:relative;top:0;max-height:none}}
 @media(max-width:700px){.signals-col{grid-template-columns:1fr}}
+
+/* Right-click / inspect guard (regular users only) */
+.inspect-guard-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(2,3,10,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
+.inspect-guard-card{width:min(420px,100%);background:var(--p1);border:1px solid rgba(255,51,85,.35);border-radius:var(--r2);padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.inspect-guard-title{font-family:var(--mono);font-size:18px;color:var(--bear);letter-spacing:2px;margin-bottom:14px;text-transform:uppercase}
+.inspect-guard-text{font-size:12px;color:var(--txt);line-height:1.7;margin-bottom:16px}
+.inspect-guard-ip-box{margin:0 auto 8px;max-width:320px;padding:10px 14px;border-radius:8px;background:var(--p2);border:1px solid var(--bd2);font-size:12px;color:var(--txt2)}
+.inspect-guard-ip-box strong{color:var(--bear);font-family:var(--mono)}
+.inspect-guard-ip-note{font-size:11px;color:var(--bear);font-style:italic;margin-bottom:18px}
+.inspect-guard-close{width:100%;padding:11px 16px;border:none;border-radius:var(--r);background:linear-gradient(135deg,#3a0818,#6a1028);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer}
+.inspect-guard-close:hover{filter:brightness(1.08)}
