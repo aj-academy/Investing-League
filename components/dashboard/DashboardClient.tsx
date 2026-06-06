@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { clearAdminSession } from "@/lib/auth/clearAdminSession";
 import { createClient } from "@/lib/supabase/client";
@@ -61,17 +61,18 @@ export function DashboardClient({
   allowedPairs: string[];
 }) {
   const router = useRouter();
-  const serverDefaults: ScanSettings = {
-    ...initialSettings,
-    autoRefresh: normalizeAutoRefresh(
-      (initialSettings as ScanSettings & { liveUpdate?: string }).liveUpdate ??
-        initialSettings.autoRefresh,
-      planInfo.plan,
-    ),
-  };
-  const [settings, setSettings] = useState<ScanSettings>(() =>
-    loadScannerPrefs(serverDefaults, planInfo.plan),
+  const serverDefaults = useMemo<ScanSettings>(
+    () => ({
+      ...initialSettings,
+      autoRefresh: normalizeAutoRefresh(
+        (initialSettings as ScanSettings & { liveUpdate?: string }).liveUpdate ??
+          initialSettings.autoRefresh,
+        planInfo.plan,
+      ),
+    }),
+    [initialSettings, planInfo.plan],
   );
+  const [settings, setSettings] = useState<ScanSettings>(serverDefaults);
   const settingsRef = useRef(settings);
   const pairsInitializedRef = useRef(false);
   const hasScannedRef = useRef(false);
@@ -101,8 +102,18 @@ export function DashboardClient({
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runScanRef = useRef<(opts?: { auto?: boolean }) => Promise<void>>(async () => {});
   const lockedPairsRef = useRef<string[] | null>(null);
-  const [timeZone] = useState(() => clientTimeZone());
-  const tzLabel = timeZoneAbbreviation(timeZone);
+  const [timeZone, setTimeZone] = useState(resolveTimeZone());
+  const [tzLabel, setTzLabel] = useState("");
+
+  useEffect(() => {
+    const tz = clientTimeZone();
+    setTimeZone(tz);
+    setTzLabel(timeZoneAbbreviation(tz));
+  }, []);
+
+  useEffect(() => {
+    setSettings(loadScannerPrefs(serverDefaults, planInfo.plan));
+  }, [serverDefaults, planInfo.plan]);
 
   useEffect(() => {
     settingsRef.current = settings;

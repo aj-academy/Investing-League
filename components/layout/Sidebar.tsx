@@ -11,7 +11,7 @@ const links = [
 ];
 
 function hardNavHref(href: string) {
-  return href === "/admin" || href === "/auth/admin-unlock";
+  return href === "/auth/admin-unlock";
 }
 
 export function Sidebar({

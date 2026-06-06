@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/account-suspended`);
   }
 
-  const response = NextResponse.redirect(`${origin}/admin`);
+  const response = NextResponse.redirect(`${origin}/admin`, 303);
   response.cookies.set(ADMIN_SESSION_COOKIE, "1", adminSessionCookieOptions());
   return response;
 }

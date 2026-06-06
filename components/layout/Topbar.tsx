@@ -1,6 +1,11 @@
 "use client";
 
-import { formatClockTime, resolveTimeZone, timeZoneAbbreviation } from "@/lib/datetime";
+import {
+  DEFAULT_TIME_ZONE,
+  formatClockTime,
+  resolveTimeZone,
+  timeZoneAbbreviation,
+} from "@/lib/datetime";
 import { useEffect, useState } from "react";
 import { clearAdminSession } from "@/lib/auth/clearAdminSession";
 import { createClient } from "@/lib/supabase/client";
@@ -21,27 +26,34 @@ export function Topbar({
   timeZone?: string;
   timeZoneLabel?: string;
 }) {
-  const [timeZone] = useState(() =>
-    resolveTimeZone(
-      timeZoneProp ||
-        (typeof Intl !== "undefined"
-          ? Intl.DateTimeFormat().resolvedOptions().timeZone
-          : undefined)
-    )
-  );
-  const tzLabel = timeZoneLabelProp || timeZoneAbbreviation(timeZone);
+  const [mounted, setMounted] = useState(false);
+  const [timeZone, setTimeZone] = useState(() => resolveTimeZone(timeZoneProp || DEFAULT_TIME_ZONE));
+  const [tzLabel, setTzLabel] = useState(() => timeZoneLabelProp || "");
   const [time, setTime] = useState("");
   const [pill, setPill] = useState<MarketPill>("cached");
   const router = useRouter();
 
   useEffect(() => {
+    const tz = resolveTimeZone(
+      timeZoneProp ||
+        (typeof Intl !== "undefined"
+          ? Intl.DateTimeFormat().resolvedOptions().timeZone
+          : DEFAULT_TIME_ZONE)
+    );
+    setTimeZone(tz);
+    setTzLabel(timeZoneLabelProp || timeZoneAbbreviation(tz));
+    setMounted(true);
+  }, [timeZoneProp, timeZoneLabelProp]);
+
+  useEffect(() => {
+    if (!mounted) return;
     const tick = () => {
       setTime(formatClockTime(new Date(), timeZone));
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [timeZone]);
+  }, [mounted, timeZone]);
 
   useEffect(() => {
     if (live === true) {
@@ -97,8 +109,11 @@ export function Topbar({
         </div>
       </div>
       <div className="hdr-r">
-        <span className="clk" title={`Local time (${timeZone})`}>
-          {time} <span style={{ fontSize: 9, color: "var(--m3)" }}>{tzLabel}</span>
+        <span className="clk" title={mounted ? `Local time (${timeZone})` : undefined} suppressHydrationWarning>
+          {mounted ? time : "--:--:--"}{" "}
+          <span style={{ fontSize: 9, color: "var(--m3)" }} suppressHydrationWarning>
+            {mounted ? tzLabel : ""}
+          </span>
         </span>
         {countdown > 0 && (
           <span

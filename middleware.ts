@@ -1,5 +1,4 @@
 import { hasAdminSessionCookie } from "@/lib/auth/adminSession";
-import { getProfileAccess } from "@/lib/auth/profile";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -78,19 +77,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    if (path.startsWith("/admin")) {
-      const adminSession = hasAdminSessionCookie(request.cookies);
-      if (!adminSession) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-      let role = profile?.role;
-      if (role !== "admin" && user) {
-        const access = await getProfileAccess(user.id);
-        role = access?.role;
-      }
-      if (role !== "admin") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
+    if (path.startsWith("/admin") && !hasAdminSessionCookie(request.cookies)) {
+      return NextResponse.redirect(new URL("/auth/admin-unlock", request.url));
     }
   }
 
