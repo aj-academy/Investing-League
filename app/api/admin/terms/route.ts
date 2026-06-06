@@ -2,6 +2,44 @@ import { requireAdminApi } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
+type TermsAdminClient = ReturnType<typeof createAdminClient>;
+
+async function acceptanceUsersList(admin: TermsAdminClient, activeTermsId?: string | null) {
+  const [{ data: profiles }, { data: acceptances }] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("id,email,full_name,plan,is_active,role,created_at")
+      .order("created_at", { ascending: false }),
+    activeTermsId
+      ? admin
+          .from("user_terms_acceptance")
+          .select("user_id,accepted_at,terms_id")
+          .eq("terms_id", activeTermsId)
+      : Promise.resolve({ data: [] as { user_id: string; accepted_at: string; terms_id: string }[] }),
+  ]);
+
+  const acceptedByUser = new Map<string, string>();
+  for (const row of acceptances || []) {
+    if (!acceptedByUser.has(row.user_id)) {
+      acceptedByUser.set(row.user_id, row.accepted_at);
+    }
+  }
+
+  return (profiles || []).map((profile) => {
+    const acceptedAt = acceptedByUser.get(profile.id) || null;
+    return {
+      id: profile.id,
+      email: profile.email,
+      full_name: profile.full_name,
+      plan: profile.plan,
+      role: profile.role,
+      is_active: profile.is_active,
+      accepted: Boolean(acceptedAt),
+      accepted_at: acceptedAt,
+    };
+  });
+}
+
 async function acceptanceSummary(admin = createAdminClient()) {
   const { data: active } = await admin
     .from("terms_documents")
@@ -45,6 +83,7 @@ export async function GET() {
       .order("created_at", { ascending: false }),
     acceptanceSummary(admin),
   ]);
+  const acceptanceUsers = await acceptanceUsersList(admin, summary.active?.id);
 
   return NextResponse.json({
     terms: terms || [],
@@ -54,6 +93,7 @@ export async function GET() {
       accepted: summary.acceptedCount,
       pending: summary.pendingCount,
     },
+    acceptanceUsers,
   });
 }
 

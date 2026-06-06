@@ -85,7 +85,20 @@ export function AdminView() {
     }>;
     active?: { id: string; version: string; title: string } | null;
     acceptanceSummary?: { totalUsers: number; accepted: number; pending: number };
+    acceptanceUsers?: Array<{
+      id: string;
+      email: string | null;
+      full_name: string | null;
+      plan: string;
+      role: string;
+      is_active: boolean;
+      accepted: boolean;
+      accepted_at: string | null;
+    }>;
   } | null>(null);
+  const [termsAcceptanceFilter, setTermsAcceptanceFilter] = useState<"all" | "accepted" | "pending">(
+    "all"
+  );
   const [usageData, setUsageData] = useState<{
     totals?: { scans: number; provider: number; cache: number; estimated: number };
     byPlan?: Record<string, { scans: number; provider: number; cache: number }>;
@@ -702,6 +715,70 @@ export function AdminView() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <div className="ctrl" style={{ marginTop: 16 }}>
+            <div className="ctrl-title">User T&amp;C Acceptance</div>
+            {termsData?.active ? (
+              <p className="empty-txt">
+                Showing acceptance status for active terms v{termsData.active.version} (
+                {termsData.active.title})
+              </p>
+            ) : (
+              <p className="empty-txt">No active terms version — acceptance status unavailable.</p>
+            )}
+            <div className="ctrl-row" style={{ marginBottom: 10 }}>
+              <div className="f">
+                <label>Filter</label>
+                <select
+                  value={termsAcceptanceFilter}
+                  onChange={(e) =>
+                    setTermsAcceptanceFilter(e.target.value as "all" | "accepted" | "pending")
+                  }
+                >
+                  <option value="all">All users</option>
+                  <option value="accepted">Accepted only</option>
+                  <option value="pending">Not accepted only</option>
+                </select>
+              </div>
+            </div>
+            <div className="journal-table-wrap" style={{ maxHeight: 460 }}>
+              <table className="journal-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Plan</th>
+                    <th>Account</th>
+                    <th>T&amp;C Status</th>
+                    <th>Accepted At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(termsData?.acceptanceUsers || [])
+                    .filter((u) => {
+                      if (termsAcceptanceFilter === "accepted") return u.accepted;
+                      if (termsAcceptanceFilter === "pending") return !u.accepted;
+                      return true;
+                    })
+                    .map((u) => (
+                      <tr key={u.id}>
+                        <td>{u.full_name || "—"}</td>
+                        <td>{u.email || "—"}</td>
+                        <td>{u.role}</td>
+                        <td>{u.plan}</td>
+                        <td>{u.is_active ? "Active" : "Suspended"}</td>
+                        <td>{u.accepted ? "Accepted" : "Not accepted"}</td>
+                        <td>{u.accepted_at ? formatAppDateTime(u.accepted_at) : "—"}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+              {(termsData?.acceptanceUsers || []).length === 0 && (
+                <p className="empty-txt">No users found.</p>
+              )}
             </div>
           </div>
         </>
