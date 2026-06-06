@@ -1,4 +1,5 @@
 import { isRealTradeSignal } from "@/lib/analytics/winRate";
+import { formatAppDate, formatAppTime } from "@/lib/datetime";
 import { calculateEntryDrift, type EntryStatus } from "@/lib/journal/entryDrift";
 import { journalPermission } from "@/lib/signal-engine/permission";
 
@@ -74,20 +75,11 @@ export function driftDisplay(
 }
 
 export function formatJournalDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-IN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  return formatAppDate(iso);
 }
 
 export function formatJournalTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  return formatAppTime(iso);
 }
 
 export function lossReasonText(

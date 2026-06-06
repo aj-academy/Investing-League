@@ -1,5 +1,6 @@
 "use client";
 
+import { formatAppDateTime } from "@/lib/datetime";
 import type { PlanName } from "@/lib/billing/planLimits";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -515,7 +516,7 @@ export function AdminView() {
                         <td>{u.scans_today ?? 0}</td>
                         <td>{u.provider_calls_today ?? 0}</td>
                         <td>{u.cache_hits_today ?? 0}</td>
-                        <td>{new Date(u.created_at).toLocaleString()}</td>
+                        <td>{formatAppDateTime(u.created_at)}</td>
                         <td>
                           <button
                             type="button"
@@ -686,7 +687,7 @@ export function AdminView() {
                       <td>{t.version}</td>
                       <td>{t.title}</td>
                       <td>{t.is_active ? "Active" : "Inactive"}</td>
-                      <td>{new Date(t.created_at).toLocaleString()}</td>
+                      <td>{formatAppDateTime(t.created_at)}</td>
                       <td>
                         <button
                           type="button"
@@ -794,7 +795,7 @@ export function AdminView() {
                     <td>{log.action}</td>
                     <td>{log.entity_type || "—"}</td>
                     <td title={log.user_id || undefined}>{log.user_name || log.user_id || "—"}</td>
-                    <td>{new Date(log.created_at).toLocaleString()}</td>
+                    <td>{formatAppDateTime(log.created_at)}</td>
                     <td style={{ whiteSpace: "normal", maxWidth: 360 }}>
                       <code>{JSON.stringify(log.metadata || {})}</code>
                     </td>

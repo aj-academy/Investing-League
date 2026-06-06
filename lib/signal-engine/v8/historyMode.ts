@@ -1,3 +1,4 @@
+import { formatAppDateSlash } from "@/lib/datetime";
 import type { ComputedSignal, TradingMode } from "../types";
 import { ELIGIBLE_TYPES, USD_LINKED, V8_CONFIG } from "./config";
 import { rankV8Signals } from "./rank";
@@ -49,16 +50,7 @@ function isRecentEntry(journalRow: V8JournalRow, signal: ComputedSignal, mins: n
 }
 
 function journalDateToday(timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const dd = parts.find((p) => p.type === "day")?.value ?? "01";
-  const mm = parts.find((p) => p.type === "month")?.value ?? "01";
-  const yyyy = parts.find((p) => p.type === "year")?.value ?? "1970";
-  return `${dd}/${mm}/${yyyy}`;
+  return formatAppDateSlash(new Date(), timeZone);
 }
 
 /** V8 HTML applyHistoryAndMode — journal cooldown, daily limit, live selector. */

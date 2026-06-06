@@ -22,7 +22,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { hasAcceptedLatestTerms } from "@/lib/terms/terms";
-import { resolveTimeZone } from "@/lib/datetime";
+import { formatAppDateSlash, formatAppTime, resolveTimeZone } from "@/lib/datetime";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
@@ -205,16 +205,9 @@ export async function POST(request: Request) {
 
     const v8Journal: V8JournalRow[] = (journalRows || []).map((r) => {
       const created = r.created_at ? new Date(r.created_at) : new Date();
-      const date = created.toLocaleDateString("en-GB", { timeZone });
+      const date = formatAppDateSlash(created, timeZone);
       const signalTime =
-        r.signal_entry_time ||
-        created.toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-          timeZone,
-        });
+        r.signal_entry_time || formatAppTime(created, timeZone);
       const eligible =
         r.trade_eligible &&
         (r.signal_type === "FINAL TRADE" || r.signal_type === "STRONG FINAL");

@@ -1,4 +1,4 @@
-import { resolveTimeZone } from "@/lib/datetime";
+import { formatAppDateSlash, formatAppTime, resolveTimeZone } from "@/lib/datetime";
 import { decimalsForPair } from "@/lib/utils";
 import { M } from "../indicators";
 import type {
@@ -84,26 +84,11 @@ function nextCandleTime(interval: string, asOf = Date.now()) {
 }
 
 function formatTime(d: Date, timeZone: string) {
-  return d.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZone,
-  });
+  return formatAppTime(d, timeZone);
 }
 
 function formatDate(d: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d);
-  const dd = parts.find((p) => p.type === "day")?.value ?? "01";
-  const mm = parts.find((p) => p.type === "month")?.value ?? "01";
-  const yyyy = parts.find((p) => p.type === "year")?.value ?? "1970";
-  return `${dd}/${mm}/${yyyy}`;
+  return formatAppDateSlash(d, timeZone);
 }
 
 /** V8 HTML computeSignal — clean decision pipeline. */
