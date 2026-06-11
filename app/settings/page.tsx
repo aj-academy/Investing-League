@@ -6,6 +6,8 @@ import { getAuthContext } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   const auth = await getAuthContext();
   if (!auth) redirect("/login");

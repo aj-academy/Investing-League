@@ -4,6 +4,8 @@ import { Topbar } from "@/components/layout/Topbar";
 import { getAuthContext } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const auth = await getAuthContext();
   if (!auth) redirect("/login");

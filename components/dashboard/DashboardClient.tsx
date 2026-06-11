@@ -13,7 +13,7 @@ import type { MinGradeFilter } from "@/lib/signal-engine/permission";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { playScanAlerts } from "@/lib/sound/signalAlerts";
 import { toast } from "sonner";
-import { AssetChipGrid, loadStoredPairs } from "./AssetChipGrid";
+import { AssetChipGrid, loadStoredPairs, saveStoredPairs } from "./AssetChipGrid";
 import { PlanUsageCard } from "./PlanUsageCard";
 import { RulesModal } from "@/components/rules/RulesModal";
 import { LoadingScanner } from "./LoadingScanner";
@@ -147,7 +147,9 @@ export function DashboardClient({
     }
     setSelectedPairs((prev) => {
       const filtered = prev.filter((p) => allowedPairs.includes(p));
-      return filtered.length ? filtered : loadStoredPairs(allowedPairs);
+      const next = filtered.length ? filtered : loadStoredPairs(allowedPairs);
+      saveStoredPairs(next);
+      return next;
     });
   }, [allowedPairs]);
 

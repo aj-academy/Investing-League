@@ -10,6 +10,8 @@ import { canScanToday } from "@/lib/billing/scanUsage";
 import { loadJournalForUser } from "@/lib/journal/loadJournal";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function AnalyticsPage() {
   const auth = await getAuthContext();
   if (!auth) redirect("/login");

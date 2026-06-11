@@ -8,6 +8,8 @@ import { getUserPlan, normalizeAutoRefresh } from "@/lib/billing/planLimits";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const auth = await getAuthContext();
   if (!auth) redirect("/login");
@@ -16,7 +18,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
 
   const [allowedPairs, scanQuota, scanMetrics, { data: settings }] = await Promise.all([
-    resolveUserAllowedPairs(auth.user.id, plan),
+    resolveUserAllowedPairs(auth.user.id, plan, supabase),
     canScanToday(auth.user.id, plan),
     getUserScanMetrics(auth.user.id),
     supabase.from("user_settings").select("*").eq("user_id", auth.user.id).maybeSingle(),

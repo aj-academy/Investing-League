@@ -143,7 +143,8 @@ export async function POST(request: Request) {
     const timeZone = resolveTimeZone(body.timezone);
 
     try {
-      pairs = await validatePairsForUser(auth!.user.id, plan, pairs);
+      const supabase = await createClient();
+      pairs = await validatePairsForUser(auth!.user.id, plan, pairs, supabase);
       pairs = validatePairsForPlan(plan, pairs);
       timeframes = resolveTimeframesForScan(plan, timeframes);
     } catch (e) {

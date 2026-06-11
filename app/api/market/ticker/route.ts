@@ -1,5 +1,6 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { resolveUserAllowedPairs } from "@/lib/access/assetAccess";
+import { createClient } from "@/lib/supabase/server";
 import { getProfileByUserId } from "@/lib/auth/profile";
 import { getPlanLimits, getUserPlan, validatePairsForPlan } from "@/lib/billing/planLimits";
 import {
@@ -29,7 +30,8 @@ async function handleTicker(request: Request) {
     const plan = getUserPlan(profile);
     const limits = getPlanLimits(plan);
 
-    let pairs: string[] = await resolveUserAllowedPairs(auth!.user.id, plan);
+    const supabase = await createClient();
+    let pairs: string[] = await resolveUserAllowedPairs(auth!.user.id, plan, supabase);
     if (!pairs.length) pairs = [...limits.allowedPairs];
     try {
       const url = new URL(request.url);
@@ -49,13 +51,13 @@ async function handleTicker(request: Request) {
     }
 
     try {
-      const allowed = await resolveUserAllowedPairs(auth!.user.id, plan);
+      const allowed = await resolveUserAllowedPairs(auth!.user.id, plan, supabase);
       if (allowed.length) {
         pairs = pairs.filter((p) => allowed.includes(p));
       }
       pairs = validatePairsForPlan(plan, pairs);
     } catch {
-      pairs = await resolveUserAllowedPairs(auth!.user.id, plan);
+      pairs = await resolveUserAllowedPairs(auth!.user.id, plan, supabase);
       if (!pairs.length) pairs = [...limits.allowedPairs];
     }
 
