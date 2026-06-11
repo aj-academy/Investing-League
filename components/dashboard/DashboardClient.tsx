@@ -139,9 +139,16 @@ export function DashboardClient({
   }, []);
 
   useEffect(() => {
-    if (pairsInitializedRef.current || !allowedPairs.length) return;
-    pairsInitializedRef.current = true;
-    setSelectedPairs(loadStoredPairs(allowedPairs));
+    if (!allowedPairs.length) return;
+    if (!pairsInitializedRef.current) {
+      pairsInitializedRef.current = true;
+      setSelectedPairs(loadStoredPairs(allowedPairs));
+      return;
+    }
+    setSelectedPairs((prev) => {
+      const filtered = prev.filter((p) => allowedPairs.includes(p));
+      return filtered.length ? filtered : loadStoredPairs(allowedPairs);
+    });
   }, [allowedPairs]);
 
   const applyLatestScan = useCallback((json: {

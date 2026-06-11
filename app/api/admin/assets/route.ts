@@ -1,5 +1,6 @@
 import { requireAdminApi } from "@/lib/admin/guard";
-import { ALL_PAIRS } from "@/lib/billing/planLimits";
+import { getPlanAllowedPairs } from "@/lib/access/assetAccess";
+import { ALL_PAIRS, normalizePlan } from "@/lib/billing/planLimits";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -26,11 +27,18 @@ export async function GET() {
     byUser.set(row.user_id, list);
   }
 
-  const rows = (users || []).map((u) => ({
-    ...u,
-    all_pairs: ALL_PAIRS,
-    custom_access: byUser.get(u.id) || [],
-  }));
+  const rows = (users || []).map((u) => {
+    const planPairs = getPlanAllowedPairs(normalizePlan(u.plan));
+    const customAccess = byUser.get(u.id) || [];
+    const enabledCustom = customAccess.filter((r) => r.is_allowed).map((r) => r.pair);
+    return {
+      ...u,
+      all_pairs: ALL_PAIRS,
+      plan_pairs: planPairs,
+      has_custom_access: enabledCustom.length > 0,
+      custom_access: customAccess,
+    };
+  });
   return NextResponse.json({ users: rows });
 }
 

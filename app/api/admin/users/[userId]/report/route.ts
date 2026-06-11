@@ -1,4 +1,6 @@
 import { requireAdminApi } from "@/lib/admin/guard";
+import { parseAdminDateRange } from "@/lib/admin/dateRange";
+import { userReportToCsv } from "@/lib/admin/reportCsv";
 import { isRealTradeSignal } from "@/lib/analytics/winRate";
 import { resolveUserAllowedPairs } from "@/lib/access/assetAccess";
 import { getUserScanMetrics } from "@/lib/billing/scanMetrics";
@@ -36,20 +38,37 @@ function summaryByPair(
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ userId: string }> }
 ) {
   const { error } = await requireAdminApi();
   if (error) return error;
 
   const { userId } = await context.params;
+  const { searchParams } = new URL(request.url);
+  const { from, to, fromIso, toIso } = parseAdminDateRange(searchParams);
+  const resultFilter = searchParams.get("result") || "";
+  const format = searchParams.get("format") || "json";
+
   const admin = createAdminClient();
+
+  let journalQuery = admin
+    .from("trade_journal")
+    .select("pair,result,signal_type,grade,created_at")
+    .eq("user_id", userId)
+    .gte("created_at", fromIso)
+    .lte("created_at", toIso)
+    .order("created_at", { ascending: false });
+
+  if (resultFilter) journalQuery = journalQuery.eq("result", resultFilter);
+
   const [
     { data: profile },
     { data: signals },
     { data: journal },
     { data: recentScans },
     { data: termsAcceptances },
+    { data: usageInRange },
   ] = await Promise.all([
     admin
       .from("profiles")
@@ -59,23 +78,30 @@ export async function GET(
     admin
       .from("signals")
       .select("pair,signal_type,grade,created_at")
-      .eq("user_id", userId),
-    admin
-      .from("trade_journal")
-      .select("pair,result,signal_type,grade,created_at")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false }),
+      .gte("created_at", fromIso)
+      .lte("created_at", toIso),
+    journalQuery,
     admin
       .from("scan_sessions")
       .select("id,mode,pairs,timeframes,total_signals,provider_calls,cache_hits,created_at")
       .eq("user_id", userId)
+      .gte("created_at", fromIso)
+      .lte("created_at", toIso)
       .order("created_at", { ascending: false })
-      .limit(20),
+      .limit(100),
     admin
       .from("user_terms_acceptance")
       .select("accepted_at,ip_address,user_agent,terms_id,terms_documents(version,title)")
       .eq("user_id", userId)
       .order("accepted_at", { ascending: false }),
+    admin
+      .from("usage_logs")
+      .select("action,provider_calls,cache_hits")
+      .eq("user_id", userId)
+      .gte("created_at", fromIso)
+      .lte("created_at", toIso)
+      .eq("action", "scan_market"),
   ]);
 
   if (!profile) {
@@ -105,7 +131,18 @@ export async function GET(
 
   const { bestPair, worstPair } = summaryByPair(journalRows);
 
-  return NextResponse.json({
+  const scansInRange = (usageInRange || []).length;
+  const providerCallsInRange = (usageInRange || []).reduce(
+    (a, r) => a + Number(r.provider_calls || 0),
+    0
+  );
+  const cacheHitsInRange = (usageInRange || []).reduce(
+    (a, r) => a + Number(r.cache_hits || 0),
+    0
+  );
+
+  const payload = {
+    filter: { from, to, result: resultFilter || null },
     profile,
     allowedAssets,
     termsAcceptances: termsAcceptances || [],
@@ -114,6 +151,9 @@ export async function GET(
       totalScans: scanMetrics.totalScans,
       providerCalls: scanMetrics.providerCalls,
       cacheHits: scanMetrics.cacheHits,
+      scansInRange,
+      providerCallsInRange,
+      cacheHitsInRange,
     },
     totals: {
       signalsGenerated: (signals || []).length,
@@ -128,6 +168,22 @@ export async function GET(
       worstPair,
     },
     recentScans: recentScans || [],
-    recentJournal: journalRows.slice(0, 20),
-  });
+    recentJournal: journalRows.slice(0, 100),
+  };
+
+  if (format === "csv") {
+    const csv = userReportToCsv({
+      ...payload,
+      filter: { from, to, result: resultFilter || undefined },
+    });
+    const safeEmail = (profile.email || userId).replace(/[^a-zA-Z0-9_-]/g, "_");
+    return new NextResponse(csv, {
+      headers: {
+        "Content-Type": "text/csv;charset=utf-8",
+        "Content-Disposition": `attachment; filename="user_report_${safeEmail}_${from}_${to}.csv"`,
+      },
+    });
+  }
+
+  return NextResponse.json(payload);
 }

@@ -1,7 +1,5 @@
 "use client";
 
-import { ALL_PAIRS } from "@/lib/billing/planLimits";
-
 const SELECTED_KEY = "til_v8_selected_pairs";
 
 export function loadStoredPairs(allowed: string[]): string[] {
@@ -39,7 +37,7 @@ export function AssetChipGrid({
     const next = new Set(selected);
     if (next.has(pair)) next.delete(pair);
     else next.add(pair);
-    const arr = ALL_PAIRS.filter((p) => next.has(p));
+    const arr = allowedPairs.filter((p) => next.has(p));
     onChange(arr);
     saveStoredPairs(arr);
   };
@@ -65,36 +63,39 @@ export function AssetChipGrid({
         <span className="badge">{selected.length} selected</span>
       </div>
       <div className="asset-grid">
-        {ALL_PAIRS.map((p) => {
-          const allowed = allowedPairs.includes(p);
-          return (
-            <button
-              key={p}
-              type="button"
-              className={`asset-chip ${set.has(p) ? "on" : ""}`}
-              disabled={disabled || !allowed}
-              onClick={() => toggle(p)}
-              title={allowed ? p : `${p} — not on your plan`}
-            >
-              {p}
+        {allowedPairs.map((p) => (
+          <button
+            key={p}
+            type="button"
+            className={`asset-chip ${set.has(p) ? "on" : ""}`}
+            disabled={disabled}
+            onClick={() => toggle(p)}
+            title={p}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+      {allowedPairs.length > 1 && (
+        <div className="row" style={{ marginTop: 10 }}>
+          <button type="button" className="jbtn" onClick={() => preset("all")}>
+            All ({allowedPairs.length})
+          </button>
+          {allowedPairs.length >= 4 && (
+            <button type="button" className="jbtn" onClick={() => preset("major4")}>
+              Major 4
             </button>
-          );
-        })}
-      </div>
-      <div className="row" style={{ marginTop: 10 }}>
-        <button type="button" className="jbtn" onClick={() => preset("all")}>
-          All
-        </button>
-        <button type="button" className="jbtn" onClick={() => preset("major4")}>
-          Major 4
-        </button>
-        <button type="button" className="jbtn" onClick={() => preset("eurgbp")}>
-          EUR + GBP
-        </button>
-        <button type="button" className="jbtn" onClick={() => preset("clear")}>
-          Clear
-        </button>
-      </div>
+          )}
+          {["EUR/USD", "GBP/USD", "EUR/GBP"].filter((p) => allowedPairs.includes(p)).length >= 2 && (
+            <button type="button" className="jbtn" onClick={() => preset("eurgbp")}>
+              EUR + GBP
+            </button>
+          )}
+          <button type="button" className="jbtn" onClick={() => preset("clear")}>
+            Clear
+          </button>
+        </div>
+      )}
     </div>
   );
 }
