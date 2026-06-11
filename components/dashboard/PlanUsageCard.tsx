@@ -47,8 +47,9 @@ export function PlanUsageCard({
         <br />
         Scans today: <strong style={{ color: "var(--txt2)" }}>{scansUsedToday}</strong> · Total
         scans: <strong style={{ color: "var(--txt2)" }}>{totalScans}</strong> · Remaining today:{" "}
-        {scansRemainingToday} / {dailyScanLimit} · Pairs: {limits.allowedPairs.length}/8 · Live:{" "}
-        {liveLabel}
+        {scansRemainingToday} / {dailyScanLimit} · Pairs: {limits.maxPairsPerScan} max per scan ·
+        Live: {liveLabel}
+        {!limits.allowAutoScan ? " · Auto-refresh: upgrade required" : ""}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button

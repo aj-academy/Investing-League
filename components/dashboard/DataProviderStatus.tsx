@@ -13,7 +13,7 @@ export function DataProviderStatus({
     ? "○ API key not set on server"
     : live
       ? "● Connected"
-      : "○ Offline (check Twelve Data credits)";
+      : "○ Offline (market data unavailable)";
 
   return (
     <div className="key-box provider-box z">
@@ -23,10 +23,7 @@ export function DataProviderStatus({
       </div>
       <div className="key-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
         <div style={{ fontSize: 11, color: "var(--m3)" }}>
-          Provider: <strong style={{ color: "var(--txt2)" }}>Twelve Data</strong>
-        </div>
-        <div style={{ fontSize: 11, color: "var(--m3)" }}>
-          Source: Server-secured market data
+          Feed: <strong style={{ color: "var(--txt2)" }}>Server-secured market data</strong>
         </div>
         <div
           className={configured && live ? "provider-status" : "provider-status provider-off"}

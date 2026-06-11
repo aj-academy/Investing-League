@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "sonner";
+
 const SELECTED_KEY = "til_v8_selected_pairs";
 
 export function loadStoredPairs(allowed: string[]): string[] {
@@ -23,23 +25,33 @@ export function AssetChipGrid({
   allowedPairs,
   selected,
   disabled,
+  maxPairsPerScan = 8,
   onChange,
 }: {
   allowedPairs: string[];
   selected: string[];
   disabled?: boolean;
+  maxPairsPerScan?: number;
   onChange: (pairs: string[]) => void;
 }) {
   const set = new Set(selected);
+  const cap = Math.max(1, maxPairsPerScan);
+
+  const applySelection = (next: string[]) => {
+    const trimmed = next.slice(0, cap);
+    onChange(trimmed);
+    saveStoredPairs(trimmed);
+  };
 
   const toggle = (pair: string) => {
     if (disabled || !allowedPairs.includes(pair)) return;
     const next = new Set(selected);
     if (next.has(pair)) next.delete(pair);
-    else next.add(pair);
-    const arr = allowedPairs.filter((p) => next.has(p));
-    onChange(arr);
-    saveStoredPairs(arr);
+    else if (next.size >= cap) {
+      toast.message(`Your plan allows up to ${cap} pair(s) per scan.`);
+      return;
+    } else next.add(pair);
+    applySelection(allowedPairs.filter((p) => next.has(p)));
   };
 
   const preset = (type: "all" | "major4" | "eurgbp" | "clear") => {
@@ -52,15 +64,16 @@ export function AssetChipGrid({
       );
     else if (type === "eurgbp")
       next = ["EUR/USD", "GBP/USD", "EUR/GBP"].filter((p) => allowedPairs.includes(p));
-    onChange(next);
-    saveStoredPairs(next);
+    applySelection(next);
   };
 
   return (
     <div className="box">
       <div className="row-title">
         <h3>🎯 SELECT ASSETS</h3>
-        <span className="badge">{selected.length} selected</span>
+        <span className="badge">
+          {selected.length} selected · max {cap}
+        </span>
       </div>
       <div className="asset-grid">
         {allowedPairs.map((p) => (

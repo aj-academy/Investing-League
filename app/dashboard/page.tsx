@@ -4,7 +4,11 @@ import { ProtectedShell } from "@/components/layout/ProtectedShell";
 import { getAuthContext } from "@/lib/auth/session";
 import { getUserScanMetrics } from "@/lib/billing/scanMetrics";
 import { canScanToday } from "@/lib/billing/scanUsage";
-import { getUserPlan, normalizeAutoRefresh } from "@/lib/billing/planLimits";
+import {
+  clampTimeframeToPlan,
+  getUserPlan,
+  normalizeAutoRefresh,
+} from "@/lib/billing/planLimits";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -26,7 +30,10 @@ export default async function DashboardPage() {
 
   const storedTf = settings?.default_timeframe || "5min";
   const initialSettings: ScanSettings = {
-    timeframe: storedTf === "both" ? "both" : storedTf === "15min" ? "15min" : "5min",
+    timeframe: clampTimeframeToPlan(
+      plan,
+      storedTf === "both" ? "both" : storedTf === "15min" ? "15min" : "5min",
+    ),
     minGrade: settings?.show_b_signals === false ? "A" : "B",
     minScore: settings?.default_min_score || 5,
     dailyTradeLimit: 5,

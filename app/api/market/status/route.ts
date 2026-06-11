@@ -3,7 +3,7 @@ import { getProfileByUserId } from "@/lib/auth/profile";
 import { getPlanLimits, getUserPlan } from "@/lib/billing/planLimits";
 import { NextResponse } from "next/server";
 
-/** Lightweight status for header — does not call Twelve Data. */
+/** Lightweight status for header — does not call the market data API. */
 export async function GET() {
   try {
     const { auth, error } = await requireApiAuth();

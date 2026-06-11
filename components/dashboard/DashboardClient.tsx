@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { AutoRefreshOption, PlanName } from "@/lib/billing/planLimits";
 import {
   autoRefreshToSeconds,
+  clampTimeframeToPlan,
+  getPlanLimits,
   normalizeAutoRefresh,
 } from "@/lib/billing/planLimits";
 import type { MinGradeFilter } from "@/lib/signal-engine/permission";
@@ -64,9 +66,12 @@ export function DashboardClient({
   allowedPairs: string[];
 }) {
   const router = useRouter();
+  const planLimits = useMemo(() => getPlanLimits(planInfo.plan), [planInfo.plan]);
+
   const serverDefaults = useMemo<ScanSettings>(
     () => ({
       ...initialSettings,
+      timeframe: clampTimeframeToPlan(planInfo.plan, initialSettings.timeframe),
       autoRefresh: normalizeAutoRefresh(
         (initialSettings as ScanSettings & { liveUpdate?: string }).liveUpdate ??
           initialSettings.autoRefresh,
@@ -511,6 +516,7 @@ export function DashboardClient({
         <AssetChipGrid
           allowedPairs={allowedPairs}
           selected={selectedPairs}
+          maxPairsPerScan={planLimits.maxPairsPerScan}
           disabled={scanning || autoScanning}
           onChange={setSelectedPairs}
         />

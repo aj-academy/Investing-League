@@ -2,6 +2,7 @@
 
 import {
   autoRefreshOptionsForPlan,
+  expiryOptionsForPlan,
   type AutoRefreshOption,
   type PlanName,
 } from "@/lib/billing/planLimits";
@@ -41,6 +42,7 @@ export function ScannerControls({
 }) {
   const lockFilters = Boolean(filtersLocked || scanning);
   const autoRefreshOptions = autoRefreshOptionsForPlan(plan);
+  const expiryOptions = expiryOptionsForPlan(plan);
 
   return (
     <>
@@ -76,9 +78,11 @@ export function ScannerControls({
               disabled={lockFilters}
               onChange={(e) => onChange({ timeframe: e.target.value })}
             >
-              <option value="5min">5-min expiry</option>
-              <option value="15min">15-min expiry</option>
-              <option value="both">5 + 15-min</option>
+              {expiryOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="f">

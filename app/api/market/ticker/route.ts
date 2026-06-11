@@ -72,7 +72,7 @@ async function handleTicker(request: Request) {
         message: cachedOnly
           ? "Cached prices appear after your first SCAN MARKET. Use SCAN MARKET to load setups."
           : isAdmin
-            ? "No market data available. Check Twelve Data API key and daily credits."
+            ? "No market data available. Check server API key and daily credits."
             : USER_PROVIDER_ERROR,
         usage: { providerCalls: 0, cacheHits: 0, liveUpdateMode: limits.liveUpdateMode },
       });

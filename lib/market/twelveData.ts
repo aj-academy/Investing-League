@@ -16,7 +16,7 @@ export async function fetchTwelveDataCandles(
     const msg = String(json.message || "Market data error");
     if (json.code === 429 || /run out of api credits/i.test(msg)) {
       throw new Error(
-        "Twelve Data daily API limit reached. Wait until tomorrow or upgrade your plan at twelvedata.com/pricing."
+        "Market data daily limit reached. Try again tomorrow or contact support."
       );
     }
     throw new Error(msg);
@@ -48,7 +48,7 @@ export async function fetchTwelveDataPrice(pair: string): Promise<{ price: numbe
     const msg = String(json.message || "Market data error");
     if (json.code === 429 || /run out of api credits/i.test(msg)) {
       throw new Error(
-        "Twelve Data daily API limit reached. Wait until tomorrow or upgrade your plan at twelvedata.com/pricing."
+        "Market data daily limit reached. Try again tomorrow or contact support."
       );
     }
     throw new Error(msg);

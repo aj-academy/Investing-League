@@ -16,14 +16,14 @@ export type PairSymbol = (typeof ALL_PAIRS)[number];
 export const PLAN_LIMITS = {
   free: {
     label: "Free",
-    maxPairsPerScan: 8,
-    allowedPairs: [...ALL_PAIRS] as PairSymbol[],
-    allowedTimeframes: ["5min", "15min"] as const,
-    allowBothTimeframes: true,
-    dailyScanLimit: 999,
+    maxPairsPerScan: 2,
+    allowedPairs: ["EUR/USD", "GBP/USD"] as PairSymbol[],
+    allowedTimeframes: ["5min"] as const,
+    allowBothTimeframes: false,
+    dailyScanLimit: 10,
     liveUpdateMode: "cached_only" as const,
     quoteRefreshSeconds: 0,
-    allowAutoScan: true,
+    allowAutoScan: false,
   },
   starter: {
     label: "Starter",
@@ -180,8 +180,9 @@ export function defaultLiveUpdateForPlan(plan: PlanName): LiveUpdateOption {
 /** HTML template auto refresh: 60s, 2min, 5min, or manual. */
 export type AutoRefreshOption = "60" | "120" | "300" | "off";
 
-/** Same options as the HTML template for every plan. */
-export function autoRefreshOptionsForPlan(_plan: PlanName): AutoRefreshOption[] {
+/** Auto-refresh intervals; free plan is manual-only. */
+export function autoRefreshOptionsForPlan(plan: PlanName): AutoRefreshOption[] {
+  if (!getPlanLimits(plan).allowAutoScan) return ["off"];
   return ["60", "120", "300", "off"];
 }
 
@@ -190,8 +191,35 @@ export function autoRefreshToSeconds(option: AutoRefreshOption): number {
   return Number(option);
 }
 
-export function defaultAutoRefreshForPlan(_plan: PlanName): AutoRefreshOption {
+export function defaultAutoRefreshForPlan(plan: PlanName): AutoRefreshOption {
+  if (!getPlanLimits(plan).allowAutoScan) return "off";
   return "60";
+}
+
+const EXPIRY_LABELS: Record<string, string> = {
+  "5min": "5-min expiry",
+  "15min": "15-min expiry",
+  both: "5 + 15-min",
+};
+
+/** Expiry dropdown options allowed for the user's plan. */
+export function expiryOptionsForPlan(plan: PlanName): { value: string; label: string }[] {
+  const limits = getPlanLimits(plan);
+  const options: { value: string; label: string }[] = [];
+  for (const tf of limits.allowedTimeframes) {
+    options.push({ value: tf, label: EXPIRY_LABELS[tf] ?? tf });
+  }
+  if (limits.allowBothTimeframes) {
+    options.push({ value: "both", label: EXPIRY_LABELS.both });
+  }
+  return options.length ? options : [{ value: "5min", label: EXPIRY_LABELS["5min"] }];
+}
+
+/** Clamp a stored timeframe to what the plan allows. */
+export function clampTimeframeToPlan(plan: PlanName, timeframe: string): string {
+  const options = expiryOptionsForPlan(plan);
+  if (options.some((o) => o.value === timeframe)) return timeframe;
+  return options[0].value;
 }
 
 /** Map legacy stored values to HTML template options. */

@@ -7,7 +7,7 @@ export function isInternalProviderError(message: string): boolean {
   return INTERNAL_PROVIDER_PATTERN.test(message);
 }
 
-/** Hide Twelve Data / provider internals from non-admin users. */
+/** Hide market data provider internals from non-admin users. */
 export function sanitizeProviderError(message: string, isAdmin: boolean): string {
   if (isAdmin || !isInternalProviderError(message)) return message;
   return USER_PROVIDER_ERROR;
