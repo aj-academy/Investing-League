@@ -13,6 +13,7 @@ export interface JournalRow {
   loss_reason: string | null;
   confidence: number | null;
   entry_drift: number | null;
+  trade_eligible?: boolean | null;
   created_at: string;
 }
 
@@ -52,6 +53,7 @@ export function buildAnalyticsSummary(rows: JournalRow[]) {
     totalSignals,
     tradeEligible: tradeEligible.length,
     completedTrades: completed.length,
+    mostFrequentSignalType: mostFrequentByKey(rows, "signal_type"),
     wins,
     losses,
     refunds,
@@ -76,6 +78,23 @@ export function buildAnalyticsSummary(rows: JournalRow[]) {
     timeframePerformance: aggregateBy(rows, "timeframe"),
     signalTypePerformance: aggregateBy(rows, "signal_type"),
   };
+}
+
+function mostFrequentByKey(rows: JournalRow[], key: keyof JournalRow) {
+  const counts: Record<string, number> = {};
+  rows.forEach((r) => {
+    const k = String(r[key] ?? "—");
+    counts[k] = (counts[k] || 0) + 1;
+  });
+  let best = "—";
+  let max = 0;
+  for (const [k, n] of Object.entries(counts)) {
+    if (n > max) {
+      max = n;
+      best = k;
+    }
+  }
+  return max > 0 ? best : "—";
 }
 
 function aggregateBy(rows: JournalRow[], key: keyof JournalRow) {
