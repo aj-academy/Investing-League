@@ -186,3 +186,38 @@ export async function getPlatformScanTotalsToday() {
     totalCacheHitsToday: Math.max(sessionCache, usageCache),
   };
 }
+
+/** Platform-wide scan totals for a date range (admin overview). */
+export async function getPlatformScanTotalsInRange(fromIso: string, toIso: string) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { scans: 0, providerCalls: 0, cacheHits: 0 };
+  }
+
+  const admin = createAdminClient();
+
+  const [{ count: sessionCount, data: sessions }, { count: usageCount, data: usageRows }] =
+    await Promise.all([
+      admin
+        .from("scan_sessions")
+        .select("provider_calls,cache_hits", { count: "exact" })
+        .gte("created_at", fromIso)
+        .lte("created_at", toIso),
+      admin
+        .from("usage_logs")
+        .select("provider_calls,cache_hits", { count: "exact" })
+        .gte("created_at", fromIso)
+        .lte("created_at", toIso)
+        .eq("action", "scan_market"),
+    ]);
+
+  const sessionProvider = (sessions || []).reduce((a, r) => a + Number(r.provider_calls || 0), 0);
+  const sessionCache = (sessions || []).reduce((a, r) => a + Number(r.cache_hits || 0), 0);
+  const usageProvider = (usageRows || []).reduce((a, r) => a + Number(r.provider_calls || 0), 0);
+  const usageCache = (usageRows || []).reduce((a, r) => a + Number(r.cache_hits || 0), 0);
+
+  return {
+    scans: Math.max(sessionCount ?? 0, usageCount ?? 0),
+    providerCalls: Math.max(sessionProvider, usageProvider),
+    cacheHits: Math.max(sessionCache, usageCache),
+  };
+}

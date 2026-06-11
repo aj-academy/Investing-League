@@ -8,7 +8,7 @@ export default function SiteFooter() {
   if (pathname === "/") return null;
 
   return (
-    <footer className="z" style={{ textAlign: "center", padding: "20px", fontSize: 10, color: "var(--m3)" }}>
+    <footer className="z site-footer" style={{ textAlign: "center", fontSize: 10, color: "var(--m3)" }}>
       {DISCLAIMER}
     </footer>
   );

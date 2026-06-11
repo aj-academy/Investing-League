@@ -38,7 +38,7 @@ export function AppShell({
         hasAdminRole={hasAdminRole}
         onNavigate={() => setOpen(false)}
       />
-      <div className="app-main">
+      <div className="app-main site-main">
         {children}
         <button
           type="button"

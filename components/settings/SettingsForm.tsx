@@ -59,7 +59,7 @@ export function SettingsForm({
   };
 
   return (
-    <div className="ctrl" style={{ maxWidth: 520 }}>
+    <div className="ctrl settings-panel" style={{ maxWidth: 560 }}>
       <div className="ctrl-title">USER PROFILE</div>
       <div className="f" style={{ marginBottom: 12 }}>
         <label>Full Name</label>

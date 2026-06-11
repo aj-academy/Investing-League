@@ -28,7 +28,7 @@ export function AnalyticsView({
   }
 
   return (
-    <div>
+    <div className="analytics-panel">
       <div className="journal-title" style={{ marginBottom: 16 }}>
         PERFORMANCE ANALYTICS
       </div>

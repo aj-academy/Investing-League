@@ -30,6 +30,7 @@ type PricingPlanRow = {
 };
 
 type OverviewMetrics = {
+  filter?: { from: string; to: string };
   totalUsers: number;
   activeUsers: number;
   suspendedUsers: number;
@@ -39,11 +40,27 @@ type OverviewMetrics = {
   proUsers: number;
   termsAcceptedUsers: number;
   termsPendingUsers: number;
-  totalScansToday: number;
-  totalProviderCallsToday: number;
-  totalCacheHitsToday: number;
-  totalSignalsGenerated: number;
-  totalJournalRecords: number;
+  range?: {
+    scans: number;
+    providerCalls: number;
+    cacheHits: number;
+    signalsGenerated: number;
+    journalRows: number;
+    wins: number;
+    losses: number;
+    refunds: number;
+    pending: number;
+    winRate: number;
+    realTradeWins: number;
+    realTradeLosses: number;
+    realTradeTotal: number;
+    realTradeWinRate: number;
+  };
+  today?: {
+    scans: number;
+    providerCalls: number;
+    cacheHits: number;
+  };
 };
 
 type UserRow = {
@@ -129,6 +146,7 @@ export function AdminView() {
     );
     return { from: weekAgo.toISOString().slice(0, 10), to };
   };
+  const [overviewFilter, setOverviewFilter] = useState(() => defaultRange());
   const [apiFilter, setApiFilter] = useState(() => ({
     ...defaultRange(),
     userId: "",
@@ -196,7 +214,10 @@ export function AdminView() {
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   const loadOverview = () => {
-    fetch("/api/admin/overview")
+    const params = new URLSearchParams();
+    params.set("from", overviewFilter.from);
+    params.set("to", overviewFilter.to);
+    fetch(`/api/admin/overview?${params.toString()}`)
       .then((r) => r.json())
       .then((json) => setOverview(json))
       .catch(() => setOverview(null));
@@ -274,6 +295,7 @@ export function AdminView() {
   }, []);
 
   useEffect(() => {
+    if (activeTab === "overview") loadOverview();
     if (activeTab === "assets") loadAssets();
     if (activeTab === "terms") loadTerms();
     if (activeTab === "rules") loadRules();
@@ -610,77 +632,179 @@ export function AdminView() {
 
       {activeTab === "overview" && (
         <>
+          <div className="ctrl admin-panel">
+            <div className="ctrl-title">Overview filters</div>
+            <div className="ctrl-row">
+              <div className="f">
+                <label>From</label>
+                <input
+                  type="date"
+                  value={overviewFilter.from}
+                  onChange={(e) =>
+                    setOverviewFilter((s) => ({ ...s, from: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="f">
+                <label>To</label>
+                <input
+                  type="date"
+                  value={overviewFilter.to}
+                  onChange={(e) =>
+                    setOverviewFilter((s) => ({ ...s, to: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="f" style={{ alignSelf: "end" }}>
+                <button type="button" className="jbtn admin-btn-primary" onClick={loadOverview}>
+                  Apply filters
+                </button>
+              </div>
+            </div>
+            {overview?.filter && (
+              <p className="admin-filter-note">
+                Activity and journal stats below use{" "}
+                <strong>{overview.filter.from}</strong> → <strong>{overview.filter.to}</strong> (UTC).
+              </p>
+            )}
+          </div>
+
           {!overview ? (
             <div className="empty-txt">Loading admin overview...</div>
           ) : (
-            <div className="journal-stats">
-              <div className="jstat">
-                <div className="jstat-v" style={{ color: "var(--blue2)" }}>
-                  {overview.totalUsers}
+            <>
+              <div className="admin-stats-section">
+                <div className="admin-stats-head">Platform users</div>
+                <div className="journal-stats">
+                  <div className="jstat">
+                    <div className="jstat-v stat-blue">{overview.totalUsers}</div>
+                    <div className="jstat-l">Total Users</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-bull">{overview.activeUsers}</div>
+                    <div className="jstat-l">Active</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-bear">{overview.suspendedUsers}</div>
+                    <div className="jstat-l">Suspended</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.adminUsers}</div>
+                    <div className="jstat-l">Admins</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.freeUsers}</div>
+                    <div className="jstat-l">Free</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.starterUsers}</div>
+                    <div className="jstat-l">Starter</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.proUsers}</div>
+                    <div className="jstat-l">Pro</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-bull">{overview.termsAcceptedUsers}</div>
+                    <div className="jstat-l">Terms OK</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-gold">{overview.termsPendingUsers}</div>
+                    <div className="jstat-l">Terms Pending</div>
+                  </div>
                 </div>
-                <div className="jstat-l">Total Users</div>
               </div>
-              <div className="jstat">
-                <div className="jstat-v" style={{ color: "var(--bull)" }}>
-                  {overview.activeUsers}
+
+              <div className="admin-stats-section">
+                <div className="admin-stats-head">
+                  Activity in range
+                  {overview.filter && (
+                    <span className="admin-stats-range">
+                      {overview.filter.from} → {overview.filter.to}
+                    </span>
+                  )}
                 </div>
-                <div className="jstat-l">Active Users</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v" style={{ color: "var(--bear)" }}>
-                  {overview.suspendedUsers}
+                <div className="journal-stats">
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.range?.scans ?? 0}</div>
+                    <div className="jstat-l">Scans</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.range?.providerCalls ?? 0}</div>
+                    <div className="jstat-l">Provider Calls</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.range?.cacheHits ?? 0}</div>
+                    <div className="jstat-l">Cache Hits</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.range?.signalsGenerated ?? 0}</div>
+                    <div className="jstat-l">Signals</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.range?.journalRows ?? 0}</div>
+                    <div className="jstat-l">Journal Rows</div>
+                  </div>
                 </div>
-                <div className="jstat-l">Suspended Users</div>
               </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.adminUsers}</div>
-                <div className="jstat-l">Admin Users</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.freeUsers}</div>
-                <div className="jstat-l">Free Users</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.starterUsers}</div>
-                <div className="jstat-l">Starter Users</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.proUsers}</div>
-                <div className="jstat-l">Pro Users</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v" style={{ color: "var(--bull)" }}>
-                  {overview.termsAcceptedUsers}
+
+              <div className="admin-stats-section">
+                <div className="admin-stats-head">
+                  Journal results in range
+                  <span className="admin-stats-sub">Wins, losses &amp; other outcomes</span>
                 </div>
-                <div className="jstat-l">Terms Accepted</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v" style={{ color: "var(--gold2)" }}>
-                  {overview.termsPendingUsers}
+                <div className="journal-stats">
+                  <div className="jstat">
+                    <div className="jstat-v stat-bull">{overview.range?.wins ?? 0}</div>
+                    <div className="jstat-l">Wins</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-bear">{overview.range?.losses ?? 0}</div>
+                    <div className="jstat-l">Losses</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-purple">{overview.range?.refunds ?? 0}</div>
+                    <div className="jstat-l">Refunds</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-gold">{overview.range?.pending ?? 0}</div>
+                    <div className="jstat-l">Pending</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-blue">{overview.range?.winRate ?? 0}%</div>
+                    <div className="jstat-l">Win Rate (W/L)</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v stat-bull">
+                      {overview.range?.realTradeWinRate ?? 0}%
+                    </div>
+                    <div className="jstat-l">Real Trade WR</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.range?.realTradeTotal ?? 0}</div>
+                    <div className="jstat-l">Real Trades</div>
+                  </div>
                 </div>
-                <div className="jstat-l">Terms Pending</div>
               </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.totalScansToday}</div>
-                <div className="jstat-l">Scans Today</div>
+
+              <div className="admin-stats-section">
+                <div className="admin-stats-head">Today (live snapshot)</div>
+                <div className="journal-stats">
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.today?.scans ?? 0}</div>
+                    <div className="jstat-l">Scans Today</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.today?.providerCalls ?? 0}</div>
+                    <div className="jstat-l">Provider Today</div>
+                  </div>
+                  <div className="jstat">
+                    <div className="jstat-v">{overview.today?.cacheHits ?? 0}</div>
+                    <div className="jstat-l">Cache Today</div>
+                  </div>
+                </div>
               </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.totalProviderCallsToday}</div>
-                <div className="jstat-l">Provider Calls Today</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.totalCacheHitsToday}</div>
-                <div className="jstat-l">Cache Hits Today</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.totalSignalsGenerated}</div>
-                <div className="jstat-l">Signals Generated</div>
-              </div>
-              <div className="jstat">
-                <div className="jstat-v">{overview.totalJournalRecords}</div>
-                <div className="jstat-l">Journal Records</div>
-              </div>
-            </div>
+            </>
           )}
         </>
       )}
