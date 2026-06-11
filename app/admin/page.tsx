@@ -13,7 +13,7 @@ export default async function AdminPage() {
   return (
     <ProtectedShell isAdmin hasAdminRole>
       <Topbar />
-      <div className="wrap z">
+      <div className="wrap z admin-shell">
         <AdminView />
       </div>
     </ProtectedShell>

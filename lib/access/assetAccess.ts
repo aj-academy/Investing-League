@@ -6,10 +6,17 @@ import {
 } from "@/lib/billing/planLimits";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+/** Stored when admin saves zero assets — user gets no pairs (not plan default). */
+export const CUSTOM_ASSET_EMPTY_MARKER = "__CUSTOM_EMPTY__";
+
 export type UserAssetRow = {
   pair: string;
   is_allowed: boolean;
 };
+
+export function isCustomAssetEmptyMarker(pair: string): boolean {
+  return pair === CUSTOM_ASSET_EMPTY_MARKER;
+}
 
 export function getPlanAllowedPairs(plan: PlanName): string[] {
   return [...getPlanLimits(plan).allowedPairs];
@@ -33,11 +40,14 @@ export async function resolveUserAllowedPairs(
   const customRows = await getUserAssetAccess(userId);
   if (!customRows.length) return planPairs;
 
+  if (customRows.some((r) => isCustomAssetEmptyMarker(r.pair))) return [];
+
   const enabled = new Set(
-    customRows.filter((r) => r.is_allowed).map((r) => r.pair as PairSymbol)
+    customRows
+      .filter((r) => r.is_allowed && !isCustomAssetEmptyMarker(r.pair))
+      .map((r) => r.pair as PairSymbol)
   );
-  const validPairs = ALL_PAIRS.filter((p) => enabled.has(p));
-  return validPairs.length ? validPairs : [];
+  return ALL_PAIRS.filter((p) => enabled.has(p));
 }
 
 export async function validatePairsForUser(

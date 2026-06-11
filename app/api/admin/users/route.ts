@@ -1,5 +1,6 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { getProfileByUserId } from "@/lib/auth/profile";
+import { CUSTOM_ASSET_EMPTY_MARKER } from "@/lib/access/assetAccess";
 import { getTodayScanCountsByUser } from "@/lib/billing/scanMetrics";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
@@ -60,13 +61,16 @@ export async function GET() {
     }
   }
 
-  const allowedAssetsCountByUser = new Map<string, number>();
+  const allowedAssetsCountByUser = new Map<string, number | null>();
   for (const row of assets || []) {
+    if (row.pair === CUSTOM_ASSET_EMPTY_MARKER) {
+      allowedAssetsCountByUser.set(row.user_id, 0);
+      continue;
+    }
     if (!row.is_allowed) continue;
-    allowedAssetsCountByUser.set(
-      row.user_id,
-      (allowedAssetsCountByUser.get(row.user_id) || 0) + 1
-    );
+    const prev = allowedAssetsCountByUser.get(row.user_id);
+    if (prev === 0) continue;
+    allowedAssetsCountByUser.set(row.user_id, (prev ?? 0) + 1);
   }
 
   const users = (data || []).map((u) => {
@@ -76,7 +80,7 @@ export async function GET() {
       ...u,
       terms_accepted_version: terms?.accepted ? activeTerms?.version || null : null,
       terms_accepted_at: terms?.accepted_at || null,
-      allowed_assets_count: allowedAssetsCountByUser.get(u.id) || null,
+      allowed_assets_count: allowedAssetsCountByUser.get(u.id) ?? null,
       scans_today: usage?.scans_today || 0,
       provider_calls_today: usage?.provider_calls_today || 0,
       cache_hits_today: usage?.cache_hits_today || 0,

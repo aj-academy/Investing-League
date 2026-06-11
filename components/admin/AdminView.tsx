@@ -90,6 +90,7 @@ export function AdminView() {
       all_pairs: string[];
       plan_pairs: string[];
       has_custom_access: boolean;
+      is_empty_custom?: boolean;
       custom_access: { pair: string; is_allowed: boolean }[];
     }>;
   } | null>(null);
@@ -285,11 +286,13 @@ export function AdminView() {
     if (!assetsData?.users) return;
     const drafts: Record<string, string[]> = {};
     for (const u of assetsData.users) {
-      const enabled = (u.custom_access || [])
-        .filter((r) => r.is_allowed)
-        .map((r) => r.pair);
-      drafts[u.id] =
-        enabled.length > 0 ? [...enabled] : [...(u.plan_pairs || u.all_pairs)];
+      if (u.has_custom_access) {
+        drafts[u.id] = u.is_empty_custom
+          ? []
+          : (u.custom_access || []).filter((r) => r.is_allowed).map((r) => r.pair);
+      } else {
+        drafts[u.id] = [...(u.plan_pairs || u.all_pairs)];
+      }
     }
     setAssetDrafts(drafts);
   }, [assetsData]);
@@ -336,7 +339,8 @@ export function AdminView() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId,
-        allowedPairs: usePlanDefault ? [] : allowedPairs,
+        allowedPairs,
+        usePlanDefault,
       }),
     });
     const json = await res.json();
@@ -345,7 +349,13 @@ export function AdminView() {
       toast.error(json.error || "Asset update failed");
       return;
     }
-    toast.success(usePlanDefault ? "Restored plan default assets" : "Asset access updated");
+    toast.success(
+      usePlanDefault
+        ? "Restored plan default assets"
+        : allowedPairs.length
+          ? `Saved ${allowedPairs.length} asset(s) for this user`
+          : "Saved — user has no asset access until you assign pairs"
+    );
     loadAssets();
     loadUsers();
   };
@@ -363,16 +373,38 @@ export function AdminView() {
     id: string;
     plan_pairs: string[];
     all_pairs: string[];
+    has_custom_access: boolean;
+    is_empty_custom?: boolean;
     custom_access: { pair: string; is_allowed: boolean }[];
   }) => {
-    const enabled = (user.custom_access || [])
-      .filter((r) => r.is_allowed)
-      .map((r) => r.pair);
+    if (user.has_custom_access) {
+      setAssetDrafts((prev) => ({
+        ...prev,
+        [user.id]: user.is_empty_custom
+          ? []
+          : (user.custom_access || []).filter((r) => r.is_allowed).map((r) => r.pair),
+      }));
+      return;
+    }
     setAssetDrafts((prev) => ({
       ...prev,
-      [user.id]:
-        enabled.length > 0 ? [...enabled] : [...(user.plan_pairs || user.all_pairs)],
+      [user.id]: [...(user.plan_pairs || user.all_pairs)],
     }));
+  };
+
+  const assetAccessModeLabel = (
+    user: {
+      has_custom_access: boolean;
+      is_empty_custom?: boolean;
+      plan_pairs?: string[];
+    },
+    draftCount: number
+  ) => {
+    if (!user.has_custom_access) {
+      return `Plan default (${user.plan_pairs?.length ?? 0})`;
+    }
+    if (user.is_empty_custom || draftCount === 0) return "No access (0)";
+    return `Custom (${draftCount})`;
   };
 
   const createTerms = async () => {
@@ -555,23 +587,21 @@ export function AdminView() {
   };
 
   return (
-    <div>
-      <div className="journal-title" style={{ marginBottom: 16 }}>
-        ADMIN DASHBOARD
+    <div className="admin-page">
+      <div className="admin-page-head">
+        <div className="journal-title">ADMIN DASHBOARD</div>
+        <p className="admin-page-sub">
+          Manage users, access, terms, and platform settings.
+        </p>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }} className="admin-tab-bar">
+      <div className="admin-tab-bar">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
-            className="jbtn"
+            className={`admin-tab ${activeTab === tab.id ? "active" : ""}`}
             onClick={() => setActiveTab(tab.id)}
-            style={
-              activeTab === tab.id
-                ? { borderColor: "var(--blue)", color: "var(--blue2)" }
-                : undefined
-            }
           >
             {tab.label}
           </button>
@@ -782,7 +812,13 @@ export function AdminView() {
                             ? `Yes${u.terms_accepted_version ? ` (${u.terms_accepted_version})` : ""}`
                             : "No"}
                         </td>
-                        <td>{u.allowed_assets_count ?? "Default plan"}</td>
+                        <td>
+                          {u.allowed_assets_count === 0
+                            ? "No access"
+                            : u.allowed_assets_count != null
+                              ? u.allowed_assets_count
+                              : "Plan default"}
+                        </td>
                         <td>{u.scans_today ?? 0}</td>
                         <td>{u.provider_calls_today ?? 0}</td>
                         <td>{u.cache_hits_today ?? 0}</td>
@@ -807,99 +843,112 @@ export function AdminView() {
       )}
 
       {activeTab === "assets" && (
-        <div className="ctrl" style={{ marginTop: 16 }}>
+        <div className="ctrl admin-panel">
           <div className="ctrl-title">Asset Access</div>
-          <p className="empty-txt" style={{ marginBottom: 10 }}>
-            Select assets per user and click Save. Only saved assets appear on the client dashboard.
-            Use &quot;Plan default&quot; to remove custom limits.
-          </p>
+          <div className="admin-hint">
+            <strong>How it works:</strong> Check the pairs you want, then click{" "}
+            <span className="admin-hint-accent">Save access</span>. Uncheck all and save
+            → user gets <span className="admin-hint-warn">no assets</span>.{" "}
+            <span className="admin-hint-accent">Plan default</span> restores the user&apos;s plan
+            limits.
+          </div>
           {!assetsData ? (
             <p className="empty-txt">Loading asset access...</p>
           ) : (
-            <div className="journal-table-wrap" style={{ maxHeight: 520 }}>
-              <table className="journal-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Plan</th>
-                    <th>Active</th>
-                    <th>Mode</th>
-                    <th>Allowed Assets</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assetsData.users.map((u) => {
-                    const draft = assetDrafts[u.id] || [];
-                    const draftSet = new Set(draft);
-                    const planSet = new Set(u.plan_pairs || []);
-                    return (
-                      <tr key={u.id}>
-                        <td>{u.email || u.full_name || u.id}</td>
-                        <td>{u.plan}</td>
-                        <td>{u.is_active ? "Yes" : "No"}</td>
-                        <td>
-                          {u.has_custom_access
-                            ? `Custom (${draft.length})`
-                            : `Plan default (${u.plan_pairs?.length ?? 0})`}
-                        </td>
-                        <td style={{ whiteSpace: "normal", minWidth: 420 }}>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                            {u.all_pairs.map((pair) => {
-                              const onPlan = planSet.has(pair);
-                              const isChecked = draftSet.has(pair);
-                              return (
-                                <label
-                                  key={pair}
-                                  className="result-check"
-                                  style={{
-                                    fontSize: 9,
-                                    opacity: onPlan ? 1 : 0.55,
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => toggleAssetDraft(u.id, pair)}
-                                  />
-                                  {pair}
-                                  {!onPlan ? " (off plan)" : ""}
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </td>
-                        <td style={{ whiteSpace: "nowrap" }}>
-                          <button
-                            type="button"
-                            className="jbtn"
-                            disabled={assetSavingUserId === u.id || draft.length === 0}
-                            onClick={() => saveAssetDraft(u.id, draft)}
+            <div className="admin-asset-list">
+              {assetsData.users.map((u) => {
+                const draft = assetDrafts[u.id] || [];
+                const draftSet = new Set(draft);
+                const planSet = new Set(u.plan_pairs || []);
+                const modeLabel = assetAccessModeLabel(u, draft.length);
+                const modeClass = u.has_custom_access
+                  ? draft.length === 0
+                    ? "warn"
+                    : "custom"
+                  : "default";
+                return (
+                  <div key={u.id} className="admin-user-card">
+                    <div className="admin-user-card-head">
+                      <div className="admin-user-meta">
+                        <div className="admin-user-email">
+                          {u.email || u.full_name || u.id}
+                        </div>
+                        <div className="admin-user-tags">
+                          <span className="admin-tag">{u.plan}</span>
+                          <span
+                            className={`admin-tag ${u.is_active ? "ok" : "bad"}`}
                           >
-                            {assetSavingUserId === u.id ? "Saving..." : "Save"}
-                          </button>
+                            {u.is_active ? "Active" : "Suspended"}
+                          </span>
+                          <span className={`admin-tag mode-${modeClass}`}>
+                            {modeLabel}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="admin-user-actions">
+                        <button
+                          type="button"
+                          className="jbtn admin-btn-primary"
+                          disabled={assetSavingUserId === u.id}
+                          onClick={() => saveAssetDraft(u.id, draft)}
+                        >
+                          {assetSavingUserId === u.id ? "Saving..." : "Save access"}
+                        </button>
+                        <button
+                          type="button"
+                          className="jbtn"
+                          disabled={assetSavingUserId === u.id}
+                          onClick={() => resetAssetDraft(u)}
+                        >
+                          Reset
+                        </button>
+                        <button
+                          type="button"
+                          className="jbtn"
+                          disabled={assetSavingUserId === u.id || !u.has_custom_access}
+                          onClick={() => saveAssetDraft(u.id, [], true)}
+                        >
+                          Plan default
+                        </button>
+                      </div>
+                    </div>
+                    <div className="admin-asset-grid">
+                      {u.all_pairs.map((pair) => {
+                        const onPlan = planSet.has(pair);
+                        const isOn = draftSet.has(pair);
+                        return (
                           <button
+                            key={pair}
                             type="button"
-                            className="jbtn"
-                            disabled={assetSavingUserId === u.id}
-                            onClick={() => resetAssetDraft(u)}
+                            className={`admin-asset-chip ${isOn ? "on" : ""} ${!onPlan ? "off-plan" : ""}`}
+                            onClick={() => toggleAssetDraft(u.id, pair)}
+                            title={
+                              onPlan
+                                ? pair
+                                : `${pair} — not included in ${u.plan} plan, but can be granted`
+                            }
                           >
-                            Reset
+                            {pair}
                           </button>
-                          <button
-                            type="button"
-                            className="jbtn"
-                            disabled={assetSavingUserId === u.id || !u.has_custom_access}
-                            onClick={() => saveAssetDraft(u.id, [], true)}
-                          >
-                            Plan default
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        );
+                      })}
+                    </div>
+                    <div className="admin-asset-foot">
+                      <span>
+                        Selected: <strong>{draft.length}</strong>
+                      </span>
+                      <span>
+                        Client will see:{" "}
+                        <strong>
+                          {u.has_custom_access && draft.length === 0
+                            ? "nothing (no access)"
+                            : `${draft.length} asset(s) after save`}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
