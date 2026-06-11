@@ -498,44 +498,63 @@ export function DashboardClient({
         timeZoneLabel={tzLabel}
       />
       <div className="wrap z">
-        <PlanUsageCard
-          plan={scanUsage.plan}
-          scansUsedToday={scanUsage.scansUsedToday}
-          scansRemainingToday={scanUsage.scansRemainingToday}
-          dailyScanLimit={scanUsage.dailyScanLimit}
-          totalScans={scanUsage.totalScans}
-          onRulesClick={() => {
-            if (rulesState.active) {
-              setRulesModalOpen(true);
-            } else {
-              toast.message("Platform rules are not available yet.");
-            }
-          }}
-        />
-        <MarketTicker items={ticker} />
-        <AssetChipGrid
-          allowedPairs={allowedPairs}
-          selected={selectedPairs}
-          maxPairsPerScan={planLimits.maxPairsPerScan}
-          disabled={scanning || autoScanning}
-          onChange={setSelectedPairs}
-        />
-        <ScannerControls
-          plan={planInfo.plan}
-          settings={settings}
-          onChange={updateSettings}
-          filtersLocked={scanning || autoScanning}
-          onScan={() => runScan()}
-          onRefreshPrices={async () => {
-            setRefreshing(true);
-            await runScan();
-            setRefreshing(false);
-          }}
-          onReloadLastScan={reloadLastScan}
-          scanning={scanning || autoScanning}
-          refreshing={refreshing}
-          progress={progress}
-        />
+        <section className="scanner-section" aria-label="Market scanner">
+          <header className="scanner-section-head">
+            <div className="scanner-section-intro">
+              <span className="scanner-section-kicker">V8 Decision Engine</span>
+              <h2 className="scanner-section-title">Market Scanner</h2>
+              <p className="scanner-section-sub">
+                Pick your pairs, set your filters, and run an educational setup scan.
+              </p>
+            </div>
+          </header>
+
+          <PlanUsageCard
+            plan={scanUsage.plan}
+            scansUsedToday={scanUsage.scansUsedToday}
+            scansRemainingToday={scanUsage.scansRemainingToday}
+            dailyScanLimit={scanUsage.dailyScanLimit}
+            totalScans={scanUsage.totalScans}
+            onRulesClick={() => {
+              if (rulesState.active) {
+                setRulesModalOpen(true);
+              } else {
+                toast.message("Platform rules are not available yet.");
+              }
+            }}
+          />
+
+          <MarketTicker items={ticker} live={marketLive || scanning || autoScanning} />
+
+          <div className="scanner-panel">
+            <AssetChipGrid
+              allowedPairs={allowedPairs}
+              selected={selectedPairs}
+              maxPairsPerScan={planLimits.maxPairsPerScan}
+              disabled={scanning || autoScanning}
+              onChange={setSelectedPairs}
+            />
+            <ScannerControls
+              plan={planInfo.plan}
+              settings={settings}
+              onChange={updateSettings}
+              filtersLocked={scanning || autoScanning}
+              onScan={() => runScan()}
+              onRefreshPrices={async () => {
+                setRefreshing(true);
+                await runScan();
+                setRefreshing(false);
+              }}
+              onReloadLastScan={reloadLastScan}
+              scanning={scanning || autoScanning}
+              refreshing={refreshing}
+              progress={progress}
+              selectedPairCount={selectedPairs.length}
+            />
+          </div>
+
+          <SessionPills />
+        </section>
         {lastScanNote && !restoreMessage && (
           <div className="disclaimer-banner" style={{ borderColor: "var(--gold)", color: "var(--gold2)" }}>
             {lastScanNote}
@@ -546,12 +565,6 @@ export function DashboardClient({
             {restoreMessage}
           </div>
         )}
-        <div className="v8-mode-note">
-          <strong>V8 DECISION ENGINE:</strong> Grade is setup quality. The big permission box is
-          what matters: <b>TRADE ALLOWED</b>, <b>OBSERVE ONLY</b>, or <b>DO NOT TRADE</b>. Practice
-          shows all filtered setups; Live keeps the best signal per scan.
-        </div>
-        <SessionPills />
         <StatsRow signals={signals} apiCalls={apiCalls} visible={!!signals.length} />
         <LoadingScanner
           active={scanning || autoScanning}
@@ -564,8 +577,8 @@ export function DashboardClient({
               <div className="empty">
                 <div className="empty-icon">📡</div>
                 <div className="empty-txt">
-                  Select assets above, configure filters, then click{" "}
-                  <strong style={{ color: "var(--blue2)" }}>SCAN SELECTED</strong> for educational
+                  Select assets above, tune your filters, then hit{" "}
+                  <strong style={{ color: "var(--blue2)" }}>Run scan</strong> for educational
                   market setup analysis.
                   <br />
                   <br />

@@ -22,55 +22,77 @@ export function PlanUsageCard({
 }) {
   const router = useRouter();
   const limits = getPlanLimits(plan);
+  const usedPct = dailyScanLimit > 0 ? Math.min(100, (scansUsedToday / dailyScanLimit) * 100) : 0;
+  const lowQuota = scansRemainingToday <= 2 && dailyScanLimit <= 30;
+
   const liveLabel =
     limits.liveUpdateMode === "cached_only"
-      ? "Cached only"
+      ? "Cached"
       : limits.quoteRefreshSeconds > 0
-        ? `Quote every ${limits.quoteRefreshSeconds}s`
+        ? `${limits.quoteRefreshSeconds}s quotes`
         : "Off";
 
   return (
-    <div
-      className="ctrl"
-      style={{
-        marginBottom: 12,
-        padding: "10px 14px",
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 12,
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
-    >
-      <div style={{ fontSize: 11, color: "var(--m3)", lineHeight: 1.6 }}>
-        <strong style={{ color: "var(--blue2)" }}>Current Plan: {limits.label}</strong>
-        <br />
-        Scans today: <strong style={{ color: "var(--txt2)" }}>{scansUsedToday}</strong> · Total
-        scans: <strong style={{ color: "var(--txt2)" }}>{totalScans}</strong> · Remaining today:{" "}
-        {scansRemainingToday} / {dailyScanLimit} · Pairs: {limits.maxPairsPerScan} max per scan ·
-        Live: {liveLabel}
-        {!limits.allowAutoScan ? " · Auto-refresh: upgrade required" : ""}
+    <div className="scanner-plan-card">
+      <div className="scanner-plan-top">
+        <div className="scanner-plan-brand">
+          <span className={`scanner-plan-badge plan-${plan}`}>{limits.label}</span>
+          <div>
+            <div className="scanner-plan-title">Daily scan quota</div>
+            <div className="scanner-plan-meta">
+              {limits.maxPairsPerScan} pair max · {liveLabel}
+              {!limits.allowAutoScan ? " · manual scans only" : ""}
+            </div>
+          </div>
+        </div>
+        <div className="scanner-plan-actions">
+          <button type="button" className="scanner-btn-ghost" onClick={onRulesClick}>
+            Rules
+          </button>
+          <button
+            type="button"
+            className="scanner-btn-upgrade"
+            onClick={() => {
+              toast.message("Subscription billing coming soon.");
+              router.push("/settings");
+            }}
+          >
+            Upgrade
+          </button>
+        </div>
       </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button
-          type="button"
-          className="btn-scan"
-          style={{ padding: "8px 14px", fontSize: 10 }}
-          onClick={onRulesClick}
-        >
-          Platform Rules
-        </button>
-        <button
-          type="button"
-          className="btn-scan"
-          style={{ padding: "8px 14px", fontSize: 10 }}
-          onClick={() => {
-            toast.message("Subscription billing coming soon.");
-            router.push("/settings");
-          }}
-        >
-          Upgrade to unlock all pairs
-        </button>
+
+      <div className="scanner-stats-row">
+        <div className="scanner-stat">
+          <span className="scanner-stat-val stat-blue">{scansRemainingToday}</span>
+          <span className="scanner-stat-label">Left today</span>
+        </div>
+        <div className="scanner-stat">
+          <span className="scanner-stat-val">{scansUsedToday}</span>
+          <span className="scanner-stat-label">Used today</span>
+        </div>
+        <div className="scanner-stat">
+          <span className="scanner-stat-val">{dailyScanLimit}</span>
+          <span className="scanner-stat-label">Daily limit</span>
+        </div>
+        <div className="scanner-stat">
+          <span className="scanner-stat-val stat-gold">{totalScans}</span>
+          <span className="scanner-stat-label">All-time scans</span>
+        </div>
+      </div>
+
+      <div className="scanner-quota-wrap">
+        <div className="scanner-quota-track">
+          <div
+            className={`scanner-quota-fill${lowQuota ? " low" : ""}`}
+            style={{ width: `${usedPct}%` }}
+          />
+        </div>
+        <span className="scanner-quota-label">
+          {scansUsedToday} of {dailyScanLimit} scans used
+          {lowQuota && scansRemainingToday > 0 ? " · running low" : ""}
+          {scansRemainingToday === 0 ? " · limit reached" : ""}
+        </span>
       </div>
     </div>
   );
