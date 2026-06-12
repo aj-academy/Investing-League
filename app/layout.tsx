@@ -5,9 +5,12 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "The Investing League Decision Lab",
+  title: {
+    default: "The Investing League",
+    template: "%s | The Investing League",
+  },
   description:
-    "Educational decision-support and trade journaling platform for market setup scanning, signal testing, and performance analytics.",
+    "Financial education, courses, and the Decision Lab — educational market scanner, journal, and analytics.",
 };
 
 export default function RootLayout({
