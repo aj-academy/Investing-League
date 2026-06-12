@@ -3,6 +3,7 @@
 import {
   autoRefreshOptionsForPlan,
   expiryOptionsForPlan,
+  getPlanLimits,
   type AutoRefreshOption,
   type PlanName,
 } from "@/lib/billing/planLimits";
@@ -49,11 +50,15 @@ export function ScannerControls({
   selectedPairCount?: number;
 }) {
   const lockFilters = Boolean(filtersLocked || scanning);
+  const planLimits = getPlanLimits(plan);
   const autoRefreshOptions = autoRefreshOptionsForPlan(plan);
   const expiryOptions = expiryOptionsForPlan(plan);
   const tfLabel =
     expiryOptions.find((o) => o.value === settings.timeframe)?.label ?? settings.timeframe;
   const autoScanEnabled = settings.autoRefresh !== "off";
+  const canAutoScan = planLimits.allowAutoScan;
+  const autoScanActive = autoScanEnabled || autoScanning || autoScanCountdown > 0;
+  const stopAutoScanDisabled = !autoScanActive;
 
   return (
     <div className="scanner-config">
@@ -165,7 +170,7 @@ export function ScannerControls({
         </div>
       </div>
 
-      {autoScanEnabled && (
+      {canAutoScan && autoScanActive && (
         <div className="scanner-autoscan-bar">
           <div className="scanner-autoscan-status">
             <span className="scanner-autoscan-pulse" />
@@ -177,14 +182,6 @@ export function ScannerControls({
                   : "Auto scan enabled — runs after each scan"}
             </span>
           </div>
-          <button
-            type="button"
-            className="scanner-btn-stop"
-            onClick={onStopAutoScan}
-            title="Stop scheduled auto scans and switch to manual only"
-          >
-            ■ Stop auto scan
-          </button>
         </div>
       )}
 
@@ -206,6 +203,21 @@ export function ScannerControls({
           </p>
         </div>
         <div className="scanner-action-secondary">
+          {canAutoScan && (
+            <button
+              type="button"
+              className="scanner-btn-stop"
+              disabled={stopAutoScanDisabled}
+              onClick={onStopAutoScan}
+              title={
+                stopAutoScanDisabled
+                  ? "Enable Auto refresh above to schedule scans, then use this to stop"
+                  : "Stop scheduled auto scans and switch to manual only"
+              }
+            >
+              ■ Stop auto scan
+            </button>
+          )}
           <button
             type="button"
             className="scanner-btn-secondary"
