@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap");
+
 /* Light marketing site — scoped under .marketing-site */
 body:has(.marketing-site) {
   background: #f9fafb;
@@ -15,6 +17,10 @@ body:has(.marketing-site)::before {
   position: relative;
   z-index: 1;
   font-family: Inter, system-ui, sans-serif;
+}
+
+.marketing-site .mkt-brand {
+  font-family: Cinzel, Georgia, serif;
 }
 
 .marketing-site .bg-primary {
@@ -45,12 +51,50 @@ body:has(.marketing-site)::before {
 .marketing-site .hero-section {
   background-image: linear-gradient(
       to right,
-      rgba(255, 255, 255, 0.92) 50%,
-      rgba(255, 255, 255, 0.75) 100%
+      rgba(255, 255, 255, 0.92) 45%,
+      rgba(255, 255, 255, 0.78) 65%,
+      rgba(255, 255, 255, 0.55) 100%
     ),
-    url("/group.jpg");
+    url("/trade.jpg");
   background-size: cover;
-  background-position: center;
+  background-position: center right;
+  min-height: 520px;
+}
+
+.marketing-site .hero-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .marketing-site .hero-inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3rem;
+  }
+}
+
+.marketing-site .hero-copy {
+  flex: 1;
+  max-width: 36rem;
+}
+
+.marketing-site .hero-visual {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  max-width: 520px;
+}
+
+.marketing-site .hero-visual img {
+  width: 100%;
+  max-height: 380px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
 }
 
 .marketing-site .mkt-footer {

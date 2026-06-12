@@ -10,37 +10,33 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <MarketingShell active="about">
-      <section className="hero-section pt-24 pb-20">
+      <section className="hero-section py-16 lg:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex flex-col md:flex-row items-center">
-            <div className="md:w-1/2 mb-10 md:mb-0">
+          <div className="hero-inner">
+            <div className="hero-copy">
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-4">
                 The real profit lies in knowledge
               </h1>
-              <p className="text-xl text-gray-700 mb-8">
+              <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
                 We teach people how to grow wealth through knowledge and smart investing.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/#cta-enroll"
-                  className="bg-primary text-white px-6 py-3 rounded whitespace-nowrap hover:bg-primary/90 font-medium text-center"
+                  className="bg-primary text-white px-6 py-3 rounded-lg whitespace-nowrap hover:bg-primary/90 font-semibold text-center"
                 >
-                  Get syllabus on WhatsApp
+                  Start Learning Now
                 </Link>
                 <Link
                   href="/courses"
-                  className="bg-white text-primary border border-primary px-6 py-3 rounded whitespace-nowrap hover:bg-gray-50 font-medium text-center"
+                  className="bg-white text-primary border border-primary px-6 py-3 rounded-lg whitespace-nowrap hover:bg-gray-50 font-semibold text-center"
                 >
                   Explore Courses
                 </Link>
               </div>
             </div>
-            <div className="md:w-1/2 flex justify-end">
-              <img
-                src="/group.jpg"
-                alt="People learning about investing"
-                className="rounded-lg shadow-lg object-cover max-w-full h-auto"
-              />
+            <div className="hero-visual">
+              <img src="/group.jpg" alt="People learning about investing" />
             </div>
           </div>
         </div>

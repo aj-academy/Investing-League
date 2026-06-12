@@ -67,7 +67,7 @@ export function ScannerSection() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/login"
+            href="/dashboard"
             className="inline-flex items-center justify-center bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors shadow-lg"
           >
             Open Decision Lab Scanner
