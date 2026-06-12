@@ -1,6 +1,6 @@
 "use client";
 
-import { buildCourseInquiryMessage, openWhatsApp } from "@/lib/marketing/whatsapp";
+import { useLeadModal } from "./LeadModal";
 
 export function CourseLearnButton({
   courseName,
@@ -9,6 +9,8 @@ export function CourseLearnButton({
   courseName: string;
   className?: string;
 }) {
+  const { openLeadModal } = useLeadModal();
+
   return (
     <button
       type="button"
@@ -16,9 +18,9 @@ export function CourseLearnButton({
         className ||
         "bg-primary text-white px-4 py-2 rounded whitespace-nowrap hover:bg-primary/90 w-full"
       }
-      onClick={() => openWhatsApp(buildCourseInquiryMessage(courseName))}
+      onClick={() => openLeadModal({ interest: courseName, title: "Course enquiry" })}
     >
-      Syllabus on WhatsApp
+      Enquire now
     </button>
   );
 }

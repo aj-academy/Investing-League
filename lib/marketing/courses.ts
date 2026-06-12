@@ -10,6 +10,10 @@ export const COURSE_OPTIONS = [
   "Smart Mom, Smart Money",
 ] as const;
 
+export const SCANNER_INTEREST = "V8 Market Scanner";
+
+export const INTEREST_OPTIONS = [...COURSE_OPTIONS, SCANNER_INTEREST] as const;
+
 export const COURSE_CARDS = [
   { name: "Money Made Simple", image: "/C-1.png", level: "Beginner", weeks: "6 weeks" },
   { name: "Foundation of Wealth", image: "/C-2.png", level: "Intermediate", weeks: "8 weeks" },

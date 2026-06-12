@@ -8,6 +8,36 @@ export function openWhatsApp(message: string) {
   window.open(buildWhatsAppUrl(message), "_blank", "noopener,noreferrer");
 }
 
+export function buildLeadInquiryMessage({
+  name,
+  email,
+  phone,
+  interest,
+  message,
+}: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  interest?: string;
+  message?: string;
+}) {
+  const lines = [
+    "Hello The Investing League team,",
+    "",
+    "I would like more information.",
+    "",
+    `Name: ${name || "—"}`,
+    `Email: ${email || "—"}`,
+    `Contact: ${phone || "—"}`,
+    `Interested in: ${interest || "—"}`,
+  ];
+  if (message?.trim()) {
+    lines.push("", message.trim());
+  }
+  lines.push("", "Thank you.");
+  return lines.join("\n");
+}
+
 export function buildSyllabusInquiryMessage({
   name,
   email,

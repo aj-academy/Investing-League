@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CourseGrid } from "./CourseGrid";
 import { HeroActions } from "./HeroActions";
 import { MarketingShell } from "./MarketingShell";
-import { SyllabusForm } from "./SyllabusForm";
+import { LeadInquiryButton } from "./LeadModal";
 
 const HOME_COURSE_DESCRIPTIONS: Record<string, string> = {
   "Money Made Simple":
@@ -194,9 +194,15 @@ export function MarketingHome() {
                   Ready to start your investing journey?
                 </h2>
                 <p className="text-gray-700 mb-8">
-                  Request the syllabus and enrollment details on WhatsApp — no signup form required.
+                  Tell us what you&apos;re interested in — we&apos;ll open WhatsApp with your details
+                  ready to send.
                 </p>
-                <SyllabusForm />
+                <LeadInquiryButton
+                  className="bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 w-full sm:w-auto"
+                  title="Enrollment enquiry"
+                >
+                  Contact us on WhatsApp
+                </LeadInquiryButton>
               </div>
               <div className="md:w-1/2 bg-gray-100">
                 <img src="/group.jpg" alt="" className="w-full h-full object-cover" />

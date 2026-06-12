@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LeadModalProvider } from "./LeadModal";
 import { MarketingFooter } from "./MarketingFooter";
 import { MarketingHeader } from "./MarketingHeader";
 
@@ -14,10 +15,12 @@ export function MarketingShell({
   showFooter?: boolean;
 }) {
   return (
-    <div className="marketing-site w-full min-w-0 bg-gray-50">
-      <MarketingHeader active={active} />
-      <main className="w-full">{children}</main>
-      {showFooter && <MarketingFooter />}
-    </div>
+    <LeadModalProvider>
+      <div className="marketing-site w-full min-w-0 bg-gray-50">
+        <MarketingHeader active={active} />
+        <main className="w-full">{children}</main>
+        {showFooter && <MarketingFooter />}
+      </div>
+    </LeadModalProvider>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLeadModal } from "./LeadModal";
 
 type Active = "home" | "about" | "courses" | "contact";
 
@@ -18,6 +19,8 @@ const NAV_LINKS: { key: Active; label: string; href: string }[] = [
 ];
 
 export function MarketingHeader({ active = "home" }: { active?: Active }) {
+  const { openLeadModal } = useLeadModal();
+
   return (
     <header className="bg-white shadow-md w-full">
       <div className="mkt-container">
@@ -45,12 +48,13 @@ export function MarketingHeader({ active = "home" }: { active?: Active }) {
           </ul>
 
           <div className="mkt-header-actions">
-            <a
-              href="#cta-enroll"
-              className="mkt-wa-btn bg-green-500 text-white px-3 sm:px-4 py-2 rounded text-sm font-semibold hover:bg-green-600 whitespace-nowrap no-underline"
+            <button
+              type="button"
+              onClick={() => openLeadModal({ title: "WhatsApp enquiry" })}
+              className="mkt-wa-btn bg-green-500 text-white px-3 sm:px-4 py-2 rounded text-sm font-semibold hover:bg-green-600 whitespace-nowrap"
             >
               WhatsApp enquiry
-            </a>
+            </button>
           </div>
         </div>
 
