@@ -7,7 +7,7 @@ export function ContactLeadButton() {
     <LeadInquiryButton
       showMessage
       title="Contact us"
-      className="inline-flex items-center gap-2 bg-green-500 text-white px-5 py-2 rounded hover:bg-green-600 font-semibold"
+      className="mkt-btn mkt-btn-primary"
     >
       Message us on WhatsApp
     </LeadInquiryButton>

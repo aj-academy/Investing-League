@@ -14,10 +14,7 @@ export function CourseLearnButton({
   return (
     <button
       type="button"
-      className={
-        className ||
-        "bg-primary text-white px-4 py-2 rounded whitespace-nowrap hover:bg-primary/90 w-full"
-      }
+      className={className ?? "mkt-btn mkt-btn-primary mkt-btn-block"}
       onClick={() => openLeadModal({ interest: courseName, title: "Course enquiry" })}
     >
       Enquire now

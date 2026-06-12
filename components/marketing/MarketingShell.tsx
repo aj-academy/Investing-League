@@ -16,7 +16,7 @@ export function MarketingShell({
 }) {
   return (
     <LeadModalProvider>
-      <div className="marketing-site w-full min-w-0 bg-gray-50">
+      <div className="marketing-site">
         <MarketingHeader active={active} />
         <main className="w-full">{children}</main>
         {showFooter && <MarketingFooter />}

@@ -155,7 +155,7 @@ function LeadModalDialog({
               />
             </div>
           )}
-          <button type="submit" className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90">
+          <button type="submit" className="mkt-btn mkt-btn-primary mkt-btn-block">
             Continue on WhatsApp
           </button>
         </form>

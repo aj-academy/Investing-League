@@ -1,41 +1,34 @@
 import { COURSE_CARDS } from "@/lib/marketing/courses";
 import { CourseLearnButton } from "./CourseLearnButton";
 
-function levelClass(level: string) {
-  if (level === "Beginner") return "bg-primary/10 text-primary";
-  if (level === "Intermediate") return "bg-secondary/10 text-secondary";
-  return "bg-red-100 text-red-600";
+function levelBadgeClass(level: string) {
+  if (level === "Beginner") return "mkt-badge mkt-badge--green";
+  if (level === "Intermediate") return "mkt-badge mkt-badge--amber";
+  return "mkt-badge mkt-badge--red";
 }
 
 export function CourseGrid({ descriptions }: { descriptions?: Record<string, string> }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div className="mkt-course-grid">
       {COURSE_CARDS.map((course) => (
-        <div
-          key={course.name}
-          className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-        >
-          <img
-            src={course.image}
-            alt={course.name}
-            className="w-full h-48 object-cover object-top"
-          />
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-3">
-              <span
-                className={`${levelClass(course.level)} px-3 py-1 rounded-full text-sm font-medium`}
-              >
-                {course.level}
-              </span>
-              <span className="text-gray-600 text-sm">{course.weeks}</span>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">{course.name}</h3>
-            {descriptions?.[course.name] && (
-              <p className="text-gray-700 mb-4">{descriptions[course.name]}</p>
-            )}
-            <CourseLearnButton courseName={course.name} />
+        <article key={course.name} className="mkt-course-card">
+          <div className="mkt-course-card-image">
+            <img src={course.image} alt={course.name} />
           </div>
-        </div>
+          <div className="mkt-course-card-body">
+            <div className="mkt-course-card-meta">
+              <span className={levelBadgeClass(course.level)}>{course.level}</span>
+              <span className="mkt-course-weeks">{course.weeks}</span>
+            </div>
+            <h3 className="mkt-course-card-title">{course.name}</h3>
+            {descriptions?.[course.name] && (
+              <p className="mkt-course-card-desc">{descriptions[course.name]}</p>
+            )}
+            <div className="mkt-course-card-actions">
+              <CourseLearnButton courseName={course.name} />
+            </div>
+          </div>
+        </article>
       ))}
     </div>
   );
