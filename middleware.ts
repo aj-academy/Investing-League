@@ -2,7 +2,7 @@ import { hasAdminSessionCookie } from "@/lib/auth/adminSession";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedPaths = ["/dashboard", "/journal", "/analytics", "/settings", "/admin"];
+const protectedPaths = ["/dashboard", "/scanner", "/journal", "/analytics", "/settings", "/admin"];
 
 function supabaseConfigured() {
   return Boolean(
@@ -51,6 +51,10 @@ export async function middleware(request: NextRequest) {
   if (path === "/login" && user) {
     const unlockingAdmin = request.nextUrl.searchParams.get("admin") === "1";
     if (!unlockingAdmin) {
+      const next = request.nextUrl.searchParams.get("next");
+      if (next && next.startsWith("/") && !next.startsWith("//")) {
+        return NextResponse.redirect(new URL(next, request.url));
+      }
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
@@ -60,7 +64,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isProtected && !user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", path);
+    return NextResponse.redirect(loginUrl);
   }
 
   if ((isProtected || isSuspendedPage) && user) {
@@ -88,6 +94,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/scanner",
+    "/scanner/:path*",
     "/journal/:path*",
     "/analytics/:path*",
     "/settings/:path*",

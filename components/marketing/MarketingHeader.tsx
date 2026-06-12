@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMarketing } from "./MarketingProvider";
 
 type Active = "home" | "about" | "courses" | "contact";
 
@@ -19,11 +18,9 @@ const NAV_LINKS: { key: Active; label: string; href: string }[] = [
 ];
 
 export function MarketingHeader({ active = "home" }: { active?: Active }) {
-  const { openScanner } = useMarketing();
-
   return (
-    <header className="bg-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-white shadow-md w-full">
+      <div className="mkt-container">
         <div className="mkt-header-row">
           <Link href="/" className="mkt-header-logo flex items-center gap-2 min-w-0 no-underline">
             <img src="/Icon.png" className="h-12 w-12 sm:h-14 sm:w-14 shrink-0" alt="The Investing League" />
@@ -41,13 +38,9 @@ export function MarketingHeader({ active = "home" }: { active?: Active }) {
               </li>
             ))}
             <li>
-              <button
-                type="button"
-                onClick={openScanner}
-                className={`${navClass(false)} py-1 inline-block bg-transparent border-0 cursor-pointer`}
-              >
+              <Link href="/scanner" className={`${navClass(false)} py-1 inline-block no-underline`}>
                 Scanner
-              </button>
+              </Link>
             </li>
           </ul>
 
@@ -70,13 +63,9 @@ export function MarketingHeader({ active = "home" }: { active?: Active }) {
             </li>
           ))}
           <li>
-            <button
-              type="button"
-              onClick={openScanner}
-              className={`${navClass(false)} py-0.5 inline-block bg-transparent border-0 cursor-pointer`}
-            >
+            <Link href="/scanner" className={`${navClass(false)} py-0.5 inline-block no-underline`}>
               Scanner
-            </button>
+            </Link>
           </li>
         </ul>
       </div>

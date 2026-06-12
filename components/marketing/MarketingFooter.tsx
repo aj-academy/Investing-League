@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export function MarketingFooter() {
   return (
-    <footer className="mkt-footer pt-16 pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="mkt-footer pt-16 pb-8 w-full">
+      <div className="mkt-container">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
           <div>
             <h3 className="text-xl font-semibold mb-4">The Investing League</h3>
@@ -18,7 +18,7 @@ export function MarketingFooter() {
               <li><Link href="/about" className="hover:text-white">About</Link></li>
               <li><Link href="/courses" className="hover:text-white">Courses</Link></li>
               <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
-              <li><Link href="/#scanner" className="hover:text-white no-underline">Scanner</Link></li>
+              <li><Link href="/scanner" className="hover:text-white no-underline">Scanner</Link></li>
             </ul>
           </div>
           <div>

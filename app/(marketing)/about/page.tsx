@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <MarketingShell active="about">
-      <section className="hero-section py-16 lg:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <section className="hero-section py-16 lg:py-20 w-full">
+        <div className="mkt-container w-full">
           <div className="hero-inner">
             <div className="hero-copy">
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-4">
@@ -42,8 +42,8 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="py-16 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-gray-700 text-lg space-y-6">
+      <section className="py-16 bg-white w-full">
+        <div className="mkt-container max-w-3xl text-gray-700 text-lg space-y-6">
           <p>
             At The Investing League, we&apos;re on a mission to transform how young people perceive
             and manage money. We believe financial literacy isn&apos;t just for experts — it&apos;s for

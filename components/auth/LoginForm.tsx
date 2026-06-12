@@ -91,7 +91,10 @@ export function LoginForm() {
         }
       }
 
-      router.replace("/dashboard");
+      const next = searchParams.get("next");
+      const safeNext =
+        next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+      router.replace(safeNext);
     } catch {
       toast.error("Unable to sign in. Check your Supabase configuration.");
     } finally {

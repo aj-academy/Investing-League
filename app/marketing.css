@@ -1,5 +1,4 @@
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap");
-@import "tailwindcss";
 
 /* Light marketing site — scoped under .marketing-site */
 body:has(.marketing-site) {
@@ -12,25 +11,55 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   background: #f9fafb;
   color: #111827;
   min-height: 100vh;
   position: relative;
   z-index: 1;
   font-family: Inter, system-ui, sans-serif;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.marketing-site .mkt-container {
+  width: 100%;
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .marketing-site .mkt-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .marketing-site .mkt-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }
 
 .marketing-site .mkt-brand {
   font-family: Cinzel, Georgia, serif;
 }
 
-/* Header: logo left, nav centered, auth right */
 .marketing-site .mkt-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 5rem;
   gap: 1rem;
+  width: 100%;
 }
 
 @media (min-width: 1024px) {
@@ -46,6 +75,9 @@ body:has(.marketing-site)::before {
 
   .marketing-site .mkt-header-links {
     justify-self: center;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
   }
 
   .marketing-site .mkt-header-actions {
@@ -90,6 +122,8 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .hero-section {
+  width: 100%;
+  max-width: 100%;
   background-image: linear-gradient(
       to right,
       rgba(255, 255, 255, 0.92) 45%,
@@ -107,6 +141,7 @@ body:has(.marketing-site)::before {
   flex-direction: column;
   align-items: stretch;
   gap: 2.5rem;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
@@ -119,13 +154,15 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .hero-copy {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
   max-width: 36rem;
   text-align: left;
 }
 
 .marketing-site .hero-visual {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
   display: flex;
   justify-content: center;
   max-width: 520px;
@@ -140,6 +177,35 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-footer {
+  width: 100%;
   background: #111827;
   color: #fff;
+}
+
+/* Layout fallbacks when utility classes are delayed */
+.marketing-site .grid {
+  display: grid;
+}
+.marketing-site .flex {
+  display: flex;
+}
+.marketing-site .md\:grid-cols-2 {
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.marketing-site .lg\:grid-cols-4 {
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.marketing-site .md\:flex-row {
+  @media (min-width: 768px) {
+    flex-direction: row;
+  }
+}
+.marketing-site .md\:w-1\/2 {
+  @media (min-width: 768px) {
+    width: 50%;
+  }
 }

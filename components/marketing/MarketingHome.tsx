@@ -2,7 +2,6 @@ import Link from "next/link";
 import { CourseGrid } from "./CourseGrid";
 import { HeroActions } from "./HeroActions";
 import { MarketingShell } from "./MarketingShell";
-import { ScannerSection } from "./ScannerSection";
 import { SyllabusForm } from "./SyllabusForm";
 
 const HOME_COURSE_DESCRIPTIONS: Record<string, string> = {
@@ -55,8 +54,8 @@ const WHY_CHOOSE = [
 export function MarketingHome() {
   return (
     <MarketingShell active="home">
-      <section className="hero-section py-16 lg:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <section className="hero-section py-16 lg:py-20 w-full">
+        <div className="mkt-container w-full">
           <div className="hero-inner">
             <div className="hero-copy">
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-4">
@@ -77,8 +76,8 @@ export function MarketingHome() {
         </div>
       </section>
 
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 bg-white w-full">
+        <div className="mkt-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Vision & Mission</h2>
             <div className="w-20 h-1 bg-primary mx-auto mb-8" />
@@ -100,10 +99,8 @@ export function MarketingHome() {
         </div>
       </section>
 
-      <ScannerSection />
-
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 bg-gray-50 w-full">
+        <div className="mkt-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">About Us</h2>
             <div className="w-20 h-1 bg-primary mx-auto mb-8" />
@@ -121,19 +118,19 @@ export function MarketingHome() {
                 beginners and intermediates alike.
               </p>
             </div>
-            <div className="md:w-1/2">
+            <div className="md:w-1/2 w-full">
               <img
                 src="/proff.jpg"
                 alt="Founder teaching"
-                className="rounded-lg shadow-lg object-cover w-full h-auto"
+                className="rounded-lg shadow-lg object-cover object-top w-full max-h-[420px]"
               />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 bg-white w-full">
+        <div className="mkt-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Core Values</h2>
             <div className="w-20 h-1 bg-primary mx-auto mb-8" />
@@ -149,8 +146,8 @@ export function MarketingHome() {
         </div>
       </section>
 
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 bg-gray-50 w-full">
+        <div className="mkt-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Courses</h2>
             <div className="w-20 h-1 bg-primary mx-auto mb-8" />
@@ -171,8 +168,8 @@ export function MarketingHome() {
         </div>
       </section>
 
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 bg-white w-full">
+        <div className="mkt-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose The Investing League</h2>
             <div className="w-20 h-1 bg-primary mx-auto mb-8" />
@@ -188,8 +185,8 @@ export function MarketingHome() {
         </div>
       </section>
 
-      <div className="py-16 bg-primary/5" id="cta-enroll">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="py-16 bg-primary/5 w-full" id="cta-enroll">
+        <div className="mkt-container">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="flex flex-col md:flex-row">
               <div className="md:w-1/2 p-8 md:p-12">
