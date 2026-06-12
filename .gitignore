@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+marketing-site/node_modules/
+marketing-site/dist/
 /.pnp
 .pnp.*
 .yarn/*
@@ -35,6 +37,7 @@ yarn-error.log*
 
 # extracted HTML reference (local only)
 _extracted/
+_import-web-main/
 
 # vercel
 .vercel
