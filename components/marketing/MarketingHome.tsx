@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CourseGrid } from "./CourseGrid";
+import { HeroActions } from "./HeroActions";
 import { MarketingShell } from "./MarketingShell";
 import { ScannerSection } from "./ScannerSection";
 import { SyllabusForm } from "./SyllabusForm";
@@ -64,20 +65,7 @@ export function MarketingHome() {
               <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
                 We teach people how to grow wealth through knowledge and smart investing.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <a
-                  href="#cta-enroll"
-                  className="bg-primary text-white px-6 py-3 rounded-lg whitespace-nowrap hover:bg-primary/90 font-semibold text-center"
-                >
-                  Start Learning Now
-                </a>
-                <Link
-                  href="/courses"
-                  className="bg-white text-primary border border-primary px-6 py-3 rounded-lg whitespace-nowrap hover:bg-gray-50 font-semibold text-center"
-                >
-                  Explore Courses
-                </Link>
-              </div>
+              <HeroActions />
             </div>
             <div className="hero-visual">
               <img

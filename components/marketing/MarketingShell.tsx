@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { MarketingFooter } from "./MarketingFooter";
 import { MarketingHeader } from "./MarketingHeader";
+import { MarketingProvider } from "./MarketingProvider";
 
 type Active = "home" | "about" | "courses" | "contact";
 
@@ -14,10 +15,12 @@ export function MarketingShell({
   showFooter?: boolean;
 }) {
   return (
-    <div className="marketing-site bg-gray-50">
-      <MarketingHeader active={active} />
-      {children}
-      {showFooter && <MarketingFooter />}
-    </div>
+    <MarketingProvider>
+      <div className="marketing-site bg-gray-50">
+        <MarketingHeader active={active} />
+        {children}
+        {showFooter && <MarketingFooter />}
+      </div>
+    </MarketingProvider>
   );
 }

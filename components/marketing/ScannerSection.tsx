@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { buildWhatsAppUrl } from "@/lib/marketing/whatsapp";
+import { useMarketing } from "./MarketingProvider";
 
 const SAMPLE_SIGNALS = [
   {
@@ -24,9 +27,17 @@ const SAMPLE_SIGNALS = [
   },
 ];
 
+const scannerAccessWhatsApp = buildWhatsAppUrl(
+  "Hello The Investing League team, I would like access to the live V8 Market Scanner. Please share enrollment details. Thank you."
+);
+
 export function ScannerSection() {
+  const { scannerOpen } = useMarketing();
+
+  if (!scannerOpen) return null;
+
   return (
-    <section className="py-16 bg-gray-900 text-white" id="scanner">
+    <section className="py-16 bg-gray-900 text-white scroll-mt-24" id="scanner">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <p className="text-green-400 text-sm font-semibold tracking-widest uppercase mb-2">
@@ -35,8 +46,8 @@ export function ScannerSection() {
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">V8 Market Scanner</h2>
           <div className="w-20 h-1 bg-green-500 mx-auto mb-6" />
           <p className="text-gray-300 max-w-2xl mx-auto text-lg">
-            Educational FX setup analysis with a clear permission box on every signal. Journal
-            results and analytics after you sign in.
+            Educational FX setup analysis with a clear permission box on every signal. Sample preview
+            below — request access on WhatsApp for live scanning.
           </p>
         </div>
 
@@ -66,23 +77,24 @@ export function ScannerSection() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center justify-center bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors shadow-lg"
+          <a
+            href={scannerAccessWhatsApp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors shadow-lg no-underline"
           >
-            Open Decision Lab Scanner
-          </Link>
+            Get scanner access on WhatsApp
+          </a>
           <a
             href="#cta-enroll"
-            className="inline-flex items-center justify-center border border-gray-500 text-gray-200 px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+            className="inline-flex items-center justify-center border border-gray-500 text-gray-200 px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors no-underline"
           >
             Request syllabus on WhatsApp
           </a>
         </div>
 
         <p className="text-center text-gray-500 text-xs mt-8 max-w-2xl mx-auto leading-relaxed">
-          Educational decision-support only. Not financial advice. Live scans run in the Decision
-          Lab at /dashboard after login.
+          Educational decision-support only. Not financial advice.
         </p>
       </div>
     </section>
