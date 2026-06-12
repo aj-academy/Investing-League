@@ -23,6 +23,35 @@ body:has(.marketing-site)::before {
   font-family: Cinzel, Georgia, serif;
 }
 
+/* Header: logo left, nav centered, auth right */
+.marketing-site .mkt-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 5rem;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .marketing-site .mkt-header-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .marketing-site .mkt-header-logo {
+    justify-self: start;
+  }
+
+  .marketing-site .mkt-header-links {
+    justify-self: center;
+  }
+
+  .marketing-site .mkt-header-actions {
+    justify-self: end;
+  }
+}
+
 .marketing-site .bg-primary {
   background-color: #22c55e;
 }
@@ -64,7 +93,7 @@ body:has(.marketing-site)::before {
 .marketing-site .hero-inner {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 2.5rem;
 }
 
@@ -80,6 +109,7 @@ body:has(.marketing-site)::before {
 .marketing-site .hero-copy {
   flex: 1;
   max-width: 36rem;
+  text-align: left;
 }
 
 .marketing-site .hero-visual {
