@@ -235,6 +235,11 @@
 .scanner-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--bull));transition:width .3s ease;border-radius:999px}
 .scanner-tip{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:8px;font-size:10px;color:var(--gold2);line-height:1.5;background:var(--goldd);border:1px solid rgba(240,160,32,.2)}
 .scanner-tip-icon{flex-shrink:0}
+.scanner-autoscan-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,214,143,.28);background:rgba(0,214,143,.06)}
+.scanner-autoscan-status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--bull);font-weight:600}
+.scanner-autoscan-pulse{width:8px;height:8px;border-radius:50%;background:var(--bull);box-shadow:0 0 10px rgba(0,214,143,.55);animation:scanner-pulse 2s ease infinite;flex-shrink:0}
+.scanner-btn-stop{padding:9px 14px;border-radius:8px;border:1px solid rgba(255,51,85,.45);background:linear-gradient(135deg,#2a0818,#4a1020);color:var(--bear);font-size:10px;font-weight:800;letter-spacing:.5px;cursor:pointer;transition:filter .2s,transform .15s;white-space:nowrap}
+.scanner-btn-stop:hover{filter:brightness(1.12);transform:translateY(-1px)}
 .scanner-section .sessions{margin-top:12px;margin-bottom:0}
 @media(max-width:960px){.scanner-panel{grid-template-columns:1fr}.scanner-stats-row{grid-template-columns:repeat(2,1fr)}.scanner-action-bar{flex-direction:column;align-items:stretch}.scanner-btn-run{max-width:none}}
 @media(max-width:700px){.scanner-section{padding:14px 12px}.scanner-filters-grid{grid-template-columns:1fr}.scanner-ticker-label{padding:0 10px;font-size:8px}}

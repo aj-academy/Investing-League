@@ -192,6 +192,17 @@ export function DashboardClient({
     setCountdown(0);
   }, []);
 
+  const stopAutoScan = useCallback(() => {
+    clearAutoSchedule();
+    setAutoScanning(false);
+    updateSettings({ autoRefresh: "off" });
+    toast.message("Auto scan stopped");
+  }, [clearAutoSchedule, updateSettings]);
+
+  useEffect(() => {
+    if (settings.autoRefresh === "off") clearAutoSchedule();
+  }, [settings.autoRefresh, clearAutoSchedule]);
+
   const scheduleAutoScan = useCallback(
     (seconds: number) => {
       clearAutoSchedule();
@@ -546,7 +557,10 @@ export function DashboardClient({
                 setRefreshing(false);
               }}
               onReloadLastScan={reloadLastScan}
+              onStopAutoScan={stopAutoScan}
               scanning={scanning || autoScanning}
+              autoScanning={autoScanning}
+              autoScanCountdown={countdown}
               refreshing={refreshing}
               progress={progress}
               selectedPairCount={selectedPairs.length}

@@ -24,7 +24,10 @@ export function ScannerControls({
   onScan,
   onRefreshPrices,
   onReloadLastScan,
+  onStopAutoScan,
   scanning,
+  autoScanning = false,
+  autoScanCountdown = 0,
   refreshing,
   filtersLocked,
   progress,
@@ -36,7 +39,10 @@ export function ScannerControls({
   onScan: () => void;
   onRefreshPrices: () => void;
   onReloadLastScan: () => void;
+  onStopAutoScan: () => void;
   scanning: boolean;
+  autoScanning?: boolean;
+  autoScanCountdown?: number;
   refreshing?: boolean;
   filtersLocked?: boolean;
   progress: number;
@@ -47,6 +53,7 @@ export function ScannerControls({
   const expiryOptions = expiryOptionsForPlan(plan);
   const tfLabel =
     expiryOptions.find((o) => o.value === settings.timeframe)?.label ?? settings.timeframe;
+  const autoScanEnabled = settings.autoRefresh !== "off";
 
   return (
     <div className="scanner-config">
@@ -157,6 +164,29 @@ export function ScannerControls({
           </select>
         </div>
       </div>
+
+      {autoScanEnabled && (
+        <div className="scanner-autoscan-bar">
+          <div className="scanner-autoscan-status">
+            <span className="scanner-autoscan-pulse" />
+            <span>
+              {autoScanning
+                ? "Auto scan running…"
+                : autoScanCountdown > 0
+                  ? `Next auto scan in ${autoScanCountdown}s`
+                  : "Auto scan enabled — runs after each scan"}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="scanner-btn-stop"
+            onClick={onStopAutoScan}
+            title="Stop scheduled auto scans and switch to manual only"
+          >
+            ■ Stop auto scan
+          </button>
+        </div>
+      )}
 
       <div className="scanner-action-bar">
         <div className="scanner-action-main">
