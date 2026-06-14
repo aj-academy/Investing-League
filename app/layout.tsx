@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   },
   description:
     "Financial education, courses, and the Decision Lab — educational market scanner, journal, and analytics.",
+  icons: {
+    icon: [{ url: "/Icon.png", type: "image/png" }],
+    shortcut: "/Icon.png",
+    apple: "/Icon.png",
+  },
 };
 
 export default function RootLayout({
