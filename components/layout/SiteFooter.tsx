@@ -9,6 +9,7 @@ const MARKETING_PREFIXES = [
   "/contact",
   "/decision-lab",
   "/plans",
+  "/privacy",
   "/scanner-info",
 ];
 

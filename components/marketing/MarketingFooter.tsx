@@ -27,6 +27,8 @@ export function MarketingFooter() {
               <li><Link href="/plans">Plans</Link></li>
               <li><Link href="/about">About</Link></li>
               <li><Link href="/contact">Contact</Link></li>
+              <li><Link href="/privacy">Privacy Policy</Link></li>
+              <li><Link href="/terms">Terms & Conditions</Link></li>
             </ul>
           </div>
           <div className="mkt-footer-col">
@@ -46,7 +48,14 @@ export function MarketingFooter() {
           </div>
         </div>
         <div className="mkt-footer-bottom">
-          © {new Date().getFullYear()} The Investing League. All rights reserved.
+          <div className="mkt-footer-legal">
+            <Link href="/privacy">Privacy Policy</Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/terms">Terms & Conditions</Link>
+          </div>
+          <p className="mkt-footer-copy">
+            © {new Date().getFullYear()} The Investing League. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

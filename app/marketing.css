@@ -1337,6 +1337,89 @@ body:has(.marketing-site)::before {
   color: var(--mkt-muted);
 }
 
+.marketing-site .mkt-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.marketing-site .mkt-footer-legal a {
+  color: var(--mkt-brand-green-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.marketing-site .mkt-footer-legal a:hover {
+  color: var(--mkt-brand-red);
+}
+
+.marketing-site .mkt-footer-copy {
+  margin: 0;
+}
+
+/* ─── Legal pages ─── */
+.marketing-site .mkt-legal-doc {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.marketing-site .mkt-legal-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--mkt-border);
+}
+
+.marketing-site .mkt-legal-section:last-of-type {
+  border-bottom: none;
+}
+
+.marketing-site .mkt-legal-section h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--mkt-brand-green-light);
+  margin: 0 0 0.75rem;
+}
+
+.marketing-site .mkt-legal-section p {
+  color: var(--mkt-muted);
+  line-height: 1.7;
+  font-size: 0.9375rem;
+  margin: 0 0 0.75rem;
+}
+
+.marketing-site .mkt-legal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.marketing-site .mkt-legal-list li {
+  position: relative;
+  padding-left: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--mkt-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.marketing-site .mkt-legal-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--mkt-brand-green);
+  font-weight: 700;
+}
+
+.marketing-site .mkt-legal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
 /* ─── Lead modal ─── */
 .mkt-modal-overlay {
   position: fixed;

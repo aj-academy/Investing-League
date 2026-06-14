@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
       { source: "/course", destination: "/courses", permanent: true },
       { source: "/home", destination: "/", permanent: true },
       { source: "/scanner-info", destination: "/decision-lab", permanent: true },
+      { source: "/privacypolicy", destination: "/privacy", permanent: true },
+      { source: "/PrivacyPolicy", destination: "/privacy", permanent: true },
     ];
   },
 };
