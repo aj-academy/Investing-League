@@ -1,8 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap");
 
-/* ─── Dark premium fintech education theme ─── */
+/* ─── Logo-based brand theme (green cap + maroon accent) ─── */
 body:has(.marketing-site) {
-  background: #070b14;
+  background: #061410;
   color: #f1f5f9;
   font-family: Inter, system-ui, sans-serif;
 }
@@ -11,16 +11,29 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site {
-  --mkt-bg: #070b14;
-  --mkt-surface: #0f1629;
-  --mkt-surface-2: #151d32;
-  --mkt-border: #1e2a45;
+  /* From logo: graduation cap #00703C, hand/coins/arrows #9B1B1B */
+  --mkt-brand-green: #00703c;
+  --mkt-brand-green-hover: #008f4a;
+  --mkt-brand-green-dim: rgba(0, 112, 60, 0.18);
+  --mkt-brand-green-glow: rgba(0, 112, 60, 0.35);
+  --mkt-brand-red: #9b1b1b;
+  --mkt-brand-red-hover: #b42323;
+  --mkt-brand-red-dim: rgba(155, 27, 27, 0.14);
+  --mkt-brand-red-glow: rgba(155, 27, 27, 0.28);
+  --mkt-brand-green-light: #3dba6e;
+
+  --mkt-bg: #061410;
+  --mkt-surface: #0a1f17;
+  --mkt-surface-2: #0f2a1e;
+  --mkt-border: #1a3d2c;
   --mkt-text: #f1f5f9;
-  --mkt-muted: #94a3b8;
-  --mkt-gold: #d4a853;
-  --mkt-gold-dim: rgba(212, 168, 83, 0.15);
-  --mkt-green: #22c55e;
-  --mkt-blue: #38bdf8;
+  --mkt-muted: #8fa89a;
+
+  /* Semantic aliases (used across components) */
+  --mkt-gold: var(--mkt-brand-green);
+  --mkt-gold-dim: var(--mkt-brand-green-dim);
+  --mkt-green: var(--mkt-brand-green);
+  --mkt-blue: var(--mkt-brand-green-light);
   display: block;
   width: 100%;
   max-width: 100%;
@@ -86,20 +99,20 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-link-secondary {
-  color: var(--mkt-blue);
+  color: var(--mkt-brand-green-light);
   font-weight: 600;
   font-size: 0.9375rem;
   text-decoration: none;
 }
 
 .marketing-site .mkt-link-secondary:hover {
-  color: var(--mkt-gold);
+  color: var(--mkt-brand-red);
 }
 
 /* ─── Header ─── */
 .marketing-site .mkt-header {
   width: 100%;
-  background: rgba(7, 11, 20, 0.92);
+  background: rgba(6, 20, 16, 0.94);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--mkt-border);
   position: sticky;
@@ -301,27 +314,27 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-btn-primary {
-  background: var(--mkt-green);
-  color: #042f1a;
-  border-color: var(--mkt-green);
+  background: var(--mkt-brand-red);
+  color: #fff;
+  border-color: var(--mkt-brand-red);
 }
 
 .marketing-site .mkt-btn-primary:hover {
-  background: #16a34a;
-  border-color: #16a34a;
-  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.25);
+  background: var(--mkt-brand-red-hover);
+  border-color: var(--mkt-brand-red-hover);
+  box-shadow: 0 4px 20px var(--mkt-brand-red-glow);
 }
 
 .marketing-site .mkt-btn-gold {
-  background: var(--mkt-gold);
-  color: #1a1204;
-  border-color: var(--mkt-gold);
+  background: var(--mkt-brand-green);
+  color: #fff;
+  border-color: var(--mkt-brand-green);
 }
 
 .marketing-site .mkt-btn-gold:hover {
-  background: #e8bc6a;
-  border-color: #e8bc6a;
-  box-shadow: 0 4px 20px rgba(212, 168, 83, 0.35);
+  background: var(--mkt-brand-green-hover);
+  border-color: var(--mkt-brand-green-hover);
+  box-shadow: 0 4px 20px var(--mkt-brand-green-glow);
 }
 
 .marketing-site .mkt-btn-outline {
@@ -331,9 +344,9 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-btn-outline:hover {
-  border-color: var(--mkt-gold);
-  color: var(--mkt-gold);
-  background: var(--mkt-gold-dim);
+  border-color: var(--mkt-brand-green);
+  color: var(--mkt-brand-green-light);
+  background: var(--mkt-brand-green-dim);
 }
 
 .marketing-site .mkt-btn-ghost {
@@ -374,8 +387,8 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-hero--premium {
-  background: radial-gradient(ellipse at 70% 20%, rgba(56, 189, 248, 0.08), transparent 50%),
-    radial-gradient(ellipse at 20% 80%, rgba(212, 168, 83, 0.08), transparent 45%),
+  background: radial-gradient(ellipse at 70% 20%, var(--mkt-brand-green-dim), transparent 50%),
+    radial-gradient(ellipse at 20% 80%, var(--mkt-brand-red-dim), transparent 45%),
     var(--mkt-bg);
 }
 
@@ -477,7 +490,7 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-hero-media--glow img {
-  box-shadow: 0 0 60px rgba(212, 168, 83, 0.12), 0 20px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 60px var(--mkt-brand-green-dim), 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 /* ─── Sections ─── */
@@ -520,7 +533,7 @@ body:has(.marketing-site)::before {
 .marketing-site .mkt-divider {
   width: 4rem;
   height: 3px;
-  background: linear-gradient(90deg, var(--mkt-gold), var(--mkt-blue));
+  background: linear-gradient(90deg, var(--mkt-brand-green), var(--mkt-brand-red));
   border-radius: 2px;
   margin: 1rem auto 0;
 }
@@ -611,7 +624,7 @@ body:has(.marketing-site)::before {
 
 .marketing-site .mkt-feature-card:hover,
 .marketing-site .mkt-value-card:hover {
-  border-color: rgba(212, 168, 83, 0.35);
+  border-color: rgba(0, 112, 60, 0.45);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
@@ -666,8 +679,8 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-path-card--accent {
-  border-color: rgba(212, 168, 83, 0.4);
-  background: linear-gradient(145deg, var(--mkt-surface-2), rgba(212, 168, 83, 0.06));
+  border-color: rgba(155, 27, 27, 0.45);
+  background: linear-gradient(145deg, var(--mkt-surface-2), var(--mkt-brand-red-dim));
 }
 
 /* ─── Course cards ─── */
@@ -706,7 +719,7 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-course-card:hover {
-  border-color: rgba(212, 168, 83, 0.4);
+  border-color: rgba(0, 112, 60, 0.5);
   transform: translateY(-2px);
 }
 
@@ -862,8 +875,8 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-pricing-card--featured {
-  border-color: var(--mkt-gold);
-  box-shadow: 0 0 40px rgba(212, 168, 83, 0.12);
+  border-color: var(--mkt-brand-red);
+  box-shadow: 0 0 40px var(--mkt-brand-red-dim);
 }
 
 .marketing-site .mkt-pricing-badge {
@@ -873,8 +886,8 @@ body:has(.marketing-site)::before {
   font-size: 0.6875rem;
   font-weight: 700;
   padding: 0.25rem 0.625rem;
-  background: var(--mkt-gold);
-  color: #1a1204;
+  background: var(--mkt-brand-red);
+  color: #fff;
   border-radius: 9999px;
 }
 
@@ -963,7 +976,7 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-scanner-preview-chart {
-  background: linear-gradient(180deg, rgba(56, 189, 248, 0.15), transparent);
+  background: linear-gradient(180deg, var(--mkt-brand-green-dim), transparent);
   border: 1px solid var(--mkt-border);
   border-radius: 0.5rem;
   min-height: 8rem;
@@ -1238,13 +1251,13 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-contact-grid .mkt-footer-links a {
-  color: var(--mkt-blue);
+  color: var(--mkt-brand-green-light);
 }
 
 /* ─── Footer ─── */
 .marketing-site .mkt-footer {
   width: 100%;
-  background: #04070d;
+  background: #040a08;
   color: var(--mkt-text);
   padding: 4rem 0 2rem;
   border-top: 1px solid var(--mkt-border);
@@ -1313,7 +1326,7 @@ body:has(.marketing-site)::before {
 }
 
 .marketing-site .mkt-footer-links a:hover {
-  color: var(--mkt-gold);
+  color: var(--mkt-brand-green-light);
 }
 
 .marketing-site .mkt-footer-bottom {
@@ -1340,8 +1353,8 @@ body:has(.marketing-site)::before {
   position: relative;
   width: 100%;
   max-width: 28rem;
-  background: #151d32;
-  border: 1px solid #1e2a45;
+  background: var(--mkt-surface-2);
+  border: 1px solid var(--mkt-border);
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
@@ -1357,16 +1370,16 @@ body:has(.marketing-site)::before {
   width: 2rem;
   height: 2rem;
   border: none;
-  background: #0f1629;
+  background: var(--mkt-surface);
   border-radius: 9999px;
   font-size: 1.25rem;
   line-height: 1;
-  color: #94a3b8;
+  color: var(--mkt-muted);
   cursor: pointer;
 }
 
 .mkt-modal-close:hover {
-  background: #1e2a45;
+  background: var(--mkt-border);
   color: #f1f5f9;
 }
 
@@ -1390,19 +1403,19 @@ body:has(.marketing-site)::before {
 .mkt-field-input {
   width: 100%;
   padding: 0.5rem 1rem;
-  border: 1px solid #1e2a45;
+  border: 1px solid var(--mkt-border);
   border-radius: 8px;
   font-size: 0.9375rem;
   color: #f1f5f9;
-  background: #0f1629;
+  background: var(--mkt-surface);
   box-sizing: border-box;
   font-family: inherit;
 }
 
 .mkt-field-input:focus {
   outline: none;
-  border-color: #d4a853;
-  box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.2);
+  border-color: var(--mkt-brand-green);
+  box-shadow: 0 0 0 2px var(--mkt-brand-green-dim);
 }
 
 .mkt-modal .space-y-4 > * + * {
