@@ -84,10 +84,10 @@ function LeadModalDialog({
         <button type="button" className="mkt-modal-close" onClick={onClose} aria-label="Close">
           ×
         </button>
-        <h2 id="lead-modal-title" className="text-xl font-bold text-gray-900 mb-1">
+        <h2 id="lead-modal-title" className="text-xl font-bold mb-1">
           {options.title ?? "Get in touch"}
         </h2>
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm mb-6">
           Share your details — we&apos;ll open WhatsApp with your message ready to send.
         </p>
 

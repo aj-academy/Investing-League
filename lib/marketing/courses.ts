@@ -1,27 +1,28 @@
-export const COURSE_OPTIONS = [
-  "Money Made Simple",
-  "Foundation of Wealth",
-  "The Wealth Builder",
-  "Income Accelerator",
-  "Market Warrior",
-  "Smart Risk, Smart Profit",
-  "Legacy & Wealth Psychology",
-  "Wealth Her Way",
-  "Smart Mom, Smart Money",
+import { COURSES } from "./siteData";
+
+export const COURSE_OPTIONS = COURSES.map((c) => c.name) as [
+  string,
+  ...string[],
+];
+
+export const SCANNER_INTEREST = "Decision Lab Scanner";
+
+export const GENERAL_INTEREST_OPTIONS = [
+  "Course (general enquiry)",
+  SCANNER_INTEREST,
+  "Course + Scanner Bundle",
+  "Workshop",
 ] as const;
 
-export const SCANNER_INTEREST = "V8 Market Scanner";
-
-export const INTEREST_OPTIONS = [...COURSE_OPTIONS, SCANNER_INTEREST] as const;
-
-export const COURSE_CARDS = [
-  { name: "Money Made Simple", image: "/C-1.png", level: "Beginner", weeks: "6 weeks" },
-  { name: "Foundation of Wealth", image: "/C-2.png", level: "Intermediate", weeks: "8 weeks" },
-  { name: "The Wealth Builder", image: "/C-3.png", level: "Advanced", weeks: "10 weeks" },
-  { name: "Income Accelerator", image: "/C-4.png", level: "Intermediate", weeks: "7 weeks" },
-  { name: "Market Warrior", image: "/c-5 .png", level: "Intermediate", weeks: "8 weeks" },
-  { name: "Smart Risk, Smart Profit", image: "/c-6.png", level: "Advanced", weeks: "12 weeks" },
-  { name: "Legacy & Wealth Psychology", image: "/c-7.png", level: "Advanced", weeks: "12 weeks" },
-  { name: "Wealth Her Way", image: "/c-8.png", level: "Advanced", weeks: "12 weeks" },
-  { name: "Smart Mom, Smart Money", image: "/C-9.png", level: "Advanced", weeks: "12 weeks" },
+export const INTEREST_OPTIONS = [
+  ...GENERAL_INTEREST_OPTIONS,
+  ...COURSE_OPTIONS,
 ] as const;
+
+export const COURSE_CARDS = COURSES.map((c) => ({
+  name: c.name,
+  image: c.image,
+  level: c.level,
+  weeks: c.weeks,
+  slug: c.slug,
+}));

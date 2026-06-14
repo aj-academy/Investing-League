@@ -1,16 +1,15 @@
 import type { ReactNode } from "react";
+import type { NavKey } from "@/lib/marketing/siteData";
 import { LeadModalProvider } from "./LeadModal";
 import { MarketingFooter } from "./MarketingFooter";
 import { MarketingHeader } from "./MarketingHeader";
-
-type Active = "home" | "about" | "courses" | "contact";
 
 export function MarketingShell({
   active,
   children,
   showFooter = true,
 }: {
-  active: Active;
+  active: NavKey;
   children: ReactNode;
   showFooter?: boolean;
 }) {

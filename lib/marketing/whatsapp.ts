@@ -1,5 +1,20 @@
 export const WHATSAPP_NUMBER = "919445244572";
 
+export const WHATSAPP_PRESETS = {
+  course:
+    "Hi, I am interested in The Investing League courses. Please share details.",
+  scanner:
+    "Hi, I am interested in Decision Lab scanner access. Please share plans and onboarding details.",
+  bundle: "Hi, I want to know about the course + scanner bundle.",
+  general: "Hi, I would like to connect with The Investing League team.",
+} as const;
+
+export function openWhatsAppPreset(
+  preset: keyof typeof WHATSAPP_PRESETS
+) {
+  openWhatsApp(WHATSAPP_PRESETS[preset]);
+}
+
 export function buildWhatsAppUrl(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
