@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { DecisionLabPage } from "@/components/marketing/DecisionLabPage";
+import PremiumLanding from "@/components/landing/PremiumLanding";
 
 export const metadata: Metadata = {
   title: "Decision Lab Scanner | The Investing League",
   description:
-    "Educational market scanner for market observation, signal testing, journaling, and risk-aware learning.",
+    "Preview the educational market scanner with eight major FX pairs — sample data for learning and observation only.",
 };
 
-export default function Page() {
-  return <DecisionLabPage />;
+export default function DecisionLabPage() {
+  return <PremiumLanding />;
 }

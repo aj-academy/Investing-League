@@ -107,20 +107,24 @@ export default function PremiumLanding() {
 
       <nav className="lp-nav">
         <div className="lp-wrap lp-nav-inner">
-          <div className="lp-logo">
-            <div className="lp-logo-mark">TIL</div>
+          <Link href="/" className="lp-logo">
+            <div className="lp-logo-mark">
+              <img src="/Icon.png" alt="" width={28} height={28} style={{ borderRadius: 6 }} />
+            </div>
             <div className="lp-logo-text">
               <div className="name">THE INVESTING LEAGUE</div>
               <div className="sub">Trading Decision Lab</div>
             </div>
-          </div>
+          </Link>
           <div className="lp-nav-links">
+            <Link href="/">Home</Link>
+            <Link href="/courses">Courses</Link>
             <a href="#scanner">Scanner</a>
             <a href="#features">Features</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#workflow">Workflow</a>
+            <a href="#pricing">Plans</a>
+            <Link href="/plans">View Plans</Link>
             <Link href="/login" className="lp-btn lp-btn-primary" style={{ padding: "10px 18px" }}>
-              Start Decision Lab
+              Member Login
             </Link>
           </div>
         </div>
@@ -141,16 +145,16 @@ export default function PremiumLanding() {
               decisions with journal analytics.
             </p>
             <div className="lp-hero-cta">
-              <button type="button" className="lp-btn lp-btn-primary" onClick={() => scrollToId("cta")}>
-                Start Decision Lab
-              </button>
+              <Link href="/login" className="lp-btn lp-btn-primary">
+                Member Login
+              </Link>
               <button type="button" className="lp-btn lp-btn-ghost" onClick={() => scrollToId("scanner")}>
-                Open Scanner
+                View 8-Asset Preview
               </button>
             </div>
             <p className="lp-hero-note">
-              Built for traders who use structured scanners, signal testing, journaling, and risk tracking
-              — not random entries.
+              Eight major FX pairs with sample scores and setups — educational preview only. Full
+              scanner access after member login.
             </p>
           </div>
 
@@ -348,23 +352,27 @@ export default function PremiumLanding() {
         <div className="lp-wrap">
           <div className="lp-footer-grid">
             <div className="brand-block">
-              <div className="lp-logo">
-                <div className="lp-logo-mark">TIL</div>
+              <Link href="/" className="lp-logo">
+                <div className="lp-logo-mark">
+                  <img src="/Icon.png" alt="" width={28} height={28} style={{ borderRadius: 6 }} />
+                </div>
                 <div className="lp-logo-text">
                   <div className="name">THE INVESTING LEAGUE</div>
                   <div className="sub">Trading Decision Lab</div>
                 </div>
-              </div>
+              </Link>
               <p>
                 Educational decision-support for FX binary traders. Scanner · Journal · Analytics · Risk
                 discipline.
               </p>
             </div>
             <div className="lp-footer-links">
-              <a href="#scanner">Scanner</a>
+              <a href="#scanner">Scanner preview</a>
               <a href="#features">Features</a>
-              <a href="#pricing">Pricing</a>
-              <Link href="/login">Login</Link>
+              <Link href="/plans">Plans</Link>
+              <Link href="/courses">Courses</Link>
+              <Link href="/login">Member Login</Link>
+              <Link href="/privacy">Privacy</Link>
               <Link href="/terms">Terms</Link>
             </div>
           </div>

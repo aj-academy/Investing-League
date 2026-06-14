@@ -23,7 +23,7 @@ export type NavKey =
 export const NAV_LINKS: { key: NavKey; label: string; href: string }[] = [
   { key: "home", label: "Home", href: "/" },
   { key: "courses", label: "Courses", href: "/courses" },
-  { key: "decision-lab", label: "Decision Lab", href: "/decision-lab" },
+  { key: "decision-lab", label: "Scanner", href: "/decision-lab" },
   { key: "plans", label: "Plans", href: "/plans" },
   { key: "about", label: "About", href: "/about" },
   { key: "contact", label: "Contact", href: "/contact" },
