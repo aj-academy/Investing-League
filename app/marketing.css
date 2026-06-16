@@ -1,10 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap");
-
 /* ─── Logo-based brand theme (green cap + maroon accent) ─── */
 body:has(.marketing-site) {
   background: #061410;
   color: #f1f5f9;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 body:has(.marketing-site)::before {
   display: none;
@@ -41,7 +39,7 @@ body:has(.marketing-site)::before {
   background: var(--mkt-bg);
   color: var(--mkt-text);
   min-height: 100vh;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   overflow-x: hidden;
   box-sizing: border-box;
   line-height: 1.5;
@@ -71,7 +69,7 @@ body:has(.marketing-site)::before {
 
 /* ─── Typography ─── */
 .marketing-site .mkt-brand {
-  font-family: Cinzel, Georgia, serif;
+  font-family: var(--font-cinzel), Georgia, serif;
   font-weight: 700;
   color: var(--mkt-gold);
   font-size: 1.125rem;
@@ -1283,7 +1281,7 @@ body:has(.marketing-site)::before {
   font-weight: 600;
   margin: 0 0 1rem;
   color: var(--mkt-gold);
-  font-family: Cinzel, Georgia, serif;
+  font-family: var(--font-cinzel), Georgia, serif;
 }
 
 .marketing-site .mkt-footer-heading {

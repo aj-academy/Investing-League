@@ -9,11 +9,35 @@ export function PricingSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/pricing")
-      .then((r) => r.json())
-      .then((json) => setPlans(json.plans || []))
-      .catch(() => setPlans([]))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    const load = () => {
+      fetch("/api/pricing")
+        .then((r) => r.json())
+        .then((json) => {
+          if (!cancelled) setPlans(json.plans || []);
+        })
+        .catch(() => {
+          if (!cancelled) setPlans([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    };
+
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(load, { timeout: 2500 });
+    } else {
+      timeoutId = setTimeout(load, 400);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
   }, []);
 
   return (

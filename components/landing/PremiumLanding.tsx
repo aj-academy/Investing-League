@@ -102,8 +102,25 @@ export default function PremiumLanding() {
   }, []);
 
   useEffect(() => {
-    const id = window.setInterval(jitterScores, 4000);
-    return () => window.clearInterval(id);
+    let id: number | undefined;
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      jitterScores();
+    };
+    const start = () => {
+      window.clearInterval(id);
+      id = window.setInterval(tick, 8000);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+      else window.clearInterval(id);
+    };
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [jitterScores]);
 
   return (

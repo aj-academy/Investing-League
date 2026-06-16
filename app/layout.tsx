@@ -3,7 +3,6 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import { InspectGuardRoot } from "@/components/security/InspectGuardRoot";
 import { DEFAULT_OG_IMAGE, PAGE_SEO, SITE_NAME, SITE_URL } from "@/lib/marketing/seo";
 import { Toaster } from "sonner";
-import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -29,9 +28,12 @@ export const metadata: Metadata = {
     images: [DEFAULT_OG_IMAGE],
   },
   icons: {
-    icon: [{ url: "/Icon.png", type: "image/png" }],
-    shortcut: "/Icon.png",
-    apple: "/Icon.png",
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: "/favicon-32.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -42,6 +44,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="192x192" />
+      </head>
       <body>
         <InspectGuardRoot />
         {children}
