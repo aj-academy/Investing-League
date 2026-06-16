@@ -23,7 +23,7 @@ export type NavKey =
 export const NAV_LINKS: { key: NavKey; label: string; href: string }[] = [
   { key: "home", label: "Home", href: "/" },
   { key: "courses", label: "Courses", href: "/courses" },
-  { key: "decision-lab", label: "Scanner", href: "/decision-lab" },
+  { key: "decision-lab", label: "Decision Lab", href: "/decision-lab" },
   { key: "plans", label: "Plans", href: "/plans" },
   { key: "about", label: "About", href: "/about" },
   { key: "contact", label: "Contact", href: "/contact" },
@@ -60,6 +60,9 @@ export type CourseRecord = {
   learnItems: string[];
   modules: string[];
   faqs: { question: string; answer: string }[];
+  toolsTemplates?: string[];
+  certificateInfo?: string;
+  mentorSupport?: string;
 };
 
 export const COURSES: CourseRecord[] = [
@@ -402,6 +405,36 @@ export const COURSES: CourseRecord[] = [
   },
 ];
 
+export const CHOOSE_YOUR_PATH = [
+  {
+    title: "Learn Finance",
+    description:
+      "For beginners, students, working professionals, women, and family finance learners.",
+    cta: "Start Learning",
+    href: "/courses",
+    variant: "gold" as const,
+    interest: undefined,
+  },
+  {
+    title: "Use Decision Lab",
+    description:
+      "For learners who want structured market observation, journaling, and risk-awareness support.",
+    cta: "Request Demo",
+    href: "/decision-lab",
+    variant: "outline" as const,
+    interest: undefined,
+  },
+  {
+    title: "Course + Decision Lab Bundle",
+    description:
+      "For serious learners who want guided education plus practical decision discipline.",
+    cta: "Join Bundle",
+    href: undefined,
+    variant: "outline" as const,
+    interest: "Course + Bundle",
+  },
+] as const;
+
 export const POPULAR_COURSE_SLUGS = [
   "money-made-simple",
   "foundation-of-wealth",
@@ -473,50 +506,74 @@ export const WORKSHOP_HIGHLIGHTS = [
 export type PlanRecord = {
   id: string;
   name: string;
+  bestFor: string;
   purpose: string;
   includes: string[];
   cta: string;
   interest: string;
+  priceNote?: string;
 };
 
 export const PLANS: PlanRecord[] = [
   {
     id: "learning-starter",
     name: "Learning Starter",
-    purpose: "For beginners starting finance learning",
+    bestFor: "Beginners",
+    purpose: "Start with structured finance basics and a clear learning roadmap.",
+    priceNote: "Starting price available on enquiry",
     includes: [
-      "Beginner course access / enquiry",
-      "WhatsApp support and enquiry",
-      "Personalized learning roadmap guidance",
+      "Course guidance",
+      "Finance basics roadmap",
+      "Personal finance or market foundation orientation",
+      "WhatsApp support",
     ],
-    cta: "Enquire Now",
-    interest: "Course (general enquiry)",
+    cta: "Start Learning",
+    interest: "Course",
   },
   {
     id: "decision-lab",
     name: "Decision Lab Access",
-    purpose: "For users who want scanner access for educational market observation",
+    bestFor: "Market learners",
+    purpose: "Educational observation dashboard for disciplined study.",
+    priceNote: "Contact for current pricing",
     includes: [
-      "Scanner member access",
-      "Market observation dashboard",
-      "Signal testing support",
-      "Risk-awareness disclaimer and onboarding",
+      "Educational market observation dashboard",
+      "Journal access",
+      "Risk-awareness view",
+      "Setup review workflow",
     ],
-    cta: "Request Access",
-    interest: "Decision Lab Scanner",
+    cta: "Request Demo",
+    interest: "Decision Lab",
   },
   {
     id: "bundle",
-    name: "Course + Scanner Bundle",
-    purpose: "For learners who want structured training plus scanner access",
+    name: "Course + Decision Lab Bundle",
+    bestFor: "Serious learners",
+    purpose: "Combine structured courses with Decision Lab learning tools.",
+    priceNote: "Contact for current pricing",
     includes: [
-      "Course guidance and enrollment support",
+      "Structured course enrollment guidance",
       "Decision Lab access",
-      "Practical learning support",
-      "WhatsApp onboarding",
+      "Practical learning tasks",
+      "Guided onboarding",
     ],
-    cta: "Talk to Us",
-    interest: "Course + Scanner Bundle",
+    cta: "Join Bundle",
+    interest: "Course + Bundle",
+  },
+  {
+    id: "mentor",
+    name: "Mentor Guidance",
+    bestFor: "Learners needing clarity",
+    purpose: "One-to-one direction on the right path for your level.",
+    priceNote: "Contact for current pricing",
+    includes: [
+      "One-to-one discussion",
+      "Course recommendation",
+      "Risk awareness guidance",
+      "Learning path suggestion",
+    ],
+    cta: "Talk to Mentor",
+    interest: "Mentor Call",
   },
 ];
 

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import PremiumLanding from "@/components/landing/PremiumLanding";
+import { PAGE_SEO } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
-  title: "Decision Lab Scanner | The Investing League",
-  description:
-    "Preview the educational market scanner with eight major FX pairs — sample data for learning and observation only.",
+  title: PAGE_SEO.decisionLab.title,
+  description: PAGE_SEO.decisionLab.description,
 };
 
 export default function DecisionLabPage() {

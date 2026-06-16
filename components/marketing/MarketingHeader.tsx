@@ -37,15 +37,10 @@ export function MarketingHeader({ active = "home" }: { active?: NavKey }) {
             <button
               type="button"
               className="mkt-btn mkt-btn-gold mkt-btn-sm mkt-btn-desktop-only"
-              onClick={() =>
-                openLeadModal({ title: "Talk on WhatsApp" })
-              }
+              onClick={() => openLeadModal({ title: "Talk to Mentor", interest: "Mentor Call" })}
             >
-              Talk on WhatsApp
+              Talk to Mentor
             </button>
-            <Link href="/login" className="mkt-btn mkt-btn-outline mkt-btn-sm">
-              Login
-            </Link>
             <button
               type="button"
               className="mkt-menu-btn"
@@ -85,24 +80,15 @@ export function MarketingHeader({ active = "home" }: { active?: NavKey }) {
             </li>
           ))}
           <li>
-            <Link
-              href="/login"
-              className="mkt-nav-drawer-link"
-              onClick={() => setMenuOpen(false)}
-            >
-              Login
-            </Link>
-          </li>
-          <li>
             <button
               type="button"
               className="mkt-btn mkt-btn-gold mkt-btn-block"
               onClick={() => {
                 setMenuOpen(false);
-                openLeadModal({ title: "Talk on WhatsApp" });
+                openLeadModal({ title: "Talk to Mentor", interest: "Mentor Call" });
               }}
             >
-              Talk on WhatsApp
+              Talk to Mentor
             </button>
           </li>
         </ul>

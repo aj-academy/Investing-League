@@ -32,43 +32,51 @@ const RISK_LABEL: Record<Risk, string> = { low: "Low", med: "Medium", high: "Hig
 const FEATURES = [
   {
     icon: "📡",
-    title: "Smart Market Scanner",
-    text: "Multi-select asset chips, session filters, and min-grade controls for focused scanning.",
+    title: "Educational Market Scanner",
+    text: "Multi-select asset chips, session filters, and grade controls for focused observation study.",
   },
   {
     icon: "🧠",
-    title: "Signal Intelligence Engine",
-    text: "V8 clean pipeline with permission boxes: Trade Allowed, Observe Only, Do Not Trade.",
+    title: "Decision Support Engine",
+    text: "Structured pipeline with study categories: qualified setup, observe only, and do not study.",
   },
   {
     icon: "⚡",
     title: "Practice vs Live Mode",
-    text: "Practice shows all filtered setups. Live selects the best signal per scan window.",
+    text: "Practice shows filtered setups for learning. Live mode selects one observation per window.",
   },
   {
     icon: "📘",
-    title: "Trading Journal",
-    text: "Autosave signals, record platform quotes, track entry drift, and mark Win/Loss/Refund.",
+    title: "Learning Journal",
+    text: "Record observations, platform notes, decision drift, and review outcomes for discipline.",
   },
   {
     icon: "🛡️",
-    title: "Risk Tracking",
-    text: "Daily trade limits, news-risk windows, repeated-signal cooldown, and correlation awareness.",
+    title: "Risk Awareness",
+    text: "Daily limits, news-risk windows, repeated-setup cooldown, and correlation awareness.",
   },
   {
     icon: "📊",
     title: "Performance Review",
-    text: "Analytics by permission, pair, grade, and signal type — verified trades only for WR.",
+    text: "Analytics by setup quality, pair, grade, and observation type — for learning review only.",
   },
 ];
 
 const WORKFLOW = [
-  "Scan Market",
-  "Find Setup",
-  "Validate Risk",
-  "Execute / Skip",
-  "Journal Trade",
-  "Review Performance",
+  "Observe Market",
+  "Study Setup",
+  "Check Risk",
+  "Decide / Skip",
+  "Journal Entry",
+  "Review Patterns",
+];
+
+const RESPONSIBLE_STEPS = [
+  "Observe the setup",
+  "Check confidence and risk level",
+  "Record the decision in journal",
+  "Review mistakes and patterns",
+  "Learn discipline before real market decisions",
 ];
 
 function scrollToId(id: string) {
@@ -135,14 +143,14 @@ export default function PremiumLanding() {
           <div>
             <div className="lp-eyebrow">
               <span className="dot" />
-              Premium Fintech · Educational Only
+              Educational Decision Lab · Observation Only
             </div>
             <h1>
-              <span>AI-Powered Market Intelligence</span> for Disciplined Traders
+              <span>Educational Market Decision Lab</span> for Disciplined Learners
             </h1>
             <p className="sub">
-              Scan selected assets, identify structured setups, track trading discipline, and improve
-              decisions with journal analytics.
+              Observe selected assets, study structured setups, maintain a learning journal, and
+              build risk awareness — not investment advice.
             </p>
             <div className="lp-hero-cta">
               <Link href="/login" className="lp-btn lp-btn-primary">
@@ -174,7 +182,7 @@ export default function PremiumLanding() {
               </div>
               <div className="lp-mock-stat">
                 <div className="v">{tradeAllowed}</div>
-                <div className="l">Trade Allowed</div>
+                <div className="l">Qualified Setups</div>
               </div>
               <div className="lp-mock-stat">
                 <div className="v">{topConf}%</div>
@@ -182,14 +190,14 @@ export default function PremiumLanding() {
               </div>
             </div>
             <div className="lp-mock-card">
-              <div className="lp-mock-perm">✅ TRADE ALLOWED</div>
+              <div className="lp-mock-perm">✅ SETUP QUALIFIED FOR STUDY</div>
               <div className="lp-mock-row">
                 <span>Pair</span>
-                <strong>EUR/USD · CALL</strong>
+                <strong>EUR/USD · Observation</strong>
               </div>
               <div className="lp-mock-row">
                 <span>Grade</span>
-                <strong>A+ · FINAL TRADE</strong>
+                <strong>A+ · High-Quality Observation Setup</strong>
               </div>
               <div className="lp-mock-bar">
                 <i />
@@ -235,13 +243,13 @@ export default function PremiumLanding() {
 
       <section className="lp-section" id="scanner">
         <div className="lp-wrap">
-          <div className="lp-sec-head">
-            <h2>Asset Scanner Preview</h2>
-            <p>Eight major FX pairs — the exact universe supported by The Investing League Decision Lab.</p>
+            <div className="lp-sec-head">
+            <h2>Educational Scanner Preview</h2>
+            <p>Eight major FX pairs — sample observation data for learning only.</p>
           </div>
           <div className="lp-scanner-wrap">
             <div className="lp-scanner-head">
-              <h3>LIVE SCANNER PREVIEW</h3>
+              <h3>SAMPLE OBSERVATION PREVIEW</h3>
               <div className="lp-live-pill">
                 <i />
                 SAMPLE DATA · EDUCATIONAL
@@ -251,8 +259,8 @@ export default function PremiumLanding() {
               <thead>
                 <tr>
                   <th>Asset</th>
-                  <th>Bias</th>
-                  <th>Score</th>
+                  <th>Direction</th>
+                  <th>Confidence</th>
                   <th>Setup</th>
                   <th>Risk</th>
                 </tr>
@@ -266,7 +274,7 @@ export default function PremiumLanding() {
                     <td data-label="Bias">
                       <span className={`lp-bias ${a.bias}`}>{BIAS_LABEL[a.bias]}</span>
                     </td>
-                    <td className="lp-score" data-label="Score">
+                    <td className="lp-score" data-label="Confidence">
                       {a.score}%
                     </td>
                     <td className="lp-setup" data-label="Setup">
@@ -323,13 +331,33 @@ export default function PremiumLanding() {
         </div>
       </section>
 
+      <section className="lp-section" id="responsible">
+        <div className="lp-wrap">
+          <div className="lp-sec-head">
+            <h2>How to Use Decision Lab Responsibly</h2>
+            <p>A disciplined learning sequence — not a shortcut to profit.</p>
+          </div>
+          <div className="lp-workflow">
+            {RESPONSIBLE_STEPS.map((step, i) => (
+              <span key={step} style={{ display: "contents" }}>
+                {i > 0 && <span className="lp-wf-arrow">→</span>}
+                <div className="lp-wf-step">
+                  <div className="n">{String(i + 1).padStart(2, "0")}</div>
+                  <div className="t">{step}</div>
+                </div>
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="lp-section">
         <div className="lp-wrap">
           <div className="lp-disclaimer">
             <p>
-              This platform is for educational analysis, signal testing, and trading journal support only.
-              It does not guarantee profit and does not provide financial advice. Users are responsible for
-              their own trading decisions.
+              The Decision Lab is for educational observation, journaling, and learning discipline.
+              It is not investment advice, not a trade recommendation, and not a guarantee of profit.
+              Users are responsible for their own market decisions.
             </p>
           </div>
         </div>
@@ -337,13 +365,13 @@ export default function PremiumLanding() {
 
       <section className="lp-final-cta" id="cta">
         <div className="lp-wrap">
-          <h2>Stop Random Trading. Start Structured Decision Making.</h2>
+          <h2>Build Discipline Before You Decide in Real Markets</h2>
           <p>
-            Join disciplined traders using scanner intelligence, journal verification, and risk-aware
+            Members use Decision Lab for structured observation, journaling, and risk-aware learning
             workflows.
           </p>
           <Link href="/login" className="lp-btn lp-btn-gold">
-            Launch Decision Lab
+            Member Login
           </Link>
         </div>
       </section>
@@ -362,8 +390,8 @@ export default function PremiumLanding() {
                 </div>
               </Link>
               <p>
-                Educational decision-support for FX binary traders. Scanner · Journal · Analytics · Risk
-                discipline.
+                Educational decision-support for market learners. Observation · Journal · Analytics ·
+                Risk discipline.
               </p>
             </div>
             <div className="lp-footer-links">

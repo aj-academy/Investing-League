@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { PlansPage } from "@/components/marketing/PlansPage";
+import { PAGE_SEO } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
-  title: "Plans | The Investing League",
-  description:
-    "Explore course, scanner, and bundle access plans from The Investing League.",
+  title: PAGE_SEO.plans.title,
+  description: PAGE_SEO.plans.description,
 };
 
 export default function Page() {

@@ -1,4 +1,5 @@
-import { EDUCATION_DISCLAIMER, PLANS } from "@/lib/marketing/siteData";
+import { PLANS } from "@/lib/marketing/siteData";
+import { COMPLIANCE_DISCLAIMER, FOOTER_DISCLAIMER } from "@/lib/marketing/compliance";
 import { MarketingShell } from "./MarketingShell";
 import { DisclaimerBox } from "./ui/DisclaimerBox";
 import { PricingCard } from "./ui/PricingCard";
@@ -10,10 +11,10 @@ export function PlansPage() {
       <section className="mkt-hero mkt-hero--compact">
         <div className="mkt-container">
           <div className="mkt-hero-content mkt-hero-content--wide">
-            <h1 className="mkt-hero-title">Plans & Access</h1>
+            <h1 className="mkt-hero-title">Courses & Decision Lab Plans</h1>
             <p className="mkt-hero-lead">
-              Choose course learning, Decision Lab scanner access, or a combined bundle.
-              Enquire via WhatsApp — no payment gateway on this page.
+              Choose finance learning, Decision Lab access, mentor guidance, or a combined bundle.
+              Pricing is shared on enquiry — no fake prices displayed here.
             </p>
           </div>
         </div>
@@ -22,19 +23,21 @@ export function PlansPage() {
       <section className="mkt-section">
         <div className="mkt-container">
           <SectionHeader
-            title="Choose Your Plan"
-            subtitle="All plans start with a conversation. Our team will guide enrollment and onboarding."
+            title="Choose Your Learning Path"
+            subtitle="Our team will guide enrollment, onboarding, and the right fit for your experience level."
           />
-          <div className="mkt-pricing-grid">
+          <div className="mkt-pricing-grid mkt-pricing-grid--quad">
             {PLANS.map((plan, i) => (
               <PricingCard
                 key={plan.id}
                 name={plan.name}
+                bestFor={plan.bestFor}
                 purpose={plan.purpose}
                 includes={plan.includes}
                 cta={plan.cta}
                 interest={plan.interest}
-                featured={i === 1}
+                priceNote={plan.priceNote}
+                featured={i === 2}
               />
             ))}
           </div>
@@ -43,12 +46,10 @@ export function PlansPage() {
 
       <section className="mkt-section mkt-section--surface">
         <div className="mkt-container mkt-prose-narrow">
-          <DisclaimerBox>
-            {EDUCATION_DISCLAIMER}
-          </DisclaimerBox>
+          <DisclaimerBox>{COMPLIANCE_DISCLAIMER}</DisclaimerBox>
           <p className="mkt-muted-text mkt-text-center mkt-stack-top">
-            {/* TODO: Payment gateway integration when approved — keep WhatsApp enquiry for now. */}
-            Payment integration placeholder: enquire first, pay after team confirmation.
+            {/* TODO: Payment gateway integration when approved — enquire via WhatsApp for now. */}
+            {FOOTER_DISCLAIMER}
           </p>
         </div>
       </section>

@@ -1,13 +1,13 @@
 import Link from "next/link";
 import {
   CONTACT_INFO,
-  EDUCATION_DISCLAIMER,
   SITE_TAGLINE,
 } from "@/lib/marketing/siteData";
+import { FOOTER_DISCLAIMER } from "@/lib/marketing/compliance";
 import { buildWhatsAppUrl, WHATSAPP_PRESETS } from "@/lib/marketing/whatsapp";
 
 export function MarketingFooter() {
-  const waHref = buildWhatsAppUrl(WHATSAPP_PRESETS.general);
+  const waHref = buildWhatsAppUrl(WHATSAPP_PRESETS.mentor);
 
   return (
     <footer className="mkt-footer">
@@ -15,18 +15,20 @@ export function MarketingFooter() {
         <div className="mkt-footer-grid">
           <div className="mkt-footer-col">
             <h3 className="mkt-footer-title">The Investing League</h3>
+            <p className="mkt-footer-text">Finance Learning + Educational Decision Lab</p>
             <p className="mkt-footer-text">{SITE_TAGLINE}</p>
-            <p className="mkt-footer-disclaimer">{EDUCATION_DISCLAIMER}</p>
+            <p className="mkt-footer-disclaimer">{FOOTER_DISCLAIMER}</p>
           </div>
           <div className="mkt-footer-col">
             <h4 className="mkt-footer-heading">Quick links</h4>
             <ul className="mkt-footer-links">
               <li><Link href="/">Home</Link></li>
               <li><Link href="/courses">Courses</Link></li>
-              <li><Link href="/decision-lab">Scanner</Link></li>
+              <li><Link href="/decision-lab">Decision Lab</Link></li>
               <li><Link href="/plans">Plans</Link></li>
               <li><Link href="/about">About</Link></li>
               <li><Link href="/contact">Contact</Link></li>
+              <li><Link href="/blog">Blog</Link></li>
               <li><Link href="/privacy">Privacy Policy</Link></li>
               <li><Link href="/terms">Terms & Conditions</Link></li>
             </ul>

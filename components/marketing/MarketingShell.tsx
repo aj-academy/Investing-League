@@ -3,6 +3,7 @@ import type { NavKey } from "@/lib/marketing/siteData";
 import { LeadModalProvider } from "./LeadModal";
 import { MarketingFooter } from "./MarketingFooter";
 import { MarketingHeader } from "./MarketingHeader";
+import { StickyWhatsApp } from "./StickyWhatsApp";
 
 export function MarketingShell({
   active,
@@ -19,6 +20,7 @@ export function MarketingShell({
         <MarketingHeader active={active} />
         <main className="w-full">{children}</main>
         {showFooter && <MarketingFooter />}
+        <StickyWhatsApp />
       </div>
     </LeadModalProvider>
   );

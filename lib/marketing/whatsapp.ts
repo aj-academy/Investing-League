@@ -4,8 +4,12 @@ export const WHATSAPP_PRESETS = {
   course:
     "Hi, I am interested in The Investing League courses. Please share details.",
   scanner:
-    "Hi, I am interested in Decision Lab scanner access. Please share plans and onboarding details.",
-  bundle: "Hi, I want to know about the course + scanner bundle.",
+    "Hi, I am interested in Decision Lab access. Please share plans and onboarding details.",
+  bundle: "Hi, I want to know about the course + Decision Lab bundle.",
+  mentor:
+    "Hi, I would like to talk to a mentor about the right learning path for me at The Investing League.",
+  demo:
+    "Hi, I would like to request a Decision Lab demo and learn how educational market observation works.",
   general: "Hi, I would like to connect with The Investing League team.",
 } as const;
 
@@ -51,6 +55,35 @@ export function buildLeadInquiryMessage({
   }
   lines.push("", "Thank you.");
   return lines.join("\n");
+}
+
+export function buildContactLeadMessage({
+  name,
+  email,
+  phone,
+  interest,
+  experience,
+  message,
+}: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  interest?: string;
+  experience?: string;
+  message?: string;
+}) {
+  return buildLeadInquiryMessage({
+    name,
+    email,
+    phone,
+    interest,
+    message: [
+      experience ? `Experience level: ${experience}` : "",
+      message?.trim() || "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  });
 }
 
 export function buildSyllabusInquiryMessage({

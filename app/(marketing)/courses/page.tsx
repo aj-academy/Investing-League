@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { CoursesListing } from "@/components/marketing/CoursesListing";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
+import { PAGE_SEO } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
-  title: "Finance Courses | The Investing League",
-  description:
-    "Explore practical finance, investing, wealth-building, and market learning courses for beginners and professionals.",
+  title: PAGE_SEO.courses.title,
+  description: PAGE_SEO.courses.description,
 };
 
 export default function CoursesPage() {

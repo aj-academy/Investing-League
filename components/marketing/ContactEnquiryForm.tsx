@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import {
-  buildLeadInquiryMessage,
+  buildContactLeadMessage,
   openWhatsApp,
 } from "@/lib/marketing/whatsapp";
-import { GENERAL_INTEREST_OPTIONS } from "@/lib/marketing/courses";
+import { EXPERIENCE_LEVELS, GENERAL_INTEREST_OPTIONS } from "@/lib/marketing/courses";
 
 // TODO: Integrate lead capture to Supabase or CRM when approved — currently WhatsApp-only.
 export function ContactEnquiryForm() {
@@ -13,20 +13,22 @@ export function ContactEnquiryForm() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [interest, setInterest] = useState("");
+  const [experience, setExperience] = useState("");
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim() || !interest) {
-      alert("Please enter your name, phone, and interest.");
+      alert("Please enter your name, WhatsApp number, and interest.");
       return;
     }
     openWhatsApp(
-      buildLeadInquiryMessage({
+      buildContactLeadMessage({
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),
         interest,
+        experience: experience.trim(),
         message: message.trim(),
       })
     );
@@ -47,7 +49,7 @@ export function ContactEnquiryForm() {
         />
       </div>
       <div className="mkt-form-row">
-        <label htmlFor="contact-phone" className="mkt-field-label">Phone</label>
+        <label htmlFor="contact-phone" className="mkt-field-label">WhatsApp Number</label>
         <input
           id="contact-phone"
           type="tel"
@@ -71,7 +73,7 @@ export function ContactEnquiryForm() {
       </div>
       <div className="mkt-form-row">
         <label htmlFor="contact-interest" className="mkt-field-label">
-          Interested in
+          I am interested in
         </label>
         <select
           id="contact-interest"
@@ -83,6 +85,22 @@ export function ContactEnquiryForm() {
           <option value="" disabled>Select an option</option>
           {GENERAL_INTEREST_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      </div>
+      <div className="mkt-form-row">
+        <label htmlFor="contact-experience" className="mkt-field-label">
+          Experience level
+        </label>
+        <select
+          id="contact-experience"
+          className="mkt-field-input"
+          value={experience}
+          onChange={(e) => setExperience(e.target.value)}
+        >
+          <option value="">Select your level</option>
+          {EXPERIENCE_LEVELS.map((level) => (
+            <option key={level} value={level}>{level}</option>
           ))}
         </select>
       </div>

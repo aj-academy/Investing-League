@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { MarketingHome } from "@/components/marketing/MarketingHome";
+import { PAGE_SEO } from "@/lib/marketing/seo";
 
 export const metadata: Metadata = {
-  title: "The Investing League | Finance Courses & Educational Market Scanner",
-  description:
-    "Learn finance practically and explore Decision Lab, an educational market scanner for disciplined market observation and risk-aware learning.",
+  title: PAGE_SEO.home.title,
+  description: PAGE_SEO.home.description,
 };
 
 export default function HomePage() {

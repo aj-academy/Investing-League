@@ -4,16 +4,16 @@ import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/ui/SectionHeader";
 import { WhatsAppQuickButton } from "@/components/marketing/ui/WhatsAppQuickButton";
 import { CONTACT_INFO } from "@/lib/marketing/siteData";
+import { PAGE_SEO } from "@/lib/marketing/seo";
 import { buildWhatsAppUrl, WHATSAPP_PRESETS } from "@/lib/marketing/whatsapp";
 
 export const metadata: Metadata = {
-  title: "Contact | The Investing League",
-  description:
-    "Contact The Investing League for course, Decision Lab, and bundle enquiries via WhatsApp.",
+  title: PAGE_SEO.contact.title,
+  description: PAGE_SEO.contact.description,
 };
 
 export default function ContactPage() {
-  const waHref = buildWhatsAppUrl(WHATSAPP_PRESETS.general);
+  const waHref = buildWhatsAppUrl(WHATSAPP_PRESETS.mentor);
 
   return (
     <MarketingShell active="contact">
@@ -21,20 +21,23 @@ export default function ContactPage() {
         <div className="mkt-container">
           <SectionHeader
             title="Contact Us"
-            subtitle="Enquire about courses, Decision Lab access, bundles, or workshops. We'll open WhatsApp with your message ready to send."
+            subtitle="Our team will guide you to the right learning path based on your current level."
           />
 
           <div className="mkt-grid-2 mkt-contact-grid">
             <div className="mkt-feature-card">
               <h3>Enquiry form</h3>
+              <p className="mkt-muted-text mkt-stack-gap">
+                Need quick guidance? Talk to us on WhatsApp after submitting your details.
+              </p>
               <ContactEnquiryForm />
             </div>
             <div>
               <div className="mkt-feature-card mkt-stack-gap">
                 <h3>WhatsApp</h3>
-                <p className="mkt-muted-text">Fastest way to reach our team.</p>
-                <WhatsAppQuickButton preset="general">
-                  Message on WhatsApp
+                <p className="mkt-muted-text">Fastest way to reach our mentor team.</p>
+                <WhatsAppQuickButton preset="mentor">
+                  Talk to Mentor on WhatsApp
                 </WhatsAppQuickButton>
                 <a
                   href={waHref}
@@ -46,7 +49,7 @@ export default function ContactPage() {
                 </a>
               </div>
               <div className="mkt-feature-card">
-                <h3>Details</h3>
+                <h3>Contact details</h3>
                 <ul className="mkt-footer-links">
                   <li>{CONTACT_INFO.location}</li>
                   <li>

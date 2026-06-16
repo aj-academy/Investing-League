@@ -7,7 +7,7 @@ export function WhatsAppQuickButton({
   children,
   className,
 }: {
-  preset: "course" | "scanner" | "bundle" | "general";
+  preset: "course" | "scanner" | "bundle" | "mentor" | "demo" | "general";
   children: React.ReactNode;
   className?: string;
 }) {

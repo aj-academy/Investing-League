@@ -5,13 +5,20 @@ export const COURSE_OPTIONS = COURSES.map((c) => c.name) as [
   ...string[],
 ];
 
-export const SCANNER_INTEREST = "Decision Lab Scanner";
+export const SCANNER_INTEREST = "Decision Lab";
 
 export const GENERAL_INTEREST_OPTIONS = [
-  "Course (general enquiry)",
+  "Course",
   SCANNER_INTEREST,
-  "Course + Scanner Bundle",
-  "Workshop",
+  "Course + Bundle",
+  "Mentor Call",
+] as const;
+
+export const EXPERIENCE_LEVELS = [
+  "Beginner",
+  "Student",
+  "Working Professional",
+  "Trader",
 ] as const;
 
 export const INTEREST_OPTIONS = [
