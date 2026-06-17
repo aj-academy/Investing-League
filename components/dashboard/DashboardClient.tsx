@@ -18,6 +18,12 @@ import { toast } from "sonner";
 import { AssetChipGrid, loadStoredPairs, saveStoredPairs } from "./AssetChipGrid";
 import { PlanUsageCard } from "./PlanUsageCard";
 import { RulesModal } from "@/components/rules/RulesModal";
+import {
+  CapitalProtectionCard,
+  CapitalProtectionModal,
+} from "@/components/risk/CapitalProtectionCard";
+import { LossLimitModal } from "@/components/risk/LossLimitModal";
+import type { RecoveryMetrics, RiskStatus } from "@/lib/risk/types";
 import { LoadingScanner } from "./LoadingScanner";
 import { MarketTicker } from "./MarketTicker";
 import { ScannerControls } from "./ScannerControls";
@@ -113,6 +119,24 @@ export function DashboardClient({
   }>({ loading: true, required: false, active: null });
   const [acknowledgingRules, setAcknowledgingRules] = useState(false);
   const [rulesModalOpen, setRulesModalOpen] = useState(false);
+  const [riskStatus, setRiskStatus] = useState<RiskStatus>("normal");
+  const [liveModeLocked, setLiveModeLocked] = useState(false);
+  const [todayNetProfit, setTodayNetProfit] = useState(0);
+  const [consecutiveLosses, setConsecutiveLosses] = useState(0);
+  const [startingCapital, setStartingCapital] = useState(0);
+  const [currentCapital, setCurrentCapital] = useState(0);
+  const [recovery, setRecovery] = useState<RecoveryMetrics | null>(null);
+  const [cppModalOpen, setCppModalOpen] = useState(false);
+  const [cppSaving, setCppSaving] = useState(false);
+  const [cppValues, setCppValues] = useState({
+    startingCapital: 0,
+    currentCapital: 0,
+    riskPerTradePercent: 5,
+    dailyProfitTargetPercent: 10,
+    dailyLossLimitPercent: 15,
+    maxConsecutiveLosses: 3,
+  });
+  const [showLossModal, setShowLossModal] = useState(false);
   const autoScanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runScanRef = useRef<(opts?: { auto?: boolean }) => Promise<void>>(async () => {});
@@ -346,6 +370,72 @@ export function DashboardClient({
     }
   }, []);
 
+  const loadRiskStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/capital-protection");
+      const json = await res.json();
+      if (!res.ok || !json.ok) return;
+      setRiskStatus(json.riskStatus || "normal");
+      setLiveModeLocked(Boolean(json.liveModeLocked));
+      setTodayNetProfit(Number(json.todayNetProfit) || 0);
+      setConsecutiveLosses(Number(json.consecutiveLosses) || 0);
+      setStartingCapital(Number(json.profile?.starting_capital) || 0);
+      setCurrentCapital(Number(json.profile?.current_capital) || 0);
+      setRecovery(json.recovery || null);
+      setCppValues({
+        startingCapital: Number(json.profile?.starting_capital) || 0,
+        currentCapital: Number(json.profile?.current_capital) || 0,
+        riskPerTradePercent: Number(json.profile?.risk_per_trade_percent) || 5,
+        dailyProfitTargetPercent: Number(json.profile?.daily_profit_target_percent) || 10,
+        dailyLossLimitPercent: Number(json.profile?.daily_loss_limit_percent) || 15,
+        maxConsecutiveLosses: Number(json.profile?.max_consecutive_losses) || 3,
+      });
+      if (
+        json.liveModeLocked &&
+        json.consecutiveLosses >= (json.profile?.max_consecutive_losses || 3)
+      ) {
+        setShowLossModal(true);
+      }
+    } catch {
+      /* optional */
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadRiskStatus();
+  }, [loadRiskStatus]);
+
+  const saveCapitalPlan = useCallback(async () => {
+    setCppSaving(true);
+    try {
+      const res = await fetch("/api/capital-protection", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startingCapital: cppValues.startingCapital,
+          currentCapital: cppValues.currentCapital,
+          riskPerTradePercent: cppValues.riskPerTradePercent,
+          dailyProfitTargetPercent: cppValues.dailyProfitTargetPercent,
+          dailyLossLimitPercent: cppValues.dailyLossLimitPercent,
+          maxConsecutiveLosses: cppValues.maxConsecutiveLosses,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || "Could not save plan");
+        return;
+      }
+      toast.success("Capital Protection Plan saved");
+      setRecovery(json.recovery || null);
+      setCppModalOpen(false);
+      void loadRiskStatus();
+    } catch {
+      toast.error("Could not save plan");
+    } finally {
+      setCppSaving(false);
+    }
+  }, [cppValues, loadRiskStatus]);
+
   useEffect(() => {
     return () => clearAutoSchedule();
   }, [clearAutoSchedule]);
@@ -360,6 +450,15 @@ export function DashboardClient({
       if (!isAuto) {
         toast.error("Acknowledge the latest Platform Rules before scanning.");
         setRulesModalOpen(true);
+      }
+      return;
+    }
+    if (settingsRef.current.mode === "live" && liveModeLocked) {
+      if (!isAuto) {
+        toast.error(
+          "Live Mode paused for capital protection. You can continue Practice Mode or review your journal.",
+        );
+        updateSettings({ mode: "practice" });
       }
       return;
     }
@@ -422,6 +521,11 @@ export function DashboardClient({
             clearAutoSchedule();
             updateSettings({ autoRefresh: "off" });
           }
+        } else if (json.code === "LIVE_MODE_LOCKED") {
+          toast.error(json.message || "Live Mode paused for capital protection.");
+          setLiveModeLocked(true);
+          updateSettings({ mode: "practice" });
+          setShowLossModal(true);
         } else {
           toast.error(json.error || json.message || "Scan failed");
         }
@@ -461,6 +565,7 @@ export function DashboardClient({
             ? `Showing ${list.length} setup(s). ${json.journalSaved ?? 0} saved to journal.`
             : null
       );
+      void loadRiskStatus();
       setProgress(100);
       if (!isAuto) {
         if (json.journalSaved > 0) {
@@ -493,6 +598,8 @@ export function DashboardClient({
     pairsForScan,
     termsState.required,
     rulesState.required,
+    liveModeLocked,
+    loadRiskStatus,
     timeZone,
     updateSettings,
   ]);
@@ -519,6 +626,23 @@ export function DashboardClient({
               </p>
             </div>
           </header>
+
+          <CapitalProtectionCard
+            startingCapital={startingCapital}
+            currentCapital={currentCapital}
+            todayNetProfit={todayNetProfit}
+            consecutiveLosses={consecutiveLosses}
+            riskStatus={riskStatus}
+            liveModeLocked={liveModeLocked}
+            onEdit={() => setCppModalOpen(true)}
+          />
+
+          {liveModeLocked && (
+            <div className="disclaimer-banner cpp-live-lock-banner">
+              Live Mode paused for capital protection. You can continue Practice Mode or review your
+              journal.
+            </div>
+          )}
 
           <PlanUsageCard
             plan={scanUsage.plan}
@@ -564,6 +688,7 @@ export function DashboardClient({
               refreshing={refreshing}
               progress={progress}
               selectedPairCount={selectedPairs.length}
+              liveModeLocked={liveModeLocked}
             />
           </div>
 
@@ -702,6 +827,34 @@ export function DashboardClient({
             </div>
           </div>
         </div>
+      )}
+      <CapitalProtectionModal
+        open={cppModalOpen}
+        saving={cppSaving}
+        values={cppValues}
+        recovery={recovery}
+        onChange={(patch) => setCppValues((s) => ({ ...s, ...patch }))}
+        onSave={() => void saveCapitalPlan()}
+        onClose={() => setCppModalOpen(false)}
+      />
+      {showLossModal && (
+        <LossLimitModal
+          onPracticeOnly={() => {
+            updateSettings({ mode: "practice" });
+            setShowLossModal(false);
+          }}
+          onPause={async () => {
+            await fetch("/api/risk/pause", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ minutes: 30 }),
+            });
+            setLiveModeLocked(true);
+            updateSettings({ mode: "practice" });
+            setShowLossModal(false);
+          }}
+          onViewJournal={() => setShowLossModal(false)}
+        />
       )}
     </>
   );

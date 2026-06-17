@@ -434,3 +434,78 @@
 .analytics-bar-row{grid-template-columns:1fr;gap:4px}
 .analytics-bar-val{text-align:left}
 }
+
+.admin-journal-table th,
+.admin-journal-table td {
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.cpp-card { margin-bottom: 14px; }
+.cpp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.cpp-stats { margin-top: 0; }
+.cpp-risk-normal { color: var(--bull); }
+.cpp-risk-caution { color: var(--gold2); }
+.cpp-risk-stop { color: var(--bear); }
+.cpp-modal .cpp-motivation {
+  font-size: 12px;
+  color: var(--gold2);
+  margin: 8px 0 12px;
+  font-weight: 600;
+}
+.cpp-rules-list {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.55;
+}
+.cpp-disclaimer {
+  font-size: 10px;
+  color: var(--m3);
+  line-height: 1.5;
+  margin: 10px 0;
+}
+.cpp-plan-intro {
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+.cpp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.cpp-recovery-warn {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: rgba(255, 200, 80, 0.06);
+  font-size: 11px;
+  color: var(--gold2);
+  line-height: 1.5;
+}
+.cpp-loss-title { color: var(--bear); }
+.cpp-loss-body {
+  font-size: 12px;
+  color: var(--txt2);
+  line-height: 1.6;
+  margin: 8px 0 14px;
+}
+.cpp-loss-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cpp-live-lock-banner {
+  border-color: var(--bear);
+  color: var(--bear);
+  margin-bottom: 12px;
+}

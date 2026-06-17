@@ -33,6 +33,7 @@ export function ScannerControls({
   filtersLocked,
   progress,
   selectedPairCount = 0,
+  liveModeLocked = false,
 }: {
   plan: PlanName;
   settings: ScanSettings;
@@ -48,6 +49,7 @@ export function ScannerControls({
   filtersLocked?: boolean;
   progress: number;
   selectedPairCount?: number;
+  liveModeLocked?: boolean;
 }) {
   const lockFilters = Boolean(filtersLocked || scanning);
   const planLimits = getPlanLimits(plan);
@@ -89,8 +91,16 @@ export function ScannerControls({
           <button
             type="button"
             className={`scanner-mode-pill live${settings.mode === "live" ? " on" : ""}`}
-            disabled={lockFilters}
-            onClick={() => onChange({ mode: "live" })}
+            disabled={lockFilters || liveModeLocked}
+            title={
+              liveModeLocked
+                ? "Live Mode paused for capital protection"
+                : "Best signal"
+            }
+            onClick={() => {
+              if (liveModeLocked) return;
+              onChange({ mode: "live" });
+            }}
           >
             <span className="scanner-mode-icon">🎯</span>
             Live

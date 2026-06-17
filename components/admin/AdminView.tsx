@@ -4,6 +4,7 @@ import { formatAppDateTime } from "@/lib/datetime";
 import type { PlanName } from "@/lib/billing/planLimits";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdminJournalTab } from "./AdminJournalTab";
 
 type AdminTab =
   | "overview"
@@ -12,6 +13,7 @@ type AdminTab =
   | "terms"
   | "rules"
   | "pricing"
+  | "journal"
   | "reports"
   | "api"
   | "audit";
@@ -87,6 +89,7 @@ const tabs: { id: AdminTab; label: string }[] = [
   { id: "terms", label: "Terms & Conditions" },
   { id: "rules", label: "Platform Rules" },
   { id: "pricing", label: "Pricing Plans" },
+  { id: "journal", label: "Journal" },
   { id: "reports", label: "User Reports" },
   { id: "api", label: "API Usage" },
   { id: "audit", label: "Audit Logs" },
@@ -1526,6 +1529,8 @@ export function AdminView() {
           </div>
         </>
       )}
+
+      {activeTab === "journal" && <AdminJournalTab />}
 
       {activeTab === "reports" && (
         <div className="ctrl" style={{ marginTop: 16 }}>

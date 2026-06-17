@@ -1,17 +1,22 @@
 "use client";
 
 import { DISCLAIMER } from "@/lib/utils";
+import { RISK_DISCLAIMER } from "@/lib/risk/capitalProtection";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CapitalProtectionModal } from "@/components/risk/CapitalProtectionCard";
+import type { RecoveryMetrics } from "@/lib/risk/types";
 
 export function SettingsForm({
   profile,
   settings,
   email,
+  capitalProfile,
 }: {
   profile: Record<string, unknown> | null;
   settings: Record<string, unknown> | null;
   email: string;
+  capitalProfile?: Record<string, unknown> | null;
 }) {
   const [fullName, setFullName] = useState(String(profile?.full_name || ""));
   const [mode, setMode] = useState(String(settings?.default_mode || "practice"));
@@ -20,6 +25,17 @@ export function SettingsForm({
   const [showB, setShowB] = useState(Boolean(settings?.show_b_signals ?? true));
   const [accepted, setAccepted] = useState(Boolean(profile?.risk_disclaimer_accepted));
   const [saving, setSaving] = useState(false);
+  const [cppOpen, setCppOpen] = useState(false);
+  const [cppSaving, setCppSaving] = useState(false);
+  const [recovery, setRecovery] = useState<RecoveryMetrics | null>(null);
+  const [cppValues, setCppValues] = useState({
+    startingCapital: Number(capitalProfile?.starting_capital) || 0,
+    currentCapital: Number(capitalProfile?.current_capital) || 0,
+    riskPerTradePercent: Number(capitalProfile?.risk_per_trade_percent) || 5,
+    dailyProfitTargetPercent: Number(capitalProfile?.daily_profit_target_percent) || 10,
+    dailyLossLimitPercent: Number(capitalProfile?.daily_loss_limit_percent) || 15,
+    maxConsecutiveLosses: Number(capitalProfile?.max_consecutive_losses) || 3,
+  });
 
   const save = async () => {
     if (!accepted) {
@@ -58,6 +74,36 @@ export function SettingsForm({
     }
   };
 
+  const saveCapitalPlan = async () => {
+    setCppSaving(true);
+    try {
+      const res = await fetch("/api/capital-protection", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startingCapital: cppValues.startingCapital,
+          currentCapital: cppValues.currentCapital,
+          riskPerTradePercent: cppValues.riskPerTradePercent,
+          dailyProfitTargetPercent: cppValues.dailyProfitTargetPercent,
+          dailyLossLimitPercent: cppValues.dailyLossLimitPercent,
+          maxConsecutiveLosses: cppValues.maxConsecutiveLosses,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || "Could not save capital plan");
+        return;
+      }
+      setRecovery(json.recovery || null);
+      toast.success("Capital Protection Plan saved");
+      setCppOpen(false);
+    } catch {
+      toast.error("Could not save capital plan");
+    } finally {
+      setCppSaving(false);
+    }
+  };
+
   return (
     <div className="ctrl settings-panel" style={{ maxWidth: 560 }}>
       <div className="ctrl-title">USER PROFILE</div>
@@ -74,6 +120,17 @@ export function SettingsForm({
         <label>Email</label>
         <input className="key-in" style={{ width: "100%" }} value={email} disabled />
       </div>
+
+      <div className="ctrl-title" style={{ marginTop: 20 }}>CAPITAL PROTECTION PLAN</div>
+      <p className="cpp-plan-intro" style={{ marginBottom: 10 }}>
+        Your goal is not to recover losses quickly. Your goal is to protect capital and make
+        disciplined decisions.
+      </p>
+      <button type="button" className="jbtn" onClick={() => setCppOpen(true)}>
+        Configure Capital Protection
+      </button>
+      <p className="cpp-disclaimer" style={{ marginTop: 10 }}>{RISK_DISCLAIMER}</p>
+
       <div className="ctrl-title" style={{ marginTop: 20 }}>
         SCANNER DEFAULTS
       </div>
@@ -120,6 +177,16 @@ export function SettingsForm({
       <button type="button" className="btn-scan" onClick={save} disabled={saving}>
         {saving ? "Saving..." : "Save Settings"}
       </button>
+
+      <CapitalProtectionModal
+        open={cppOpen}
+        saving={cppSaving}
+        values={cppValues}
+        recovery={recovery}
+        onChange={(patch) => setCppValues((s) => ({ ...s, ...patch }))}
+        onSave={() => void saveCapitalPlan()}
+        onClose={() => setCppOpen(false)}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PlatformRiskGate } from "@/components/risk/PlatformRiskGate";
 import { Sidebar } from "./Sidebar";
 
 export function AppShell({
@@ -39,7 +40,7 @@ export function AppShell({
         onNavigate={() => setOpen(false)}
       />
       <div className="app-main site-main">
-        {children}
+        <PlatformRiskGate>{children}</PlatformRiskGate>
         <button
           type="button"
           className="mobile-nav-toggle"

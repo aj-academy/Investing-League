@@ -19,6 +19,14 @@ export default async function SettingsPage() {
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
+  const { data: capitalProfile } = await supabase
+    .from("profiles")
+    .select(
+      "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses",
+    )
+    .eq("id", auth.user.id)
+    .maybeSingle();
+
   return (
     <ProtectedShell isAdmin={auth.isAdmin} hasAdminRole={auth.hasAdminRole}>
       <Topbar />
@@ -28,6 +36,7 @@ export default async function SettingsPage() {
           profile={auth.profile}
           settings={settings}
           email={auth.user.email || auth.profile?.email || ""}
+          capitalProfile={capitalProfile}
         />
       </div>
     </ProtectedShell>

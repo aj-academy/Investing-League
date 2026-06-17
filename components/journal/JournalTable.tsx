@@ -39,7 +39,22 @@ export interface JournalRow {
   entry_drift: number | null;
   loss_reason: string | null;
   created_at: string;
+  trade_amount?: number | null;
+  payout_percent?: number | null;
+  return_amount?: number | null;
+  net_profit?: number | null;
+  capital_before?: number | null;
+  capital_after?: number | null;
+  risk_status?: string | null;
+  scan_mode?: string | null;
 }
+
+export type JournalRiskPayload = {
+  lossLimitReached?: boolean;
+  consecutiveLosses?: number;
+  liveModeLocked?: boolean;
+  cooldownUntil?: string | null;
+};
 
 function resultClass(result: string) {
   if (result === "Win") return "jr-win";
@@ -54,7 +69,7 @@ export function JournalTable({
   onUpdated,
 }: {
   rows: JournalRow[];
-  onUpdated: (row: JournalRow) => void;
+  onUpdated: (row: JournalRow, risk?: JournalRiskPayload) => void;
 }) {
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -71,12 +86,16 @@ export function JournalTable({
         }),
       });
       setSaving(null);
-      const json = (await res.json()) as { row?: JournalRow; error?: string };
+      const json = (await res.json()) as {
+        row?: JournalRow;
+        error?: string;
+        risk?: JournalRiskPayload;
+      };
       if (!res.ok) {
         toast.error(json.error || "Update failed");
         return false;
       }
-      if (json.row) onUpdated(json.row);
+      if (json.row) onUpdated(json.row, json.risk);
       return true;
     },
     [onUpdated]
@@ -121,6 +140,10 @@ export function JournalTable({
           <th>Open Time</th>
           <th>Opening Quote</th>
           <th>Closing Quote</th>
+          <th>Trade Amt</th>
+          <th>Payout %</th>
+          <th>Return</th>
+          <th>Net P/L</th>
           <th>Drift</th>
           <th>Expiry Close Time</th>
           <th>Result</th>
@@ -200,6 +223,37 @@ export function JournalTable({
                   disabled={saving === r.id}
                   onBlur={(e) => onBlurField(r, "closingQuote", e.target.value)}
                 />
+              </td>
+              <td>
+                <input
+                  className="jinput price"
+                  defaultValue={r.trade_amount ?? ""}
+                  placeholder="2"
+                  disabled={saving === r.id}
+                  onBlur={(e) => onBlurField(r, "tradeAmount", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  className="jinput"
+                  style={{ width: 56 }}
+                  defaultValue={r.payout_percent ?? ""}
+                  placeholder="90"
+                  disabled={saving === r.id}
+                  onBlur={(e) => onBlurField(r, "payoutPercent", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  className="jinput price"
+                  defaultValue={r.return_amount ?? ""}
+                  placeholder="3.8"
+                  disabled={saving === r.id}
+                  onBlur={(e) => onBlurField(r, "returnAmount", e.target.value)}
+                />
+              </td>
+              <td className={resultClass(r.result)}>
+                {r.net_profit != null ? Number(r.net_profit).toFixed(2) : "—"}
               </td>
               <td>
                 <span className={`entry-status ${drift.cls}`}>

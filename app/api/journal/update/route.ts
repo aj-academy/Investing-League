@@ -2,6 +2,9 @@ import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { calculateEntryDrift } from "@/lib/journal/entryDrift";
 import { fetchJournalRowForUser, saveJournalRowForUser } from "@/lib/journal/journalAccess";
 import { calculateResult } from "@/lib/journal/resultCalculator";
+import { applyJournalCapitalUpdate } from "@/lib/risk/journalCapital";
+import { getProfileCapitalFields, refreshDailySummaryFromJournal } from "@/lib/risk/dailyRiskSummary";
+import { num } from "@/lib/risk/capitalProtection";
 import { NextResponse } from "next/server";
 
 export async function PATCH(request: Request) {
@@ -74,6 +77,34 @@ export async function PATCH(request: Request) {
           : String(body.tradeId)
         : row.olymp_trade_id;
 
+    const tradeAmount =
+      body.tradeAmount !== undefined
+        ? body.tradeAmount === "" || body.tradeAmount === null
+          ? null
+          : num(body.tradeAmount)
+        : undefined;
+
+    const payoutPercent =
+      body.payoutPercent !== undefined
+        ? body.payoutPercent === "" || body.payoutPercent === null
+          ? null
+          : num(body.payoutPercent)
+        : undefined;
+
+    const returnAmount =
+      body.returnAmount !== undefined
+        ? body.returnAmount === "" || body.returnAmount === null
+          ? null
+          : num(body.returnAmount)
+        : undefined;
+
+    const capitalEffects = await applyJournalCapitalUpdate(auth!.user.id, row, {
+      tradeAmount,
+      payoutPercent,
+      returnAmount,
+      result,
+    });
+
     const { row: updated, error: updateError } = await saveJournalRowForUser(
       auth!.user.id,
       row.id,
@@ -89,6 +120,7 @@ export async function PATCH(request: Request) {
         result_source: resultSource,
         marked_time: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        ...capitalEffects.patch,
       },
     );
 
@@ -99,7 +131,46 @@ export async function PATCH(request: Request) {
       );
     }
 
-    return NextResponse.json({ row: updated });
+    const profileAfter = await getProfileCapitalFields(auth!.user.id);
+    let liveModeLocked = capitalEffects.lossLimitReached;
+    let cooldownUntil: string | null = null;
+
+    if (profileAfter) {
+      const summaryResult = await refreshDailySummaryFromJournal(
+        auth!.user.id,
+        {
+          ...profileAfter,
+          current_capital: capitalEffects.profileCapital ?? profileAfter.current_capital,
+        },
+        { lockLive: capitalEffects.lossLimitReached },
+      );
+      liveModeLocked = Boolean(summaryResult.summary?.live_mode_locked);
+      cooldownUntil = summaryResult.summary?.cooldown_until ?? null;
+      const streak = summaryResult.summary?.consecutive_losses ?? capitalEffects.consecutiveLosses;
+      return NextResponse.json({
+        row: updated,
+        capitalWarning: capitalEffects.capitalWarning,
+        risk: {
+          lossLimitReached: streak >= profileAfter.max_consecutive_losses,
+          consecutiveLosses: streak,
+          liveModeLocked,
+          cooldownUntil,
+          profileCapital: capitalEffects.profileCapital,
+        },
+      });
+    }
+
+    return NextResponse.json({
+      row: updated,
+      capitalWarning: capitalEffects.capitalWarning,
+      risk: {
+        lossLimitReached: capitalEffects.lossLimitReached,
+        consecutiveLosses: capitalEffects.consecutiveLosses,
+        liveModeLocked,
+        cooldownUntil,
+        profileCapital: capitalEffects.profileCapital,
+      },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Update failed";
     return NextResponse.json({ error: message }, { status: 500 });

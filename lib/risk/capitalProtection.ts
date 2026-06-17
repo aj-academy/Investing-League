@@ -1,0 +1,112 @@
+import type { RecoveryMetrics, RiskStatus } from "./types";
+
+export const RISK_DISCLAIMER =
+  "This platform is for educational analysis, signal testing, and trade journaling only. It does not guarantee profit and does not provide financial advice. Trading involves risk.";
+
+export const DEFAULT_COOLDOWN_MINUTES = 30;
+
+export function todayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function isSameCalendarDay(a: string | null | undefined, b: string): boolean {
+  if (!a) return false;
+  return new Date(a).toISOString().slice(0, 10) === b;
+}
+
+export function num(v: unknown, fallback = 0): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+export function computeRecovery(
+  startingCapital: number,
+  currentCapital: number,
+): RecoveryMetrics {
+  const start = num(startingCapital);
+  const current = num(currentCapital);
+
+  if (start <= 0 || current <= 0) {
+    return {
+      lossAmount: 0,
+      lossPercent: 0,
+      requiredRecoveryPercent: 0,
+      hasLoss: false,
+      message: "Set starting capital first.",
+    };
+  }
+
+  if (current >= start) {
+    return {
+      lossAmount: 0,
+      lossPercent: 0,
+      requiredRecoveryPercent: 0,
+      hasLoss: false,
+      message: null,
+    };
+  }
+
+  const lossAmount = start - current;
+  const lossPercent = (lossAmount / start) * 100;
+  const requiredRecoveryPercent = (lossAmount / current) * 100;
+
+  return {
+    lossAmount,
+    lossPercent,
+    requiredRecoveryPercent,
+    hasLoss: true,
+    message: `You are down ${lossPercent.toFixed(1)}% from starting capital. To return to starting capital, you need ${requiredRecoveryPercent.toFixed(1)}% gain from current balance. Do not increase trade size emotionally.`,
+  };
+}
+
+export function computeNetProfit(
+  tradeAmount: number,
+  returnAmount: number,
+  result: string,
+): number {
+  const amount = num(tradeAmount);
+  const returned = num(returnAmount);
+
+  if (result === "Refund") {
+    return returned > 0 ? returned - amount : 0;
+  }
+  if (result === "Win" || result === "Loss") {
+    return returned - amount;
+  }
+  return 0;
+}
+
+export function deriveRiskStatus(
+  consecutiveLosses: number,
+  maxConsecutiveLosses: number,
+  dailyLossLimitPercent: number,
+  startingCapital: number,
+  todayNetProfit: number,
+): RiskStatus {
+  if (consecutiveLosses >= maxConsecutiveLosses) return "stop";
+
+  const start = num(startingCapital);
+  if (start > 0 && todayNetProfit < 0) {
+    const lossPct = (Math.abs(todayNetProfit) / start) * 100;
+    if (lossPct >= dailyLossLimitPercent) return "stop";
+    if (lossPct >= dailyLossLimitPercent * 0.6) return "caution";
+  }
+
+  if (consecutiveLosses >= maxConsecutiveLosses - 1) return "caution";
+  return "normal";
+}
+
+export function cooldownActive(cooldownUntil: string | null | undefined): boolean {
+  if (!cooldownUntil) return false;
+  return new Date(cooldownUntil).getTime() > Date.now();
+}
+
+export function mapSignalTypeFilter(signalType: string | null, tradeEligible?: boolean | null): string {
+  const t = (signalType || "").toUpperCase();
+  if (t.includes("DO NOT TRADE")) return "Do Not Trade";
+  if (t.includes("TREND EXHAUSTED")) return "Trend Exhausted";
+  if (t.includes("REPEATED")) return "Repeated";
+  if (t.includes("LATE")) return "Late Entry";
+  if (t.includes("FINAL") || t.includes("STRONG") || tradeEligible) return "Trade Allowed";
+  return "Watch Only";
+}

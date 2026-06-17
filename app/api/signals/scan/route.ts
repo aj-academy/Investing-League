@@ -22,6 +22,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { hasAcceptedLatestTerms } from "@/lib/terms/terms";
+import { isLiveModeBlocked } from "@/lib/risk/dailyRiskSummary";
 import { formatAppDateSlash, formatAppTime, resolveTimeZone } from "@/lib/datetime";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
@@ -85,6 +86,7 @@ function journalRow(userId: string, signalId: string | null, sig: ComputedSignal
     result: "Pending",
     result_source: "Unverified",
     entry_status: "Pending",
+    scan_mode: sig.mode,
   };
 }
 
@@ -132,6 +134,22 @@ export async function POST(request: Request) {
     let pairs: string[] = body.pairs?.length ? body.pairs : [...planLimits.allowedPairs];
     let timeframes: string[] = body.timeframes?.length ? body.timeframes : ["5min"];
     const mode = body.mode === "live" ? "live" : "practice";
+
+    if (mode === "live") {
+      const liveBlock = await isLiveModeBlocked(auth!.user.id);
+      if (liveBlock.blocked) {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "LIVE_MODE_LOCKED",
+            message: liveBlock.message,
+            cooldownUntil: liveBlock.cooldownUntil,
+          },
+          { status: 403 },
+        );
+      }
+    }
+
     const minScore = Number(body.minScore ?? 5);
     const minGrade =
       body.minGrade === "A+" || body.minGrade === "A" || body.minGrade === "B"
