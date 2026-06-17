@@ -75,4 +75,7 @@ WHERE table_schema = 'public'
     'login_rules_seen_at',
     'trading_rules_accepted'
   )
-ORDER BY column_name;
+  ORDER BY column_name;
+
+-- Reload API schema cache (fixes "column does not exist" / values stuck at 0)
+NOTIFY pgrst, 'reload schema';

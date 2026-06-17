@@ -7,29 +7,64 @@ import {
   getProfileCapitalFields,
   upsertDailyRiskSummary,
 } from "@/lib/risk/dailyRiskSummary";
+import type { CapitalProfileFields } from "@/lib/risk/types";
 import { computeRecovery, num, todayDateString } from "@/lib/risk/capitalProtection";
 import { NextResponse } from "next/server";
 
 function isMigrationError(message: string) {
-  return /column|schema cache|daily_risk_summary/i.test(message);
+  return /column|schema cache/i.test(message);
+}
+
+function profileFromPatch(
+  userId: string,
+  patch: Record<string, unknown>,
+  existing?: CapitalProfileFields | null,
+): CapitalProfileFields {
+  return {
+    starting_capital: num(patch.starting_capital),
+    current_capital: num(patch.current_capital),
+    risk_per_trade_percent: num(patch.risk_per_trade_percent, 5),
+    daily_profit_target_percent: num(patch.daily_profit_target_percent, 10),
+    daily_loss_limit_percent: num(patch.daily_loss_limit_percent, 15),
+    max_consecutive_losses: num(patch.max_consecutive_losses, 3),
+    trading_rules_accepted: existing?.trading_rules_accepted ?? false,
+    login_rules_seen_at: existing?.login_rules_seen_at ?? null,
+  };
+}
+
+function profileFromRow(row: Record<string, unknown>): CapitalProfileFields {
+  return {
+    starting_capital: num(row.starting_capital),
+    current_capital: num(row.current_capital),
+    risk_per_trade_percent: num(row.risk_per_trade_percent, 5),
+    daily_profit_target_percent: num(row.daily_profit_target_percent, 10),
+    daily_loss_limit_percent: num(row.daily_loss_limit_percent, 15),
+    max_consecutive_losses: num(row.max_consecutive_losses, 3),
+    trading_rules_accepted: Boolean(row.trading_rules_accepted),
+    login_rules_seen_at: (row.login_rules_seen_at as string | null) ?? null,
+  };
 }
 
 export async function GET() {
   const { auth, error } = await requireApiAuth();
   if (error) return error;
 
+  const columnsReady = await checkCapitalColumnsReady(auth!.user.id);
   const probe = await getProfileCapitalFields(auth!.user.id);
+
   if (!probe) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  const columnsReady = await checkCapitalColumnsReady(auth!.user.id);
   const payload = await buildRiskStatusPayload(auth!.user.id);
+  const schemaWarning = columnsReady
+    ? undefined
+    : "Run capital_protection_plan.sql in Supabase, then run: NOTIFY pgrst, 'reload schema';";
 
   if (!payload) {
     return NextResponse.json({
       ok: true,
-      columnsReady: false,
+      columnsReady,
       riskStatus: "normal",
       liveModeLocked: false,
       cooldownUntil: null,
@@ -38,16 +73,14 @@ export async function GET() {
       consecutiveLosses: 0,
       profile: probe,
       recovery: computeRecovery(probe.starting_capital, probe.current_capital),
-      warning: "Run supabase/migrations/capital_protection_plan.sql in Supabase SQL Editor.",
+      warning: schemaWarning ?? "Could not load full risk summary.",
     });
   }
 
   return NextResponse.json({
     ok: true,
     columnsReady,
-    warning: columnsReady
-      ? undefined
-      : "Run supabase/migrations/capital_protection_plan.sql in Supabase SQL Editor.",
+    warning: schemaWarning,
     ...payload,
   });
 }
@@ -58,10 +91,22 @@ export async function PATCH(request: Request) {
 
   const body = await request.json();
   const userId = auth!.user.id;
+  const email = auth!.user.email ?? "";
 
   const startingCapital = num(body.startingCapital);
   const currentCapital =
     body.currentCapital !== undefined ? num(body.currentCapital) : startingCapital;
+
+  if (startingCapital <= 0) {
+    return NextResponse.json(
+      { error: "Starting capital must be greater than 0." },
+      { status: 400 },
+    );
+  }
+
+  if (currentCapital < 0) {
+    return NextResponse.json({ error: "Current capital cannot be negative." }, { status: 400 });
+  }
 
   const patch = {
     starting_capital: startingCapital,
@@ -73,23 +118,59 @@ export async function PATCH(request: Request) {
     updated_at: new Date().toISOString(),
   };
 
-  const supabase = await createClient();
-  let updateError = (
-    await supabase.from("profiles").update(patch).eq("id", userId)
-  ).error;
+  const existing = await getProfileCapitalFields(userId);
+  let savedProfile = profileFromPatch(userId, patch, existing);
+  let persistError: string | null = null;
 
-  if (updateError && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const admin = createAdminClient();
-    updateError = (await admin.from("profiles").update(patch).eq("id", userId)).error;
+    const { data, error: upsertError } = await admin
+      .from("profiles")
+      .upsert(
+        {
+          id: userId,
+          email,
+          ...patch,
+        },
+        { onConflict: "id" },
+      )
+      .select(
+        "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
+      )
+      .single();
+
+    if (upsertError) {
+      persistError = upsertError.message;
+    } else if (data) {
+      savedProfile = profileFromRow(data as Record<string, unknown>);
+    }
+  } else {
+    const supabase = await createClient();
+    const { data, error: updateError } = await supabase
+      .from("profiles")
+      .update(patch)
+      .eq("id", userId)
+      .select(
+        "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
+      )
+      .maybeSingle();
+
+    if (updateError) {
+      persistError = updateError.message;
+    } else if (data) {
+      savedProfile = profileFromRow(data as Record<string, unknown>);
+    } else {
+      persistError = "Profile row not found — contact support or re-login.";
+    }
   }
 
-  if (updateError) {
-    const migration = isMigrationError(updateError.message);
+  if (persistError) {
+    const migration = isMigrationError(persistError);
     return NextResponse.json(
       {
         error: migration
-          ? "Database columns missing. Open Supabase → SQL Editor → run supabase/migrations/capital_protection_plan.sql"
-          : updateError.message,
+          ? "Database columns missing or schema cache stale. Run capital_protection_plan.sql then NOTIFY pgrst, 'reload schema'; in Supabase SQL Editor."
+          : persistError,
         code: migration ? "MIGRATION_REQUIRED" : "UPDATE_FAILED",
       },
       { status: 400 },
@@ -98,20 +179,19 @@ export async function PATCH(request: Request) {
 
   const summaryResult = await upsertDailyRiskSummary(userId, {
     trade_date: todayDateString(),
-    starting_capital: startingCapital,
-    current_capital: currentCapital,
+    starting_capital: savedProfile.starting_capital,
+    current_capital: savedProfile.current_capital,
   });
 
-  const profile = await getProfileCapitalFields(userId);
   const recovery = computeRecovery(
-    profile?.starting_capital ?? startingCapital,
-    profile?.current_capital ?? currentCapital,
+    savedProfile.starting_capital,
+    savedProfile.current_capital,
   );
 
   return NextResponse.json({
     ok: true,
     columnsReady: true,
-    profile,
+    profile: savedProfile,
     recovery,
     dailySummarySaved: !summaryResult.error,
     dailySummaryWarning: summaryResult.error,
