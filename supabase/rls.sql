@@ -85,3 +85,6 @@ create policy "terms_acceptance_select_own_or_admin" on public.user_terms_accept
 for select using (auth.uid() = user_id or public.is_admin());
 create policy "terms_acceptance_insert_own_or_admin" on public.user_terms_acceptance
 for insert with check (auth.uid() = user_id or public.is_admin());
+create policy "terms_acceptance_update_own_or_admin" on public.user_terms_acceptance
+for update using (auth.uid() = user_id or public.is_admin())
+with check (auth.uid() = user_id or public.is_admin());
