@@ -326,7 +326,7 @@ export function JournalTable({
           <th>Closing Quote</th>
           <th>Trade Amt</th>
           <th>Payout %</th>
-          <th>Return</th>
+          <th>Profit</th>
           <th>Net P/L</th>
           <th>Drift</th>
           <th>Expiry Close Time</th>
@@ -438,7 +438,7 @@ export function JournalTable({
                 <input
                   className="jinput jinput-price"
                   value={getDisplayValue(r, "returnAmount")}
-                  placeholder="Return"
+                  placeholder="Profit"
                   disabled={isSaving}
                   onChange={(e) => setField(r.id, "returnAmount", e.target.value)}
                   onBlur={() => void flushSave(r.id)}

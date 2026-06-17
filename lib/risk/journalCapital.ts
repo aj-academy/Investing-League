@@ -71,7 +71,7 @@ export async function applyJournalCapitalUpdate(
   const result = input.result;
 
   if (returnAmount === 0 && payoutPercent > 0 && tradeAmount > 0 && result === "Win") {
-    returnAmount = tradeAmount + tradeAmount * (payoutPercent / 100);
+    returnAmount = tradeAmount * (payoutPercent / 100);
   }
 
   const settled = result === "Win" || result === "Loss" || result === "Refund";
@@ -85,7 +85,7 @@ export async function applyJournalCapitalUpdate(
     return { ...defaultResult, patch };
   }
 
-  const netProfit = computeNetProfit(tradeAmount, returnAmount, result);
+  const netProfit = computeNetProfit(tradeAmount, returnAmount, result, payoutPercent);
   const oldNet = num(row.net_profit);
   const profileCap = num(profile.current_capital);
   const startCap = num(profile.starting_capital);

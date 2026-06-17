@@ -59,20 +59,58 @@ export function computeRecovery(
   };
 }
 
+/**
+ * Net P/L for a settled trade.
+ *
+ * `returnAmount` may be either Olymp-style profit (e.g. 400 on a 500 stake at 80%)
+ * or total payout received (stake + profit, e.g. 900). When `payoutPercent` is set,
+ * we pick the interpretation that best matches the entered return.
+ */
 export function computeNetProfit(
   tradeAmount: number,
   returnAmount: number,
   result: string,
+  payoutPercent?: number,
 ): number {
   const amount = num(tradeAmount);
   const returned = num(returnAmount);
+  const payout = num(payoutPercent);
 
   if (result === "Refund") {
     return returned > 0 ? returned - amount : 0;
   }
-  if (result === "Win" || result === "Loss") {
+
+  if (result === "Loss") {
+    if (returned === 0) return -amount;
     return returned - amount;
   }
+
+  if (result === "Win") {
+    if (amount <= 0) return returned;
+
+    if (returned === 0 && payout > 0) {
+      return amount * (payout / 100);
+    }
+
+    const profitFromPayout = payout > 0 ? amount * (payout / 100) : null;
+    const totalFromPayout =
+      profitFromPayout != null ? amount + profitFromPayout : null;
+
+    if (profitFromPayout != null && totalFromPayout != null) {
+      const distToProfit = Math.abs(returned - profitFromPayout);
+      const distToTotal = Math.abs(returned - totalFromPayout);
+      if (distToProfit <= distToTotal) {
+        return returned;
+      }
+      return returned - amount;
+    }
+
+    if (returned >= amount) {
+      return returned - amount;
+    }
+    return returned;
+  }
+
   return 0;
 }
 
