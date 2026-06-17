@@ -32,15 +32,10 @@ export function JournalClient({ initialRows }: { initialRows: JournalRow[] }) {
 
   return (
     <>
-      <div
-        style={{
-          fontSize: 10,
-          color: "var(--bull)",
-          marginBottom: 10,
-          fontFamily: "var(--mono)",
-        }}
-      >
-        ● JOURNAL AUTOSAVE ON
+      <div className="journal-autosave-hint">
+        <span className="journal-autosave-dot" />
+        Autosave — pauses save after you type; switches page saves open edits. Check the Save
+        column per row.
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
         <button
