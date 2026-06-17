@@ -86,12 +86,14 @@ export function CapitalProtectionModal({
   saving,
   values,
   recovery,
+  migrationWarning,
   onChange,
   onSave,
   onClose,
 }: {
   open: boolean;
   saving: boolean;
+  migrationWarning?: string | null;
   values: {
     startingCapital: number;
     currentCapital: number;
@@ -123,7 +125,7 @@ export function CapitalProtectionModal({
     >
       <div
         className="ctrl cpp-modal"
-        style={{ width: "min(560px, 96vw)", maxHeight: "90vh", overflow: "auto" }}
+        style={{ width: "min(520px, 96vw)", maxHeight: "min(90vh, 720px)", overflowY: "auto", overflowX: "hidden" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="ctrl-title">Capital Protection Plan</div>
@@ -131,11 +133,14 @@ export function CapitalProtectionModal({
           Your goal is not to recover losses quickly. Your goal is to protect capital and make
           disciplined decisions.
         </p>
+        {migrationWarning && (
+          <div className="cpp-recovery-warn">{migrationWarning}</div>
+        )}
         <div className="cpp-form-grid">
-          <div className="f">
+          <div className="cpp-field">
             <label>Starting Capital</label>
             <input
-              className="key-in"
+              className="cpp-input key-in"
               type="number"
               min={0}
               step="0.01"
@@ -143,10 +148,10 @@ export function CapitalProtectionModal({
               onChange={(e) => onChange({ startingCapital: Number(e.target.value) })}
             />
           </div>
-          <div className="f">
+          <div className="cpp-field">
             <label>Current Capital</label>
             <input
-              className="key-in"
+              className="cpp-input key-in"
               type="number"
               min={0}
               step="0.01"
@@ -154,10 +159,10 @@ export function CapitalProtectionModal({
               onChange={(e) => onChange({ currentCapital: Number(e.target.value) })}
             />
           </div>
-          <div className="f">
+          <div className="cpp-field">
             <label>Risk per Trade %</label>
             <input
-              className="key-in"
+              className="cpp-input key-in"
               type="number"
               min={0}
               max={100}
@@ -166,10 +171,10 @@ export function CapitalProtectionModal({
               onChange={(e) => onChange({ riskPerTradePercent: Number(e.target.value) })}
             />
           </div>
-          <div className="f">
+          <div className="cpp-field">
             <label>Daily Profit Target %</label>
             <input
-              className="key-in"
+              className="cpp-input key-in"
               type="number"
               min={0}
               max={100}
@@ -178,10 +183,10 @@ export function CapitalProtectionModal({
               onChange={(e) => onChange({ dailyProfitTargetPercent: Number(e.target.value) })}
             />
           </div>
-          <div className="f">
+          <div className="cpp-field">
             <label>Daily Loss Limit %</label>
             <input
-              className="key-in"
+              className="cpp-input key-in"
               type="number"
               min={0}
               max={100}
@@ -190,10 +195,10 @@ export function CapitalProtectionModal({
               onChange={(e) => onChange({ dailyLossLimitPercent: Number(e.target.value) })}
             />
           </div>
-          <div className="f">
+          <div className="cpp-field">
             <label>Stop After Consecutive Losses</label>
             <input
-              className="key-in"
+              className="cpp-input key-in"
               type="number"
               min={1}
               max={20}

@@ -126,6 +126,7 @@ export function DashboardClient({
   const [startingCapital, setStartingCapital] = useState(0);
   const [currentCapital, setCurrentCapital] = useState(0);
   const [recovery, setRecovery] = useState<RecoveryMetrics | null>(null);
+  const [migrationWarning, setMigrationWarning] = useState<string | null>(null);
   const [cppModalOpen, setCppModalOpen] = useState(false);
   const [cppSaving, setCppSaving] = useState(false);
   const [cppValues, setCppValues] = useState({
@@ -382,6 +383,7 @@ export function DashboardClient({
       setStartingCapital(Number(json.profile?.starting_capital) || 0);
       setCurrentCapital(Number(json.profile?.current_capital) || 0);
       setRecovery(json.recovery || null);
+      setMigrationWarning(json.warning || null);
       setCppValues({
         startingCapital: Number(json.profile?.starting_capital) || 0,
         currentCapital: Number(json.profile?.current_capital) || 0,
@@ -831,6 +833,7 @@ export function DashboardClient({
       <CapitalProtectionModal
         open={cppModalOpen}
         saving={cppSaving}
+        migrationWarning={migrationWarning}
         values={cppValues}
         recovery={recovery}
         onChange={(patch) => setCppValues((s) => ({ ...s, ...patch }))}

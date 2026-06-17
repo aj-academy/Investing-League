@@ -15,10 +15,32 @@ function riskWriter() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : null;
 }
 
+export async function checkCapitalColumnsReady(userId: string): Promise<boolean> {
+  const client = riskWriter() ?? await createClient();
+  const { error } = await client
+    .from("profiles")
+    .select("starting_capital")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!error) return true;
+  return !/column|schema cache/i.test(error.message);
+}
+
 export async function getProfileCapitalFields(userId: string): Promise<CapitalProfileFields | null> {
+  const defaults: CapitalProfileFields = {
+    starting_capital: 0,
+    current_capital: 0,
+    risk_per_trade_percent: 5,
+    daily_profit_target_percent: 10,
+    daily_loss_limit_percent: 15,
+    max_consecutive_losses: 3,
+    trading_rules_accepted: false,
+    login_rules_seen_at: null,
+  };
+
   const admin = riskWriter();
   const client = admin ?? await createClient();
-  const { data } = await client
+  const { data, error } = await client
     .from("profiles")
     .select(
       "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
@@ -26,7 +48,14 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
     .eq("id", userId)
     .maybeSingle();
 
-  if (!data) return null;
+  if (error) {
+    if (/column|schema cache/i.test(error.message)) {
+      return defaults;
+    }
+    return null;
+  }
+
+  if (!data) return defaults;
 
   return {
     starting_capital: num(data.starting_capital),
@@ -46,14 +75,14 @@ export async function getDailyRiskSummary(
 ): Promise<DailyRiskSummary | null> {
   const admin = riskWriter();
   const client = admin ?? await createClient();
-  const { data } = await client
+  const { data, error } = await client
     .from("daily_risk_summary")
     .select("*")
     .eq("user_id", userId)
     .eq("trade_date", tradeDate)
     .maybeSingle();
 
-  if (!data) return null;
+  if (error || !data) return null;
   return normalizeDailyRow(data);
 }
 

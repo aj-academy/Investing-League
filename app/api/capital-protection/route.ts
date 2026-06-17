@@ -1,35 +1,62 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import {
   buildRiskStatusPayload,
+  checkCapitalColumnsReady,
   getProfileCapitalFields,
   upsertDailyRiskSummary,
 } from "@/lib/risk/dailyRiskSummary";
 import { computeRecovery, num, todayDateString } from "@/lib/risk/capitalProtection";
 import { NextResponse } from "next/server";
 
+function isMigrationError(message: string) {
+  return /column|schema cache|daily_risk_summary/i.test(message);
+}
+
 export async function GET() {
   const { auth, error } = await requireApiAuth();
   if (error) return error;
 
-  const payload = await buildRiskStatusPayload(auth!.user.id);
-  if (!payload) {
+  const probe = await getProfileCapitalFields(auth!.user.id);
+  if (!probe) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, ...payload });
+  const columnsReady = await checkCapitalColumnsReady(auth!.user.id);
+  const payload = await buildRiskStatusPayload(auth!.user.id);
+
+  if (!payload) {
+    return NextResponse.json({
+      ok: true,
+      columnsReady: false,
+      riskStatus: "normal",
+      liveModeLocked: false,
+      cooldownUntil: null,
+      cooldownActive: false,
+      todayNetProfit: 0,
+      consecutiveLosses: 0,
+      profile: probe,
+      recovery: computeRecovery(probe.starting_capital, probe.current_capital),
+      warning: "Run supabase/migrations/capital_protection_plan.sql in Supabase SQL Editor.",
+    });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    columnsReady,
+    warning: columnsReady
+      ? undefined
+      : "Run supabase/migrations/capital_protection_plan.sql in Supabase SQL Editor.",
+    ...payload,
+  });
 }
 
 export async function PATCH(request: Request) {
   const { auth, error } = await requireApiAuth();
   if (error) return error;
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-  }
-
   const body = await request.json();
-  const admin = createAdminClient();
   const userId = auth!.user.id;
 
   const startingCapital = num(body.startingCapital);
@@ -46,12 +73,30 @@ export async function PATCH(request: Request) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error: updateError } = await admin.from("profiles").update(patch).eq("id", userId);
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 400 });
+  const supabase = await createClient();
+  let updateError = (
+    await supabase.from("profiles").update(patch).eq("id", userId)
+  ).error;
+
+  if (updateError && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const admin = createAdminClient();
+    updateError = (await admin.from("profiles").update(patch).eq("id", userId)).error;
   }
 
-  await upsertDailyRiskSummary(userId, {
+  if (updateError) {
+    const migration = isMigrationError(updateError.message);
+    return NextResponse.json(
+      {
+        error: migration
+          ? "Database columns missing. Open Supabase → SQL Editor → run supabase/migrations/capital_protection_plan.sql"
+          : updateError.message,
+        code: migration ? "MIGRATION_REQUIRED" : "UPDATE_FAILED",
+      },
+      { status: 400 },
+    );
+  }
+
+  const summaryResult = await upsertDailyRiskSummary(userId, {
     trade_date: todayDateString(),
     starting_capital: startingCapital,
     current_capital: currentCapital,
@@ -59,9 +104,16 @@ export async function PATCH(request: Request) {
 
   const profile = await getProfileCapitalFields(userId);
   const recovery = computeRecovery(
-    profile?.starting_capital ?? 0,
-    profile?.current_capital ?? 0,
+    profile?.starting_capital ?? startingCapital,
+    profile?.current_capital ?? currentCapital,
   );
 
-  return NextResponse.json({ ok: true, profile, recovery });
+  return NextResponse.json({
+    ok: true,
+    columnsReady: true,
+    profile,
+    recovery,
+    dailySummarySaved: !summaryResult.error,
+    dailySummaryWarning: summaryResult.error,
+  });
 }
