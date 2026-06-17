@@ -7,6 +7,7 @@ import {
   num,
   todayDateString,
 } from "./capitalProtection";
+import { reconcileJournalCapitalForUser } from "./reconcileJournalCapital";
 import type { CapitalProfileFields, DailyRiskSummary, RiskStatusPayload } from "./types";
 
 type RiskClient = Awaited<ReturnType<typeof createClient>>;
@@ -201,6 +202,8 @@ export async function aggregateTodayJournal(userId: string, tradeDate = todayDat
 }
 
 export async function buildRiskStatusPayload(userId: string): Promise<RiskStatusPayload | null> {
+  await reconcileJournalCapitalForUser(userId);
+
   const profile = await getProfileCapitalFields(userId);
   if (!profile) return null;
 
@@ -228,7 +231,7 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
     Boolean(daily?.live_mode_locked) && cooldownActive(cooldownUntil);
 
   const consecutiveLosses = daily?.consecutive_losses ?? agg.consecutiveLosses;
-  const todayNetProfit = daily?.net_profit ?? agg.netProfit;
+  const todayNetProfit = agg.netProfit;
 
   const riskStatus = deriveRiskStatus(
     consecutiveLosses,

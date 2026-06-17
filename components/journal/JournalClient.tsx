@@ -34,8 +34,8 @@ export function JournalClient({ initialRows }: { initialRows: JournalRow[] }) {
     <>
       <div className="journal-autosave-hint">
         <span className="journal-autosave-dot" />
-        Autosave — pauses save after you type; switches page saves open edits. Check the Save
-        column per row.
+        Profit = broker profit on a win (e.g. 500 stake at 80% → enter 400, not 900). Net P/L
+        matches that profit on wins. Autosave runs after you type; leaving the page saves edits.
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
         <button

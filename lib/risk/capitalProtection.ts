@@ -62,9 +62,9 @@ export function computeRecovery(
 /**
  * Net P/L for a settled trade.
  *
- * `returnAmount` may be either Olymp-style profit (e.g. 400 on a 500 stake at 80%)
- * or total payout received (stake + profit, e.g. 900). When `payoutPercent` is set,
- * we pick the interpretation that best matches the entered return.
+ * Olymp Trade style: the Profit field is **gross profit** on a win (e.g. 400 on a 500 stake at 80%),
+ * not total payout. On a win, net P/L equals that profit. On a loss, net P/L is −stake.
+ * If someone enters total payout (stake + profit, e.g. 900), we detect when return > stake.
  */
 export function computeNetProfit(
   tradeAmount: number,
@@ -77,7 +77,7 @@ export function computeNetProfit(
   const payout = num(payoutPercent);
 
   if (result === "Refund") {
-    return returned > 0 ? returned - amount : 0;
+    return 0;
   }
 
   if (result === "Loss") {
@@ -92,23 +92,23 @@ export function computeNetProfit(
       return amount * (payout / 100);
     }
 
-    const profitFromPayout = payout > 0 ? amount * (payout / 100) : null;
-    const totalFromPayout =
-      profitFromPayout != null ? amount + profitFromPayout : null;
+    const expectedProfit = payout > 0 ? amount * (payout / 100) : null;
 
-    if (profitFromPayout != null && totalFromPayout != null) {
-      const distToProfit = Math.abs(returned - profitFromPayout);
-      const distToTotal = Math.abs(returned - totalFromPayout);
-      if (distToProfit <= distToTotal) {
-        return returned;
-      }
+    // Total payout entered (stake + profit)
+    if (returned > amount) {
       return returned - amount;
     }
 
-    if (returned >= amount) {
-      return returned - amount;
+    // Profit-only entry, or matches payout % (e.g. 400 on 500 @ 80%)
+    if (
+      returned < amount ||
+      (expectedProfit != null && Math.abs(returned - expectedProfit) < 0.01) ||
+      (returned === amount && expectedProfit != null && expectedProfit >= amount)
+    ) {
+      return returned;
     }
-    return returned;
+
+    return returned - amount;
   }
 
   return 0;
