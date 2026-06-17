@@ -1,5 +1,5 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { getActiveTerms } from "@/lib/terms/terms";
+import { getActiveTerms, hasValidServiceRoleKey } from "@/lib/terms/terms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -10,6 +10,95 @@ function clientIp(request: Request) {
     request.headers.get("x-real-ip") ||
     null
   );
+}
+
+async function saveTermsAcceptance(
+  userId: string,
+  acceptanceRow: {
+    user_id: string;
+    terms_id: string;
+    accepted_at: string;
+    ip_address: string | null;
+    user_agent: string | null;
+  },
+  profilePatch: {
+    risk_disclaimer_accepted: boolean;
+    disclaimer_accepted_at: string;
+    updated_at: string;
+  },
+) {
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("user_terms_acceptance")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("terms_id", acceptanceRow.terms_id)
+    .maybeSingle();
+
+  if (existing) {
+    const { error: updateError } = await supabase
+      .from("user_terms_acceptance")
+      .update({
+        accepted_at: acceptanceRow.accepted_at,
+        ip_address: acceptanceRow.ip_address,
+        user_agent: acceptanceRow.user_agent,
+      })
+      .eq("user_id", userId)
+      .eq("terms_id", acceptanceRow.terms_id);
+
+    if (updateError) return updateError.message;
+  } else {
+    const { error: insertError } = await supabase
+      .from("user_terms_acceptance")
+      .insert(acceptanceRow);
+
+    if (insertError) return insertError.message;
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update(profilePatch)
+    .eq("id", userId);
+
+  return profileError?.message ?? null;
+}
+
+async function saveTermsAcceptanceAdmin(
+  userId: string,
+  acceptanceRow: {
+    user_id: string;
+    terms_id: string;
+    accepted_at: string;
+    ip_address: string | null;
+    user_agent: string | null;
+  },
+  profilePatch: {
+    risk_disclaimer_accepted: boolean;
+    disclaimer_accepted_at: string;
+    updated_at: string;
+  },
+  auditMeta: { termsId: string; version: string; ip: string | null; ua: string | null },
+) {
+  const admin = createAdminClient();
+  const { error: upsertError } = await admin
+    .from("user_terms_acceptance")
+    .upsert(acceptanceRow, { onConflict: "user_id,terms_id" });
+
+  if (upsertError) return upsertError.message;
+
+  await admin.from("profiles").update(profilePatch).eq("id", userId);
+  await admin.from("audit_logs").insert({
+    user_id: userId,
+    action: "user_accept_terms",
+    entity_type: "terms_documents",
+    entity_id: auditMeta.termsId,
+    metadata: { version: auditMeta.version },
+    ip_address: auditMeta.ip,
+    user_agent: auditMeta.ua,
+  });
+
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -40,68 +129,27 @@ export async function POST(request: Request) {
     updated_at: now,
   };
 
-  let acceptError: string | null = null;
+  // Prefer logged-in user session (works when RLS policies are correct)
+  let acceptError = await saveTermsAcceptance(userId, acceptanceRow, profilePatch);
 
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const admin = createAdminClient();
-    const { error: upsertError } = await admin
-      .from("user_terms_acceptance")
-      .upsert(acceptanceRow, { onConflict: "user_id,terms_id" });
-
-    acceptError = upsertError?.message ?? null;
-
-    if (!acceptError) {
-      await admin.from("profiles").update(profilePatch).eq("id", userId);
-      await admin.from("audit_logs").insert({
-        user_id: userId,
-        action: "user_accept_terms",
-        entity_type: "terms_documents",
-        entity_id: active.id,
-        metadata: { version: active.version },
-        ip_address: ip,
-        user_agent: ua,
-      });
-    }
-  } else {
-    const supabase = await createClient();
-    const { error: insertError } = await supabase
-      .from("user_terms_acceptance")
-      .insert(acceptanceRow);
-
-    if (insertError) {
-      if (insertError.code === "23505") {
-        const { error: updateError } = await supabase
-          .from("user_terms_acceptance")
-          .update({
-            accepted_at: now,
-            ip_address: ip,
-            user_agent: ua,
-          })
-          .eq("user_id", userId)
-          .eq("terms_id", active.id);
-        acceptError = updateError?.message ?? null;
-      } else {
-        acceptError = insertError.message;
-      }
-    }
-
-    if (!acceptError) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update(profilePatch)
-        .eq("id", userId);
-      if (profileError) acceptError = profileError.message;
-    }
+  // Fallback: service role bypasses RLS (must be real service_role key, not anon)
+  if (acceptError && hasValidServiceRoleKey()) {
+    acceptError = await saveTermsAcceptanceAdmin(
+      userId,
+      acceptanceRow,
+      profilePatch,
+      { termsId: active.id, version: active.version, ip, ua },
+    );
   }
 
   if (acceptError) {
-    const needsUpdatePolicy = /row-level security|policy/i.test(acceptError);
+    const rlsBlocked = /row-level security|policy/i.test(acceptError);
     return NextResponse.json(
       {
-        error: needsUpdatePolicy
-          ? "Terms save blocked by database security. Run supabase/migrations/terms_acceptance_rls_fix.sql in Supabase SQL Editor, and add SUPABASE_SERVICE_ROLE_KEY in Vercel."
+        error: rlsBlocked
+          ? "Terms could not be saved. In Supabase SQL Editor run the file supabase/migrations/terms_acceptance_rls_fix.sql (copy all, click Run). Also set SUPABASE_SERVICE_ROLE_KEY in Vercel (service_role secret, not anon key)."
           : acceptError,
-        code: needsUpdatePolicy ? "RLS_BLOCKED" : "ACCEPT_FAILED",
+        code: rlsBlocked ? "RLS_BLOCKED" : "ACCEPT_FAILED",
       },
       { status: 500 },
     );
