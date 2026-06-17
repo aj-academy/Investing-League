@@ -540,3 +540,83 @@
   color: var(--bear);
   margin-bottom: 12px;
 }
+.cpp-card-sub {
+  font-size: 10px;
+  color: var(--m3);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.cpp-empty-state {
+  padding: 12px 14px;
+  border: 1px dashed var(--bd);
+  border-radius: 8px;
+  background: var(--p2);
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.55;
+}
+.cpp-plan-limits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.cpp-limit-item {
+  padding: 10px 12px;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  background: var(--p2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cpp-limit-label {
+  font-size: 9px;
+  color: var(--m3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cpp-limit-item strong {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--txt);
+}
+.cpp-limit-hint {
+  font-size: 9px;
+  color: var(--m3);
+  line-height: 1.35;
+}
+.cpp-how-it-works {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  background: rgba(0, 180, 255, 0.04);
+}
+.cpp-how-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--cyan);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.cpp-how-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.55;
+}
+.cpp-how-list li { margin-bottom: 6px; }
+.cpp-card-footer { margin-top: 10px; margin-bottom: 0; }
+.cpp-plan-preview {
+  font-size: 11px;
+  color: var(--txt2);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+@media (max-width: 640px) {
+  .cpp-plan-limits { grid-template-columns: 1fr; }
+}

@@ -373,20 +373,22 @@ export function DashboardClient({
 
   const loadRiskStatus = useCallback(async () => {
     try {
-      const res = await fetch("/api/capital-protection");
+      const res = await fetch("/api/capital-protection", { cache: "no-store" });
       const json = await res.json();
       if (!res.ok || !json.ok) return;
+      const start = Number(json.profile?.starting_capital) || 0;
+      const current = Number(json.profile?.current_capital) || 0;
       setRiskStatus(json.riskStatus || "normal");
       setLiveModeLocked(Boolean(json.liveModeLocked));
       setTodayNetProfit(Number(json.todayNetProfit) || 0);
       setConsecutiveLosses(Number(json.consecutiveLosses) || 0);
-      setStartingCapital(Number(json.profile?.starting_capital) || 0);
-      setCurrentCapital(Number(json.profile?.current_capital) || 0);
+      setStartingCapital(start);
+      setCurrentCapital(current);
       setRecovery(json.recovery || null);
       setMigrationWarning(json.warning || null);
       setCppValues({
-        startingCapital: Number(json.profile?.starting_capital) || 0,
-        currentCapital: Number(json.profile?.current_capital) || 0,
+        startingCapital: start,
+        currentCapital: current,
         riskPerTradePercent: Number(json.profile?.risk_per_trade_percent) || 5,
         dailyProfitTargetPercent: Number(json.profile?.daily_profit_target_percent) || 10,
         dailyLossLimitPercent: Number(json.profile?.daily_loss_limit_percent) || 15,
@@ -427,7 +429,21 @@ export function DashboardClient({
         toast.error(json.error || "Could not save plan");
         return;
       }
-      toast.success("Capital Protection Plan saved");
+      const p = json.profile;
+      const savedStart = Number(p?.starting_capital ?? cppValues.startingCapital);
+      const savedCurrent = Number(p?.current_capital ?? cppValues.currentCapital);
+      setStartingCapital(savedStart);
+      setCurrentCapital(savedCurrent);
+      setCppValues((s) => ({
+        ...s,
+        startingCapital: savedStart,
+        currentCapital: savedCurrent,
+        riskPerTradePercent: Number(p?.risk_per_trade_percent ?? s.riskPerTradePercent),
+        dailyProfitTargetPercent: Number(p?.daily_profit_target_percent ?? s.dailyProfitTargetPercent),
+        dailyLossLimitPercent: Number(p?.daily_loss_limit_percent ?? s.dailyLossLimitPercent),
+        maxConsecutiveLosses: Number(p?.max_consecutive_losses ?? s.maxConsecutiveLosses),
+      }));
+      toast.success("Capital Protection Plan saved — see limits below.");
       setRecovery(json.recovery || null);
       setCppModalOpen(false);
       void loadRiskStatus();
@@ -636,6 +652,11 @@ export function DashboardClient({
             consecutiveLosses={consecutiveLosses}
             riskStatus={riskStatus}
             liveModeLocked={liveModeLocked}
+            riskPerTradePercent={cppValues.riskPerTradePercent}
+            dailyProfitTargetPercent={cppValues.dailyProfitTargetPercent}
+            dailyLossLimitPercent={cppValues.dailyLossLimitPercent}
+            maxConsecutiveLosses={cppValues.maxConsecutiveLosses}
+            recovery={recovery}
             onEdit={() => setCppModalOpen(true)}
           />
 

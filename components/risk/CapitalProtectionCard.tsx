@@ -15,6 +15,10 @@ function riskLabel(status: RiskStatus) {
   return "Normal";
 }
 
+function fmtMoney(n: number) {
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function CapitalProtectionCard({
   startingCapital,
   currentCapital,
@@ -22,6 +26,11 @@ export function CapitalProtectionCard({
   consecutiveLosses,
   riskStatus,
   liveModeLocked,
+  riskPerTradePercent,
+  dailyProfitTargetPercent,
+  dailyLossLimitPercent,
+  maxConsecutiveLosses,
+  recovery,
   onEdit,
 }: {
   startingCapital: number;
@@ -30,53 +39,150 @@ export function CapitalProtectionCard({
   consecutiveLosses: number;
   riskStatus: RiskStatus;
   liveModeLocked: boolean;
+  riskPerTradePercent: number;
+  dailyProfitTargetPercent: number;
+  dailyLossLimitPercent: number;
+  maxConsecutiveLosses: number;
+  recovery: RecoveryMetrics | null;
   onEdit?: () => void;
 }) {
+  const planActive = startingCapital > 0;
+  const riskPerTradeAmt = planActive ? (currentCapital * riskPerTradePercent) / 100 : 0;
+  const dailyLossLimitAmt = planActive ? (startingCapital * dailyLossLimitPercent) / 100 : 0;
+  const dailyProfitTargetAmt = planActive ? (startingCapital * dailyProfitTargetPercent) / 100 : 0;
+  const capitalDelta = currentCapital - startingCapital;
+  const capitalDeltaPct =
+    planActive && startingCapital > 0 ? (capitalDelta / startingCapital) * 100 : 0;
+
   return (
     <div className="ctrl cpp-card">
       <div className="cpp-card-head">
-        <div className="ctrl-title">Capital Protection</div>
+        <div>
+          <div className="ctrl-title">Capital Protection</div>
+          <p className="cpp-card-sub">
+            {planActive
+              ? "Your discipline plan is active — limits apply to Live Mode and journal tracking."
+              : "Set starting capital to activate your protection plan."}
+          </p>
+        </div>
         {onEdit && (
           <button type="button" className="jbtn" onClick={onEdit}>
-            Edit plan
+            {planActive ? "Edit plan" : "Set up plan"}
           </button>
         )}
       </div>
-      <div className="journal-stats cpp-stats">
-        <div className="jstat">
-          <div className="jstat-v">{startingCapital.toFixed(2)}</div>
-          <div className="jstat-l">Starting Capital</div>
+
+      {!planActive ? (
+        <div className="cpp-empty-state">
+          <p>
+            Add your starting capital and limits so the Decision Lab can track today&apos;s P/L,
+            loss streaks, and pause Live Mode when your rules are hit.
+          </p>
         </div>
-        <div className="jstat">
-          <div className="jstat-v">{currentCapital.toFixed(2)}</div>
-          <div className="jstat-l">Current Capital</div>
-        </div>
-        <div className="jstat">
-          <div
-            className="jstat-v"
-            style={{
-              color: todayNetProfit >= 0 ? "var(--bull)" : "var(--bear)",
-            }}
-          >
-            {todayNetProfit.toFixed(2)}
+      ) : (
+        <>
+          <div className="journal-stats cpp-stats">
+            <div className="jstat">
+              <div className="jstat-v">{fmtMoney(startingCapital)}</div>
+              <div className="jstat-l">Starting Capital</div>
+            </div>
+            <div className="jstat">
+              <div className="jstat-v">{fmtMoney(currentCapital)}</div>
+              <div className="jstat-l">Current Capital</div>
+            </div>
+            <div className="jstat">
+              <div
+                className="jstat-v"
+                style={{ color: todayNetProfit >= 0 ? "var(--bull)" : "var(--bear)" }}
+              >
+                {fmtMoney(todayNetProfit)}
+              </div>
+              <div className="jstat-l">Today P/L</div>
+            </div>
+            <div className="jstat">
+              <div
+                className="jstat-v"
+                style={{ color: capitalDelta >= 0 ? "var(--bull)" : "var(--bear)" }}
+              >
+                {capitalDeltaPct.toFixed(1)}%
+              </div>
+              <div className="jstat-l">vs Starting</div>
+            </div>
+            <div className="jstat">
+              <div className="jstat-v">{consecutiveLosses}</div>
+              <div className="jstat-l">Loss Streak</div>
+            </div>
+            <div className="jstat">
+              <div className={`jstat-v ${riskClass(riskStatus)}`}>{riskLabel(riskStatus)}</div>
+              <div className="jstat-l">Risk Status</div>
+            </div>
+            <div className="jstat">
+              <div
+                className="jstat-v"
+                style={{ color: liveModeLocked ? "var(--bear)" : "var(--bull)" }}
+              >
+                {liveModeLocked ? "Paused" : "Active"}
+              </div>
+              <div className="jstat-l">Live Mode</div>
+            </div>
           </div>
-          <div className="jstat-l">Today P/L</div>
-        </div>
-        <div className="jstat">
-          <div className="jstat-v">{consecutiveLosses}</div>
-          <div className="jstat-l">Loss Streak</div>
-        </div>
-        <div className="jstat">
-          <div className={`jstat-v ${riskClass(riskStatus)}`}>{riskLabel(riskStatus)}</div>
-          <div className="jstat-l">Risk Status</div>
-        </div>
-        <div className="jstat">
-          <div className="jstat-v" style={{ color: liveModeLocked ? "var(--bear)" : "var(--bull)" }}>
-            {liveModeLocked ? "Paused" : "Active"}
+
+          <div className="cpp-plan-limits">
+            <div className="cpp-limit-item">
+              <span className="cpp-limit-label">Risk per trade</span>
+              <strong>
+                {riskPerTradePercent}% · ~{fmtMoney(riskPerTradeAmt)}
+              </strong>
+              <span className="cpp-limit-hint">Based on current capital</span>
+            </div>
+            <div className="cpp-limit-item">
+              <span className="cpp-limit-label">Daily profit target</span>
+              <strong>
+                {dailyProfitTargetPercent}% · ~{fmtMoney(dailyProfitTargetAmt)}
+              </strong>
+              <span className="cpp-limit-hint">Educational daily reference</span>
+            </div>
+            <div className="cpp-limit-item">
+              <span className="cpp-limit-label">Daily loss limit</span>
+              <strong>
+                {dailyLossLimitPercent}% · ~{fmtMoney(dailyLossLimitAmt)}
+              </strong>
+              <span className="cpp-limit-hint">Stop if today P/L exceeds this</span>
+            </div>
+            <div className="cpp-limit-item">
+              <span className="cpp-limit-label">Consecutive loss stop</span>
+              <strong>{maxConsecutiveLosses} losses</strong>
+              <span className="cpp-limit-hint">Pauses Live Mode + shows warning</span>
+            </div>
           </div>
-          <div className="jstat-l">Live Mode</div>
-        </div>
-      </div>
+
+          {recovery?.message && (
+            <div className="cpp-recovery-warn">{recovery.message}</div>
+          )}
+
+          <div className="cpp-how-it-works">
+            <div className="cpp-how-title">How it works</div>
+            <ul className="cpp-how-list">
+              <li>Set starting and current capital — journal trade results update current capital.</li>
+              <li>
+                Today P/L and loss streak count settled journal results (Win / Loss / Refund) for
+                today only.
+              </li>
+              <li>
+                After {maxConsecutiveLosses} consecutive losses, Live Mode pauses for capital
+                protection. Practice Mode stays available.
+              </li>
+              <li>
+                Risk status turns Caution or Stop Trading when daily loss or streak limits are
+                approached — not a profit guarantee.
+              </li>
+              <li>Your goal is disciplined decisions, not recovering losses quickly.</li>
+            </ul>
+          </div>
+        </>
+      )}
+
+      <p className="cpp-disclaimer cpp-card-footer">{RISK_DISCLAIMER}</p>
     </div>
   );
 }
@@ -109,6 +215,11 @@ export function CapitalProtectionModal({
 }) {
   if (!open) return null;
 
+  const riskAmt =
+    values.currentCapital > 0
+      ? ((values.currentCapital * values.riskPerTradePercent) / 100).toFixed(2)
+      : "—";
+
   return (
     <div
       style={{
@@ -125,7 +236,12 @@ export function CapitalProtectionModal({
     >
       <div
         className="ctrl cpp-modal"
-        style={{ width: "min(520px, 96vw)", maxHeight: "min(90vh, 720px)", overflowY: "auto", overflowX: "hidden" }}
+        style={{
+          width: "min(520px, 96vw)",
+          maxHeight: "min(90vh, 720px)",
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="ctrl-title">Capital Protection Plan</div>
@@ -133,9 +249,7 @@ export function CapitalProtectionModal({
           Your goal is not to recover losses quickly. Your goal is to protect capital and make
           disciplined decisions.
         </p>
-        {migrationWarning && (
-          <div className="cpp-recovery-warn">{migrationWarning}</div>
-        )}
+        {migrationWarning && <div className="cpp-recovery-warn">{migrationWarning}</div>}
         <div className="cpp-form-grid">
           <div className="cpp-field">
             <label>Starting Capital</label>
@@ -208,9 +322,11 @@ export function CapitalProtectionModal({
             />
           </div>
         </div>
-        {recovery?.message && (
-          <div className="cpp-recovery-warn">{recovery.message}</div>
-        )}
+        <p className="cpp-plan-preview">
+          At {values.riskPerTradePercent}% risk, suggested reference trade size from current
+          capital: <strong>{riskAmt}</strong> (educational only).
+        </p>
+        {recovery?.message && <div className="cpp-recovery-warn">{recovery.message}</div>}
         <p className="cpp-disclaimer">{RISK_DISCLAIMER}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
           <button type="button" className="btn-scan" disabled={saving} onClick={onSave}>
