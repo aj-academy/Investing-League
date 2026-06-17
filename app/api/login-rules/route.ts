@@ -1,27 +1,74 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { isSameCalendarDay, todayDateString } from "@/lib/risk/capitalProtection";
-import { getProfileCapitalFields } from "@/lib/risk/dailyRiskSummary";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+
+async function readLoginRulesState(userId: string) {
+  const select =
+    "trading_rules_accepted, login_rules_seen_at, starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses";
+
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("profiles")
+      .select(select)
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) {
+      const fallback = await admin
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+      return { data: fallback.data ? null : null, error: error.message, columnsReady: false };
+    }
+    return { data, error: null, columnsReady: true };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(select)
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: error.message, columnsReady: false };
+  }
+  return { data, error: null, columnsReady: true };
+}
 
 export async function GET() {
   const { auth, error } = await requireApiAuth();
   if (error) return error;
 
-  const profile = await getProfileCapitalFields(auth!.user.id);
-  if (!profile) {
+  const { data, error: readError, columnsReady } = await readLoginRulesState(auth!.user.id);
+
+  if (!columnsReady) {
+    return NextResponse.json({
+      ok: true,
+      showPopup: true,
+      columnsReady: false,
+      warning: readError || "Capital protection columns not found — run Supabase migration.",
+    });
+  }
+
+  if (!data) {
     return NextResponse.json({ ok: true, showPopup: true, reason: "no_profile" });
   }
 
   const today = todayDateString();
-  const seenToday = isSameCalendarDay(profile.login_rules_seen_at, today);
-  const showPopup = !profile.trading_rules_accepted || !seenToday;
+  const seenToday = isSameCalendarDay(data.login_rules_seen_at as string | null, today);
+  const tradingRulesAccepted = Boolean(data.trading_rules_accepted);
+  const showPopup = !tradingRulesAccepted || !seenToday;
 
   return NextResponse.json({
     ok: true,
     showPopup,
-    tradingRulesAccepted: profile.trading_rules_accepted,
-    loginRulesSeenAt: profile.login_rules_seen_at,
+    tradingRulesAccepted,
+    loginRulesSeenAt: data.login_rules_seen_at ?? null,
+    columnsReady: true,
   });
 }
 
@@ -29,25 +76,39 @@ export async function POST() {
   const { auth, error } = await requireApiAuth();
   if (error) return error;
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-  }
-
-  const admin = createAdminClient();
   const now = new Date().toISOString();
+  const patch = {
+    trading_rules_accepted: true,
+    login_rules_seen_at: now,
+    updated_at: now,
+  };
 
-  const { error: updateError } = await admin
-    .from("profiles")
-    .update({
-      trading_rules_accepted: true,
-      login_rules_seen_at: now,
-      updated_at: now,
-    })
-    .eq("id", auth!.user.id);
+  let updateError: string | null = null;
+
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const admin = createAdminClient();
+    const { error: adminErr } = await admin.from("profiles").update(patch).eq("id", auth!.user.id);
+    updateError = adminErr?.message ?? null;
+  }
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 400 });
+    const supabase = await createClient();
+    const { error: userErr } = await supabase.from("profiles").update(patch).eq("id", auth!.user.id);
+    updateError = userErr?.message ?? updateError;
+  } else if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const supabase = await createClient();
+    const { error: userErr } = await supabase.from("profiles").update(patch).eq("id", auth!.user.id);
+    updateError = userErr?.message ?? null;
   }
 
-  return NextResponse.json({ ok: true, loginRulesSeenAt: now });
+  if (updateError) {
+    return NextResponse.json({
+      ok: true,
+      persisted: false,
+      warning: updateError,
+      loginRulesSeenAt: now,
+    });
+  }
+
+  return NextResponse.json({ ok: true, persisted: true, loginRulesSeenAt: now });
 }

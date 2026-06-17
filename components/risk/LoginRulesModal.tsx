@@ -46,7 +46,16 @@ export function LoginRulesModal({
           ))}
         </ul>
         <p className="cpp-disclaimer">{RISK_DISCLAIMER}</p>
-        <button type="button" className="btn-scan" disabled={accepting} onClick={onAccept}>
+        <button
+          type="button"
+          className="btn-scan"
+          disabled={accepting}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onAccept();
+          }}
+        >
           {accepting ? "Saving..." : "I Understand — Start with Discipline"}
         </button>
       </div>
