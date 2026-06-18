@@ -1,8 +1,8 @@
 import { mapSignalTypeFilter } from "@/lib/risk/capitalProtection";
 
 export type AdminJournalFilters = {
+  userId?: string;
   userName?: string;
-  email?: string;
   from?: string;
   to?: string;
   pair?: string;
@@ -264,6 +264,9 @@ export type AdminUserJournalSummary = {
   worst_pair: string | null;
   risk_status: string;
   consecutive_losses: number;
+  starting_capital?: number;
+  current_capital?: number;
+  risk_per_trade_percent?: number;
 };
 
 export function computeUserSummaries(rows: AdminJournalRow[]): AdminUserJournalSummary[] {

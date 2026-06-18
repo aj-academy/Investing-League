@@ -5,6 +5,7 @@ import type { PlanName } from "@/lib/billing/planLimits";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AdminJournalTab } from "./AdminJournalTab";
+import { AdminUserReportCapital } from "./AdminUserReportCapital";
 
 type AdminTab =
   | "overview"
@@ -1611,6 +1612,16 @@ export function AdminView() {
           </div>
           {report && (
             <>
+              <AdminUserReportCapital
+                capital={report.capitalProtection ?? null}
+                dailySummaries={report.dailySummaries ?? []}
+                journalEntries={report.journalEntries ?? report.recentJournal ?? []}
+                rangeTotals={{
+                  totalTradeAmount: report.totals?.totalTradeAmount ?? 0,
+                  totalReturnAmount: report.totals?.totalReturnAmount ?? 0,
+                  totalNetProfit: report.totals?.totalNetProfit ?? 0,
+                }}
+              />
               <div className="journal-stats" style={{ marginTop: 12 }}>
                 <div className="jstat">
                   <div className="jstat-v">{report?.usage?.scansInRange ?? 0}</div>

@@ -19,14 +19,26 @@ const SIGNAL_TYPES = [
   "Do Not Trade",
 ];
 
+type AdminJournalUser = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+};
+
+function userOptionLabel(u: AdminJournalUser) {
+  if (u.full_name?.trim()) return u.full_name.trim();
+  return u.email || u.id;
+}
+
 export function AdminJournalTab() {
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [users, setUsers] = useState<AdminJournalUser[]>([]);
   const [rows, setRows] = useState<AdminJournalRow[]>([]);
   const [summary, setSummary] = useState<AdminJournalSummary | null>(null);
   const [userSummaries, setUserSummaries] = useState<AdminUserJournalSummary[]>([]);
   const [filters, setFilters] = useState({
-    userName: "",
-    email: "",
+    userId: "",
     from: "",
     to: "",
     pair: "",
@@ -39,11 +51,26 @@ export function AdminJournalTab() {
     pendingOnly: false,
   });
 
+  useEffect(() => {
+    setUsersLoading(true);
+    fetch("/api/admin/users")
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json.users || []) as AdminJournalUser[];
+        setUsers(
+          [...list].sort((a, b) => userOptionLabel(a).localeCompare(userOptionLabel(b))),
+        );
+      })
+      .catch(() => {
+        toast.error("Could not load users for filter");
+      })
+      .finally(() => setUsersLoading(false));
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (filters.userName) params.set("userName", filters.userName);
-    if (filters.email) params.set("email", filters.email);
+    if (filters.userId) params.set("userId", filters.userId);
     if (filters.from) params.set("from", filters.from);
     if (filters.to) params.set("to", filters.to);
     if (filters.pair) params.set("pair", filters.pair);
@@ -110,18 +137,19 @@ export function AdminJournalTab() {
 
       <div className="ctrl-row">
         <div className="f">
-          <label>User name</label>
-          <input
-            value={filters.userName}
-            onChange={(e) => setFilters((s) => ({ ...s, userName: e.target.value }))}
-          />
-        </div>
-        <div className="f">
-          <label>Email</label>
-          <input
-            value={filters.email}
-            onChange={(e) => setFilters((s) => ({ ...s, email: e.target.value }))}
-          />
+          <label>User</label>
+          <select
+            value={filters.userId}
+            disabled={usersLoading}
+            onChange={(e) => setFilters((s) => ({ ...s, userId: e.target.value }))}
+          >
+            <option value="">{usersLoading ? "Loading users…" : "All users"}</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {userOptionLabel(u)}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="f">
           <label>From</label>
@@ -302,6 +330,8 @@ export function AdminJournalTab() {
             <thead>
               <tr>
                 <th>User</th>
+                <th>Start Cap.</th>
+                <th>Current</th>
                 <th>Trades</th>
                 <th>W/L/R/P</th>
                 <th>Net P/L</th>
@@ -315,6 +345,8 @@ export function AdminJournalTab() {
               {userSummaries.map((u) => (
                 <tr key={u.user_id}>
                   <td>{u.user_name || u.user_email || u.user_id}</td>
+                  <td>{(u.starting_capital ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td>{(u.current_capital ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                   <td>{u.total_trades}</td>
                   <td>
                     {u.wins}/{u.losses}/{u.refunds}/{u.pending}

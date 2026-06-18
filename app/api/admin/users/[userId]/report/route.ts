@@ -4,11 +4,17 @@ import { userReportToCsv } from "@/lib/admin/reportCsv";
 import { isRealTradeSignal } from "@/lib/analytics/winRate";
 import { resolveUserAllowedPairs } from "@/lib/access/assetAccess";
 import { getUserScanMetrics } from "@/lib/billing/scanMetrics";
+import { num } from "@/lib/risk/capitalProtection";
+import {
+  buildRiskStatusPayload,
+  checkCapitalColumnsReady,
+  getDailyRiskSummariesInRange,
+} from "@/lib/risk/dailyRiskSummary";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 function summaryByPair(
-  rows: { pair: string; result: string; signal_type?: string | null; grade?: string | null }[]
+  rows: { pair: string; result: string; signal_type?: string | null; grade?: string | null }[],
 ) {
   const map = new Map<string, { wins: number; losses: number; total: number }>();
   for (const r of rows) {
@@ -37,9 +43,12 @@ function summaryByPair(
   return { bestPair, worstPair };
 }
 
+const JOURNAL_SELECT =
+  "pair,result,signal_type,grade,created_at,marked_time,direction,timeframe,scan_mode,trade_amount,payout_percent,return_amount,net_profit,signal_entry_price,olymp_opening_quote,olymp_closing_quote,v9_layer";
+
 export async function GET(
   request: Request,
-  context: { params: Promise<{ userId: string }> }
+  context: { params: Promise<{ userId: string }> },
 ) {
   const { error } = await requireAdminApi();
   if (error) return error;
@@ -54,7 +63,7 @@ export async function GET(
 
   let journalQuery = admin
     .from("trade_journal")
-    .select("pair,result,signal_type,grade,created_at")
+    .select(JOURNAL_SELECT)
     .eq("user_id", userId)
     .gte("created_at", fromIso)
     .lte("created_at", toIso)
@@ -69,6 +78,9 @@ export async function GET(
     { data: recentScans },
     { data: termsAcceptances },
     { data: usageInRange },
+    capitalColumnsReady,
+    riskPayload,
+    dailySummaries,
   ] = await Promise.all([
     admin
       .from("profiles")
@@ -102,6 +114,9 @@ export async function GET(
       .gte("created_at", fromIso)
       .lte("created_at", toIso)
       .eq("action", "scan_market"),
+    checkCapitalColumnsReady(userId),
+    buildRiskStatusPayload(userId),
+    getDailyRiskSummariesInRange(userId, from, to),
   ]);
 
   if (!profile) {
@@ -110,7 +125,7 @@ export async function GET(
 
   const allowedAssets = await resolveUserAllowedPairs(
     userId,
-    (profile.plan || "free") as "free" | "starter" | "pro" | "admin"
+    (profile.plan || "free") as "free" | "starter" | "pro" | "admin",
   );
 
   const scanMetrics = await getUserScanMetrics(userId);
@@ -123,29 +138,66 @@ export async function GET(
 
   const eligible = journalRows.filter(
     (r) =>
-      isRealTradeSignal(r.signal_type || null, r.grade || null) &&
-      (r.result === "Win" || r.result === "Loss")
+      isRealTradeSignal(
+        r.signal_type || null,
+        r.grade || null,
+        (r as { v9_layer?: string | null }).v9_layer ?? null,
+      ) && (r.result === "Win" || r.result === "Loss"),
   );
   const eligibleWins = eligible.filter((r) => r.result === "Win").length;
   const realTradeWinRate = eligible.length ? Math.round((eligibleWins / eligible.length) * 100) : 0;
 
   const { bestPair, worstPair } = summaryByPair(journalRows);
 
+  const totalTradeAmount = journalRows.reduce((a, r) => a + num(r.trade_amount), 0);
+  const totalReturnAmount = journalRows.reduce((a, r) => a + num(r.return_amount), 0);
+  const totalNetProfit = journalRows.reduce((a, r) => a + num(r.net_profit), 0);
+
   const scansInRange = (usageInRange || []).length;
   const providerCallsInRange = (usageInRange || []).reduce(
     (a, r) => a + Number(r.provider_calls || 0),
-    0
+    0,
   );
   const cacheHitsInRange = (usageInRange || []).reduce(
     (a, r) => a + Number(r.cache_hits || 0),
-    0
+    0,
   );
+
+  const capitalProtection = riskPayload
+    ? {
+        startingCapital: riskPayload.profile.starting_capital,
+        currentCapital: riskPayload.profile.current_capital,
+        todayNetProfit: riskPayload.todayNetProfit,
+        consecutiveLosses: riskPayload.consecutiveLosses,
+        riskStatus: riskPayload.riskStatus,
+        liveModeLocked: riskPayload.liveModeLocked,
+        riskPerTradePercent: riskPayload.profile.risk_per_trade_percent,
+        dailyProfitTargetPercent: riskPayload.profile.daily_profit_target_percent,
+        dailyLossLimitPercent: riskPayload.profile.daily_loss_limit_percent,
+        maxConsecutiveLosses: riskPayload.profile.max_consecutive_losses,
+        recovery: riskPayload.recovery,
+        columnsReady: capitalColumnsReady,
+      }
+    : null;
 
   const payload = {
     filter: { from, to, result: resultFilter || null },
     profile,
     allowedAssets,
     termsAcceptances: termsAcceptances || [],
+    capitalProtection,
+    dailySummaries: dailySummaries.map((d) => ({
+      trade_date: d.trade_date,
+      starting_capital: d.starting_capital,
+      current_capital: d.current_capital,
+      total_trades: d.total_trades,
+      wins: d.wins,
+      losses: d.losses,
+      refunds: d.refunds,
+      net_profit: d.net_profit,
+      consecutive_losses: d.consecutive_losses,
+      live_mode_locked: d.live_mode_locked,
+    })),
     usage: {
       scansToday: scanMetrics.scansToday,
       totalScans: scanMetrics.totalScans,
@@ -166,9 +218,13 @@ export async function GET(
       observationAccuracy: realTradeWinRate,
       bestPair,
       worstPair,
+      totalTradeAmount,
+      totalReturnAmount,
+      totalNetProfit,
     },
     recentScans: recentScans || [],
     recentJournal: journalRows.slice(0, 100),
+    journalEntries: journalRows.slice(0, 200),
   };
 
   if (format === "csv") {

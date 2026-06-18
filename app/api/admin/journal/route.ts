@@ -21,8 +21,8 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const filters: AdminJournalFilters = {
+    userId: url.searchParams.get("userId") || undefined,
     userName: url.searchParams.get("userName") || undefined,
-    email: url.searchParams.get("email") || undefined,
     from: url.searchParams.get("from") || undefined,
     to: url.searchParams.get("to") || undefined,
     pair: url.searchParams.get("pair") || undefined,
@@ -52,6 +52,7 @@ export async function GET(request: Request) {
   if (filters.mode) journalQuery = journalQuery.eq("scan_mode", filters.mode);
   if (filters.timeframe) journalQuery = journalQuery.eq("timeframe", filters.timeframe);
   if (filters.pendingOnly) journalQuery = journalQuery.eq("result", "Pending");
+  if (filters.userId) journalQuery = journalQuery.eq("user_id", filters.userId);
 
   const { data: journalRows, error: journalError } = await journalQuery;
   if (journalError) {
@@ -61,7 +62,9 @@ export async function GET(request: Request) {
   const userIds = [...new Set((journalRows || []).map((r) => r.user_id as string))];
   const { data: profiles } = await admin
     .from("profiles")
-    .select("id, full_name, email, plan")
+    .select(
+      "id, full_name, email, plan, starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses",
+    )
     .in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
 
   const profileMap = new Map(
@@ -79,10 +82,6 @@ export async function GET(request: Request) {
     const q = filters.userName.toLowerCase();
     rows = rows.filter((r) => (r.user_name || "").toLowerCase().includes(q));
   }
-  if (filters.email) {
-    const q = filters.email.toLowerCase();
-    rows = rows.filter((r) => (r.user_email || "").toLowerCase().includes(q));
-  }
   if (filters.plan) {
     rows = rows.filter((r) => (r.user_plan || "").toLowerCase() === filters.plan!.toLowerCase());
   }
@@ -94,7 +93,16 @@ export async function GET(request: Request) {
   }
 
   const summary = computeAdminJournalSummary(rows);
-  const userSummaries = computeUserSummaries(rows);
+  const userSummaries = computeUserSummaries(rows).map((u) => {
+    const prof = profileMap.get(u.user_id) as Record<string, unknown> | undefined;
+    return {
+      ...u,
+      starting_capital: prof?.starting_capital != null ? Number(prof.starting_capital) : 0,
+      current_capital: prof?.current_capital != null ? Number(prof.current_capital) : 0,
+      risk_per_trade_percent:
+        prof?.risk_per_trade_percent != null ? Number(prof.risk_per_trade_percent) : 5,
+    };
+  });
 
   if (format === "csv") {
     const csv = adminJournalToCsv(rows);

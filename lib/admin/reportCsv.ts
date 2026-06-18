@@ -8,6 +8,20 @@ type ReportCsvInput = {
     created_at?: string;
   };
   allowedAssets?: string[];
+  capitalProtection?: {
+    startingCapital?: number;
+    currentCapital?: number;
+    todayNetProfit?: number;
+    consecutiveLosses?: number;
+    riskStatus?: string;
+    liveModeLocked?: boolean;
+    riskPerTradePercent?: number;
+    dailyProfitTargetPercent?: number;
+    dailyLossLimitPercent?: number;
+    maxConsecutiveLosses?: number;
+    recovery?: { message?: string | null };
+  } | null;
+  dailySummaries?: Array<Record<string, unknown>>;
   usage?: {
     scansToday?: number;
     totalScans?: number;
@@ -20,6 +34,7 @@ type ReportCsvInput = {
   totals?: Record<string, unknown>;
   recentScans?: Array<Record<string, unknown>>;
   recentJournal?: Array<Record<string, unknown>>;
+  journalEntries?: Array<Record<string, unknown>>;
   filter?: { from?: string; to?: string; result?: string };
 };
 
@@ -50,6 +65,86 @@ export function userReportToCsv(data: ReportCsvInput): string {
   lines.push(row(["Allowed Assets", (data.allowedAssets || []).join("; ")]));
   lines.push("");
 
+  const cap = data.capitalProtection;
+  if (cap) {
+    lines.push("Capital Protection");
+    lines.push(
+      row([
+        "Starting Capital",
+        cap.startingCapital,
+        "Current Capital",
+        cap.currentCapital,
+        "Today P/L",
+        cap.todayNetProfit,
+      ]),
+    );
+    lines.push(
+      row([
+        "Vs Starting",
+        cap.startingCapital && cap.currentCapital != null
+          ? `${(((cap.currentCapital - cap.startingCapital) / cap.startingCapital) * 100).toFixed(2)}%`
+          : "",
+        "Loss Streak",
+        cap.consecutiveLosses,
+        "Risk Status",
+        cap.riskStatus,
+        "Live Locked",
+        cap.liveModeLocked ? "Yes" : "No",
+      ]),
+    );
+    lines.push(
+      row([
+        "Risk Per Trade %",
+        cap.riskPerTradePercent,
+        "Daily Profit Target %",
+        cap.dailyProfitTargetPercent,
+        "Daily Loss Limit %",
+        cap.dailyLossLimitPercent,
+        "Max Consecutive Losses",
+        cap.maxConsecutiveLosses,
+      ]),
+    );
+    if (cap.recovery?.message) {
+      lines.push(row(["Recovery Note", cap.recovery.message]));
+    }
+    lines.push("");
+  }
+
+  if (data.dailySummaries?.length) {
+    lines.push("Daily Summaries");
+    lines.push(
+      row([
+        "Date",
+        "Starting Capital",
+        "Current Capital",
+        "Trades",
+        "Wins",
+        "Losses",
+        "Refunds",
+        "Net P/L",
+        "Loss Streak",
+        "Live Locked",
+      ]),
+    );
+    for (const d of data.dailySummaries) {
+      lines.push(
+        row([
+          d.trade_date,
+          d.starting_capital,
+          d.current_capital,
+          d.total_trades,
+          d.wins,
+          d.losses,
+          d.refunds,
+          d.net_profit,
+          d.consecutive_losses,
+          d.live_mode_locked ? "Yes" : "No",
+        ]),
+      );
+    }
+    lines.push("");
+  }
+
   lines.push("Usage");
   lines.push(
     row([
@@ -61,7 +156,7 @@ export function userReportToCsv(data: ReportCsvInput): string {
       data.usage?.providerCalls,
       "Cache Hits",
       data.usage?.cacheHits,
-    ])
+    ]),
   );
   if (data.usage?.scansInRange != null) {
     lines.push(
@@ -72,7 +167,7 @@ export function userReportToCsv(data: ReportCsvInput): string {
         data.usage.providerCallsInRange,
         "Cache In Range",
         data.usage.cacheHitsInRange,
-      ])
+      ]),
     );
   }
   lines.push("");
@@ -95,15 +190,52 @@ export function userReportToCsv(data: ReportCsvInput): string {
         s.total_signals,
         s.provider_calls,
         s.cache_hits,
-      ])
+      ]),
     );
   }
   lines.push("");
 
-  lines.push("Journal");
-  lines.push(row(["Created", "Pair", "Result", "Signal Type", "Grade"]));
-  for (const j of data.recentJournal || []) {
-    lines.push(row([j.created_at, j.pair, j.result, j.signal_type, j.grade]));
+  const journal = data.journalEntries?.length ? data.journalEntries : data.recentJournal || [];
+  lines.push("Journal Entries");
+  lines.push(
+    row([
+      "Time",
+      "Pair",
+      "Direction",
+      "Mode",
+      "V9 Layer",
+      "Trade Amount",
+      "Payout %",
+      "Return",
+      "Net P/L",
+      "Signal Price",
+      "Open Quote",
+      "Close Quote",
+      "Result",
+      "Signal Type",
+      "Grade",
+    ]),
+  );
+  for (const j of journal) {
+    lines.push(
+      row([
+        j.marked_time || j.created_at,
+        j.pair,
+        j.direction,
+        j.scan_mode,
+        j.v9_layer,
+        j.trade_amount,
+        j.payout_percent,
+        j.return_amount,
+        j.net_profit,
+        j.signal_entry_price,
+        j.olymp_opening_quote,
+        j.olymp_closing_quote,
+        j.result,
+        j.signal_type,
+        j.grade,
+      ]),
+    );
   }
 
   return lines.join("\n");

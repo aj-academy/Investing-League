@@ -70,6 +70,25 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
   };
 }
 
+export async function getDailyRiskSummariesInRange(
+  userId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<DailyRiskSummary[]> {
+  const admin = riskWriter();
+  const client = admin ?? await createClient();
+  const { data, error } = await client
+    .from("daily_risk_summary")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("trade_date", fromDate)
+    .lte("trade_date", toDate)
+    .order("trade_date", { ascending: false });
+
+  if (error || !data?.length) return [];
+  return data.map((row) => normalizeDailyRow(row as Record<string, unknown>));
+}
+
 export async function getDailyRiskSummary(
   userId: string,
   tradeDate = todayDateString(),
