@@ -67,7 +67,7 @@
 
 /* App shell */
 .app-shell{display:flex;min-height:100vh}
-.app-sidebar{width:220px;background:rgba(5,8,15,.98);border-right:1px solid var(--bd2);padding:16px 12px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;z-index:450}
+.app-sidebar{width:220px;background:rgba(5,8,15,.98);border-right:1px solid var(--bd2);padding:16px 12px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;z-index:450;transition:transform .22s ease,width .22s ease,padding .22s ease}
 .sidebar-brand{display:flex;align-items:center;gap:10px;margin-bottom:20px;min-width:0}
 .sidebar-brand-text{min-width:0}
 .app-main{flex:1;min-width:0;transition:opacity .12s ease}
@@ -75,33 +75,23 @@
 .app-nav a:hover,.app-nav a.active{background:var(--blued);color:var(--blue2);border:1px solid rgba(0,170,255,.2)}
 .app-nav a:active{transform:scale(.98)}
 .nav-label-short{display:none}
+.sidebar-toggle{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;margin-right:10px;border-radius:8px;border:1px solid var(--bd2);background:var(--p2);color:var(--txt2);cursor:pointer;flex-shrink:0;transition:border-color .15s,color .15s,background .15s}
+.sidebar-toggle:hover{border-color:var(--blue);color:var(--blue2);background:var(--blued)}
 .sidebar-backdrop{display:none}
-.mobile-nav-toggle{display:none}
-/* Tablet: same menu labels as desktop, always visible */
+.app-shell:not(.sidebar-open) .app-sidebar{width:0;min-width:0;padding-left:0;padding-right:0;border-right-color:transparent;overflow:hidden}
 @media(max-width:1100px){
-.app-sidebar{width:220px;min-width:220px;padding:16px 12px;position:sticky;top:0;transform:none;height:100vh}
-.sidebar-brand{flex-direction:row;align-items:center;text-align:left;gap:10px}
-.sidebar-brand-text{display:block}
-.sidebar-brand-text .bname{font-size:11px!important;letter-spacing:2px!important;line-height:1.35}
-.sidebar-brand-text .bsub{font-size:9px;line-height:1.3}
-.app-nav a{flex-direction:row;gap:10px;padding:10px 12px;font-size:12px;letter-spacing:.5px;text-align:left;white-space:nowrap;line-height:1.25}
-.nav-label-full{display:inline}
-.nav-label-short{display:none}
+.app-sidebar{position:fixed;left:0;top:0;width:min(260px,86vw);min-width:0;padding:16px 12px;transform:translateX(-105%);box-shadow:none;border-right:1px solid var(--bd2);overflow-y:auto}
+.app-shell.sidebar-open .app-sidebar{transform:translateX(0);box-shadow:4px 0 28px rgba(0,0,0,.45)}
+.app-shell:not(.sidebar-open) .app-sidebar{width:min(260px,86vw);padding:16px 12px;border-right:1px solid var(--bd2);overflow-y:auto}
+.sidebar-backdrop{display:block;position:fixed;inset:0;z-index:440;background:rgba(0,0,0,.55);border:none;cursor:pointer;animation:sidebarFadeIn .2s ease}
+@keyframes sidebarFadeIn{from{opacity:0}to{opacity:1}}
 }
-/* Phone: same menu labels as desktop, always visible */
 @media(max-width:768px){
-.app-sidebar{position:sticky;top:0;left:auto;transform:none;width:220px;min-width:220px;padding:16px 12px;height:100vh;box-shadow:none}
-.app-sidebar.open{transform:none;box-shadow:none}
-.sidebar-brand{flex-direction:row;align-items:center;gap:10px;margin-bottom:20px;text-align:left}
-.sidebar-brand-text{display:block}
-.app-nav a{flex-direction:row;align-items:center;gap:10px;padding:10px 12px;font-size:12px;text-align:left;white-space:nowrap;line-height:1.25;min-height:auto}
-.nav-label-full{display:inline}
-.nav-label-short{display:none}
-.sidebar-backdrop{display:none!important}
-.mobile-nav-toggle{display:none!important}
 .app-main{min-width:0}
 .wrap{padding-left:10px;padding-right:10px}
 .hdr{padding:10px 12px}
+.brand{min-width:0}
+.bname{font-size:11px;letter-spacing:1px}
 .admin-tab-bar{flex-wrap:nowrap!important;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
 .admin-tab-bar .jbtn{flex:0 0 auto;white-space:nowrap}
 }

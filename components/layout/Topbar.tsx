@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { clearAdminSession } from "@/lib/auth/clearAdminSession";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { SidebarMenuButton } from "./SidebarContext";
 
 type MarketPill = "live" | "cached" | "offline";
 
@@ -100,6 +101,7 @@ export function Topbar({
   return (
     <header className="hdr z">
       <div className="brand">
+        <SidebarMenuButton />
         <div className="logo">
           <span style={{ fontFamily: "var(--mono)", color: "var(--blue)", fontWeight: 700 }}>TIL</span>
         </div>

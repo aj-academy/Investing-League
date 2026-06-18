@@ -3,6 +3,51 @@
 import { useEffect, useState } from "react";
 import { PlatformRiskGate } from "@/components/risk/PlatformRiskGate";
 import { Sidebar } from "./Sidebar";
+import { SidebarProvider, useSidebar } from "./SidebarContext";
+
+function AppShellInner({
+  children,
+  isAdmin,
+  hasAdminRole,
+}: {
+  children: React.ReactNode;
+  isAdmin?: boolean;
+  hasAdminRole?: boolean;
+}) {
+  const { open, close } = useSidebar();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 1100);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  return (
+    <div className={`app-shell${open ? " sidebar-open" : ""}`}>
+      {open && isMobile && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close navigation"
+          onClick={close}
+        />
+      )}
+      <Sidebar
+        open={open}
+        isAdmin={isAdmin}
+        hasAdminRole={hasAdminRole}
+        onNavigate={() => {
+          if (window.innerWidth <= 1100) close();
+        }}
+      />
+      <div className="app-main site-main">
+        <PlatformRiskGate>{children}</PlatformRiskGate>
+      </div>
+    </div>
+  );
+}
 
 export function AppShell({
   children,
@@ -13,44 +58,11 @@ export function AppShell({
   isAdmin?: boolean;
   hasAdminRole?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    const onResize = () => {
-      if (window.innerWidth > 1100) setOpen(false);
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
   return (
-    <div className="app-shell">
-      {open && (
-        <button
-          type="button"
-          className="sidebar-backdrop"
-          aria-label="Close navigation"
-          onClick={() => setOpen(false)}
-        />
-      )}
-      <Sidebar
-        open={open}
-        isAdmin={isAdmin}
-        hasAdminRole={hasAdminRole}
-        onNavigate={() => setOpen(false)}
-      />
-      <div className="app-main site-main">
-        <PlatformRiskGate>{children}</PlatformRiskGate>
-        <button
-          type="button"
-          className="mobile-nav-toggle"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Toggle navigation"
-          aria-expanded={open}
-        >
-          ☰
-        </button>
-      </div>
-    </div>
+    <SidebarProvider>
+      <AppShellInner isAdmin={isAdmin} hasAdminRole={hasAdminRole}>
+        {children}
+      </AppShellInner>
+    </SidebarProvider>
   );
 }
