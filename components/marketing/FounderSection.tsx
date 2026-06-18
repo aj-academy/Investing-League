@@ -3,9 +3,10 @@ import { FOUNDER } from "@/lib/marketing/compliance";
 export function FounderSection({ large }: { large?: boolean }) {
   return (
     <div className={`mkt-founder-card${large ? " mkt-founder-card--large" : ""}`}>
-      <div
-        className={`mkt-founder-avatar${large ? " mkt-founder-avatar--large" : ""}`}
-        aria-hidden="true"
+      <img
+        src={FOUNDER.photo}
+        alt={FOUNDER.photoAlt}
+        className={`mkt-founder-photo${large ? " mkt-founder-photo--large" : ""}`}
       />
       <div>
         <p className="mkt-founder-eyebrow">{FOUNDER.title}</p>

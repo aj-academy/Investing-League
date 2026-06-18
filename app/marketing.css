@@ -1051,17 +1051,20 @@ body:has(.marketing-site)::before {
   margin: 0 auto;
 }
 
-.marketing-site .mkt-founder-avatar {
+.marketing-site .mkt-founder-photo {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  background: var(--mkt-border);
+  object-fit: cover;
+  object-position: center top;
   flex-shrink: 0;
+  border: 2px solid var(--mkt-border);
 }
 
-.marketing-site .mkt-founder-avatar--large {
-  width: 5rem;
-  height: 5rem;
+.marketing-site .mkt-founder-photo--large {
+  width: 7.5rem;
+  height: 9.5rem;
+  border-radius: 0.75rem;
 }
 
 .marketing-site .mkt-check-list {

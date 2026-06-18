@@ -16,9 +16,10 @@ export const DECISION_LAB_RESPONSIBLE_STEPS = [
 ] as const;
 
 export const FOUNDER = {
-  name: "Founder Name",
+  name: "Jai Shankar",
   title: "Founder / Mentor",
-  photoAlt: "Founder photo placeholder",
+  photo: "/founder.png",
+  photoAlt: "Jai Shankar, Founder of The Investing League",
   highlights: [
     "5+ years of market learning and practical experience",
     "Finance education and market discipline training focus",
