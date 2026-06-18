@@ -13,6 +13,7 @@ export interface V8JournalRow {
   direction: string;
   result?: string | null;
   entryTime?: string | null;
+  v9Layer?: string | null;
 }
 
 function parseDateTime(dateStr: string, timeStr: string): Date | null {
@@ -67,7 +68,8 @@ export function applyV8HistoryAndMode(
     (r) =>
       r.date === today &&
       r.counted === "YES" &&
-      ["Win", "Loss", "Refund", "Pending"].includes(String(r.result || ""))
+      (r.v9Layer == null || r.v9Layer === "LIVE") &&
+      ["Win", "Loss", "Refund", "Pending"].includes(String(r.result || "")),
   ).length;
 
   for (const s of signals) {

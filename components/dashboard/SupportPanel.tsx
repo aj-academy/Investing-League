@@ -1,18 +1,22 @@
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { resolvePermission } from "@/lib/signal-engine/permission";
 
+import type { V9ScanMeta } from "@/lib/signal-engine/v9/types";
+
 export function SupportPanel({
   signals,
   errors = [],
+  v9Meta,
 }: {
   signals: ComputedSignal[];
   errors?: string[];
+  v9Meta?: V9ScanMeta | null;
 }) {
-  if (!signals.length && !errors.length) {
+  if (!signals.length && !errors.length && !v9Meta) {
     return (
       <aside className="box side">
         <div className="row-title">
-          <h3>🧠 MARKET SUPPORT PANEL</h3>
+          <h3>🧠 V9 OPPORTUNITY SUPPORT</h3>
         </div>
         <div className="panel-list">
           <div className="panel-item">

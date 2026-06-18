@@ -46,7 +46,8 @@ export interface JournalRow {
   capital_before?: number | null;
   capital_after?: number | null;
   risk_status?: string | null;
-  scan_mode?: string | null;
+  v9_layer?: string | null;
+  v9_readiness?: number | null;
 }
 
 export type JournalRiskPayload = {
@@ -345,7 +346,7 @@ export function JournalTable({
             r.entry_status,
             r.entry_drift,
           );
-          const counted = isCountedInWr(r.signal_type, r.grade, r.result);
+          const counted = isCountedInWr(r.signal_type, r.grade, r.result, r.v9_layer);
           const status = rowStatus[r.id] ?? "idle";
           const isSaving = status === "saving";
 

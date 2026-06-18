@@ -42,20 +42,54 @@ export function SignalCard({
   const sup1 = sig.nearSup ? sig.nearSup.toFixed(dp) : "—";
   const piv = sig.pivs.P.toFixed(dp);
   const permission = resolvePermission(sig);
-  const allowed = permission === "TRADE ALLOWED";
-  const blocked = permission === "DO NOT TRADE";
-  const decClass = allowed ? "allowed" : blocked ? "no" : "observe";
-  const permColor = allowed ? "var(--bull)" : blocked ? "var(--bear)" : "var(--gold)";
+  const v9Layer = sig.v9Layer;
+  const isV9Live = v9Layer === "LIVE";
+  const isV9Practice = v9Layer === "PRACTICE";
+  const allowed = isV9Live || (v9Layer == null && permission === "TRADE ALLOWED");
+  const blocked = v9Layer === "REJECTED" || permission === "DO NOT TRADE";
+  const decClass = isV9Live
+    ? "allowed"
+    : isV9Practice
+      ? "observe"
+      : blocked
+        ? "no"
+        : "observe";
+  const permColor = isV9Live
+    ? "var(--bull)"
+    : isV9Practice
+      ? "var(--gold2)"
+      : blocked
+        ? "var(--bear)"
+        : "var(--gold)";
+  const permLabel = isV9Live
+    ? "✅ LIVE TRADE PERMISSION"
+    : isV9Practice
+      ? "🧪 PRACTICE ONLY"
+      : blocked
+        ? "⛔ RISK REJECTED"
+        : v9Layer === "RADAR"
+          ? "📡 SETUP FORMING"
+          : allowed
+            ? "✅ TRADE ALLOWED"
+            : blocked
+              ? "⛔ DO NOT TRADE"
+              : "⚠️ OBSERVE ONLY";
 
   return (
-    <div className={`sc ${dc}`} style={{ animationDelay: `${delay}ms` }}>
+    <div
+      className={`sc ${dc}${isV9Practice ? " practice" : ""}${isV9Live ? " v9-live" : ""}`}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {isV9Practice ? <div className="practice-watermark">PRACTICE ONLY</div> : null}
       <div className={`decision ${decClass}`}>
         <div>
           <div className="big" style={{ color: permColor }}>
-            {allowed ? "✅ TRADE ALLOWED" : blocked ? "⛔ DO NOT TRADE" : "⚠️ OBSERVE ONLY"}
+            {permLabel}
           </div>
           <div className="small">
-            {sig.signalType} · {sig.grade} grade · gap {sig.scoreGap}
+            {isV9Practice
+              ? "Practice Signal — Demo / observation only. Not live trade permission."
+              : `${sig.signalType} · ${sig.grade} grade · gap ${sig.scoreGap}`}
           </div>
         </div>
         <div className="mono" style={{ color: permColor, fontFamily: "var(--mono)" }}>

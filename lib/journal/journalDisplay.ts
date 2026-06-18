@@ -16,16 +16,22 @@ export function rowPermission(
   return journalPermission(signalType, tradeEligible);
 }
 
-export function isEligibleType(signalType?: string | null, grade?: string | null) {
-  return isRealTradeSignal(signalType, grade);
+export function isEligibleType(
+  signalType?: string | null,
+  grade?: string | null,
+  v9Layer?: string | null,
+) {
+  if (v9Layer && v9Layer !== "LIVE") return false;
+  return isRealTradeSignal(signalType, grade, v9Layer);
 }
 
 export function isCountedInWr(
   signalType?: string | null,
   grade?: string | null,
-  result?: string | null
+  result?: string | null,
+  v9Layer?: string | null,
 ) {
-  return isEligibleType(signalType, grade) && (result === "Win" || result === "Loss");
+  return isEligibleType(signalType, grade, v9Layer) && (result === "Win" || result === "Loss");
 }
 
 export function signalTypeClass(type: string) {

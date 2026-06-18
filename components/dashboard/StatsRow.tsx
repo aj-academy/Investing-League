@@ -1,20 +1,24 @@
 import type { ComputedSignal } from "@/lib/signal-engine/types";
-import { resolvePermission } from "@/lib/signal-engine/permission";
+import type { V9ScanMeta } from "@/lib/signal-engine/v9/types";
 
 export function StatsRow({
   signals,
+  v9Meta,
   apiCalls,
   visible,
 }: {
   signals: ComputedSignal[];
+  v9Meta?: V9ScanMeta | null;
   apiCalls?: number;
   visible: boolean;
 }) {
-  if (!visible || !signals.length) return null;
+  if (!visible) return null;
 
-  const allowed = signals.filter((s) => resolvePermission(s) === "TRADE ALLOWED").length;
-  const observe = signals.filter((s) => resolvePermission(s) === "OBSERVE ONLY").length;
-  const blocked = signals.filter((s) => resolvePermission(s) === "DO NOT TRADE").length;
+  const live = v9Meta?.liveCount ?? signals.filter((s) => s.v9Layer === "LIVE").length;
+  const practice =
+    v9Meta?.practiceCount ?? signals.filter((s) => s.v9Layer === "PRACTICE").length;
+  const protectedCount = v9Meta?.protectedRiskyCount ?? 0;
+  const radar = v9Meta?.radarCount ?? signals.filter((s) => s.v9Layer === "RADAR").length;
   const top = signals[0];
 
   return (
@@ -23,38 +27,47 @@ export function StatsRow({
         <div className="sbv" style={{ color: "var(--blue2)" }}>
           {signals.length}
         </div>
-        <div className="sbl">Signals</div>
+        <div className="sbl">Market Checks</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ color: "var(--bull)" }}>
-          {allowed}
+          {live}
         </div>
-        <div className="sbl">Trade Allowed</div>
+        <div className="sbl">Live Trades</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ color: "var(--gold2)" }}>
-          {observe}
+          {practice}
         </div>
-        <div className="sbl">Observation</div>
+        <div className="sbl">Practice / Watch</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ color: "var(--bear)" }}>
-          {blocked}
+          {protectedCount}
         </div>
-        <div className="sbl">Do Not Trade</div>
+        <div className="sbl">Protected</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ fontSize: 12, color: "var(--txt)" }}>
           {top ? `${top.pair} ${top.direction}` : "—"}
         </div>
-        <div className="sbl">Top Setup</div>
+        <div className="sbl">Best Ready</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ fontSize: 11, color: "var(--m3)" }}>
-          {apiCalls ?? "—"}
+          {apiCalls ?? v9Meta?.apiCalls ?? "—"}
         </div>
         <div className="sbl">API Calls</div>
       </div>
+      {radar > 0 && live === 0 ? (
+        <div className="sb sb-wide">
+          <div className="sbv" style={{ fontSize: 10, color: "var(--m3)", lineHeight: 1.4 }}>
+            Protected Risky Setups: {protectedCount}
+            <br />
+            <span style={{ fontSize: 9 }}>Rejected because risk was higher than quality.</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

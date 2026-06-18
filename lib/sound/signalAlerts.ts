@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComputedSignal } from "@/lib/signal-engine/types";
-import { resolvePermission } from "@/lib/signal-engine/permission";
+import { isV9LiveDisplay } from "@/lib/signal-engine/v9/classify";
 
 const ALERT_STORE_KEY = "til_v8_alerted_daily";
 
@@ -91,14 +91,14 @@ function saveAlertStore(store: { date: string; ids: string[] }) {
   localStorage.setItem(ALERT_STORE_KEY, JSON.stringify(store));
 }
 
-/** Play at most one new TRADE ALLOWED alert per scan (HTML V8 behavior). */
+/** Play at most one new LIVE (V9) alert per scan. */
 export function playScanAlerts(signals: ComputedSignal[], volume = 0.3) {
   if (!soundEnabled) return;
   const store = loadAlertStore();
   const allowed = signals.filter(
     (s) =>
-      resolvePermission(s) === "TRADE ALLOWED" &&
-      (s.signalType === "FINAL TRADE" || s.signalType === "STRONG FINAL")
+      isV9LiveDisplay(s) &&
+      (s.signalType === "FINAL TRADE" || s.signalType === "STRONG FINAL"),
   );
   for (const s of allowed) {
     if (!store.ids.includes(s.signalUid)) {

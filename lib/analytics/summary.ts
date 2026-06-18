@@ -14,12 +14,15 @@ export interface JournalRow {
   confidence: number | null;
   entry_drift: number | null;
   trade_eligible?: boolean | null;
+  v9_layer?: string | null;
   created_at: string;
 }
 
 export function buildAnalyticsSummary(rows: JournalRow[]) {
   const totalSignals = rows.length;
-  const tradeEligible = rows.filter((r) => r.signal_type && isRealTradeSignal(r.signal_type, r.grade));
+  const tradeEligible = rows.filter((r) =>
+    r.signal_type && isRealTradeSignal(r.signal_type, r.grade, r.v9_layer),
+  );
   const completed = rows.filter((r) => ["Win", "Loss", "Refund"].includes(r.result || ""));
   const wins = rows.filter((r) => r.result === "Win").length;
   const losses = rows.filter((r) => r.result === "Loss").length;

@@ -2,6 +2,7 @@ import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { calculateEntryDrift } from "@/lib/journal/entryDrift";
 import { fetchJournalRowForUser, saveJournalRowForUser } from "@/lib/journal/journalAccess";
 import { calculateResult } from "@/lib/journal/resultCalculator";
+import { isEligibleType } from "@/lib/journal/journalDisplay";
 import { applyJournalCapitalUpdate } from "@/lib/risk/journalCapital";
 import { getProfileCapitalFields, refreshDailySummaryFromJournal } from "@/lib/risk/dailyRiskSummary";
 import { num } from "@/lib/risk/capitalProtection";
@@ -59,6 +60,9 @@ export async function PATCH(request: Request) {
       opening,
     );
 
+    const v9Layer = (row as { v9_layer?: string | null }).v9_layer ?? null;
+    const eligibleForWr = isEligibleType(row.signal_type, row.grade, v9Layer);
+
     let result = row.result as string;
     let resultSource = row.result_source as string;
 
@@ -68,6 +72,16 @@ export async function PATCH(request: Request) {
     } else if (opening !== null && closing !== null) {
       result = calculateResult(row.direction as "CALL" | "PUT", opening, closing);
       resultSource = "Auto";
+      if (!eligibleForWr) {
+        result = "Watch";
+        resultSource = "Observation only";
+      }
+    } else if (opening === null || closing === null) {
+      resultSource = "Unverified";
+      if (!eligibleForWr && result === "Pending") {
+        result = "Watch";
+        resultSource = "Observation only";
+      }
     }
 
     const tradeId =

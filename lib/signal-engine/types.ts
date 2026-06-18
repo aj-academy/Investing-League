@@ -1,5 +1,8 @@
+import type { V9Layer } from "./v9/types";
+
 export type Direction = "CALL" | "PUT";
 export type TradingMode = "practice" | "live";
+export type { V9Layer };
 export type SignalType =
   | "STRONG FINAL"
   | "FINAL TRADE"
@@ -122,6 +125,11 @@ export interface ComputedSignal {
   candleBearish: boolean;
   candleStrengthText: string;
   liveRank?: number;
+  blockers?: string[];
+  v9Layer?: V9Layer;
+  v9Readiness?: number;
+  v9Blocker?: string;
+  v9NextCondition?: string;
 }
 
 export interface JournalHistoryRow {

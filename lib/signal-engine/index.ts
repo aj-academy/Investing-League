@@ -1,12 +1,17 @@
 import { gradeAllowed, type MinGradeFilter } from "./permission";
-import { sessionOk } from "./session";
+import { sessionOk, isWeekendMarket } from "./session";
 import type { ComputedSignal, JournalHistoryRow, OHLC, TradingMode } from "./types";
 import { computeV8Signal } from "./v8/adapter";
 import { applyV8HistoryAndMode, type V8JournalRow } from "./v8/historyMode";
 import { applyV8NewsBlock, isNewsBlocked } from "./v8/news";
 import { rankV8Signals } from "./v8/rank";
+import { applyV9Layers } from "./v9/classify";
+import { buildV9ScanMeta } from "./v9/scanMeta";
 
 export * from "./types";
+export * from "./v9/types";
+export { applyV9Layers, filterByShowSignals, isV9LiveDisplay, shouldJournalV9Signal } from "./v9/classify";
+export { buildV9ScanMeta } from "./v9/scanMeta";
 export * from "./session";
 export { gradeAllowed, type MinGradeFilter } from "./permission";
 export { isNewsBlocked } from "./v8/news";
@@ -63,7 +68,7 @@ export function filterSignals(
   signals: ComputedSignal[],
   options: ScanOptions
 ): ComputedSignal[] {
-  if (!sessionOk(options.sessionFilter)) return [];
+  if (!isWeekendMarket() && !sessionOk(options.sessionFilter)) return [];
 
   const minGrade = options.minGrade ?? (options.showBSignals ? "B" : "A");
 

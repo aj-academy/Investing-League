@@ -4,6 +4,7 @@ import {
   type PlanName,
 } from "@/lib/billing/planLimits";
 import type { MinGradeFilter } from "@/lib/signal-engine/permission";
+import type { ShowSignalsFilter } from "@/lib/signal-engine/v9/types";
 import type { ScanSettings } from "@/components/dashboard/DashboardClient";
 
 const SETTINGS_KEY = "til_scanner_settings_v1";
@@ -13,6 +14,7 @@ const SESSIONS = new Set(["any", "london", "newyork", "overlap"]);
 const MODES = new Set(["practice", "live"]);
 const GRADES = new Set<MinGradeFilter>(["B", "A", "A+"]);
 const TRADE_LIMITS = new Set([3, 5, 8, 999]);
+const SHOW_SIGNALS = new Set<ShowSignalsFilter>(["all", "live", "practice_live"]);
 
 function sanitizeStored(
   raw: Partial<ScanSettings>,
@@ -32,6 +34,9 @@ function sanitizeStored(
   const dailyTradeLimit = TRADE_LIMITS.has(Number(raw.dailyTradeLimit))
     ? Number(raw.dailyTradeLimit)
     : defaults.dailyTradeLimit;
+  const showSignals = SHOW_SIGNALS.has(raw.showSignals as ShowSignalsFilter)
+    ? (raw.showSignals as ShowSignalsFilter)
+    : defaults.showSignals;
   const autoRefresh = normalizeAutoRefresh(
     (raw.autoRefresh as AutoRefreshOption | undefined) ?? defaults.autoRefresh,
     plan,
@@ -46,6 +51,7 @@ function sanitizeStored(
     session,
     dailyTradeLimit,
     autoRefresh,
+    showSignals,
   };
 }
 

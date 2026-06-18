@@ -13,6 +13,8 @@ import {
 } from "@/lib/billing/planLimits";
 import type { MinGradeFilter } from "@/lib/signal-engine/permission";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
+import type { V9ScanMeta } from "@/lib/signal-engine/v9/types";
+import { filterByShowSignals } from "@/lib/signal-engine/v9/classify";
 import { playScanAlerts } from "@/lib/sound/signalAlerts";
 import { toast } from "sonner";
 import { AssetChipGrid, loadStoredPairs, saveStoredPairs } from "./AssetChipGrid";
@@ -31,6 +33,9 @@ import { SessionPills } from "./SessionPills";
 import { SignalCard } from "./SignalCard";
 import { StatsRow } from "./StatsRow";
 import { SupportPanel } from "./SupportPanel";
+import { V9ScanSummary } from "./V9ScanSummary";
+import { OpportunityRadar } from "./OpportunityRadar";
+import { WhyNoSignalPanel } from "./WhyNoSignalPanel";
 import { Topbar } from "../layout/Topbar";
 import type { TickerItem } from "@/lib/market/tickerService";
 import { resolveTimeZone, timeZoneAbbreviation } from "@/lib/datetime";
@@ -44,6 +49,8 @@ function clientTimeZone() {
   return resolveTimeZone();
 }
 
+import type { ShowSignalsFilter } from "@/lib/signal-engine/v9/types";
+
 export interface ScanSettings {
   timeframe: string;
   minGrade: MinGradeFilter;
@@ -52,6 +59,7 @@ export interface ScanSettings {
   session: string;
   autoRefresh: AutoRefreshOption;
   mode: "practice" | "live";
+  showSignals: ShowSignalsFilter;
 }
 
 export interface PlanInfo {
@@ -92,6 +100,13 @@ export function DashboardClient({
   const hasScannedRef = useRef(false);
   const [selectedPairs, setSelectedPairs] = useState<string[]>([]);
   const [signals, setSignals] = useState<ComputedSignal[]>([]);
+  const [v9Meta, setV9Meta] = useState<V9ScanMeta | null>(null);
+
+  const displaySignals = useMemo(
+    () => filterByShowSignals(signals, settings.showSignals),
+    [signals, settings.showSignals],
+  );
+
   const [ticker, setTicker] = useState<TickerItem[]>([]);
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -554,6 +569,7 @@ export function DashboardClient({
       hasScannedRef.current = true;
       const list = json.signals || [];
       setSignals(list);
+      setV9Meta(json.v9 || null);
       if (json.ticker?.length) setTicker(json.ticker);
       setMarketLive(Boolean(json.ticker?.length));
       setApiCalls(json.usage?.providerCalls);
@@ -727,7 +743,12 @@ export function DashboardClient({
             {restoreMessage}
           </div>
         )}
-        <StatsRow signals={signals} apiCalls={apiCalls} visible={!!signals.length} />
+        <StatsRow
+          signals={displaySignals}
+          v9Meta={v9Meta}
+          apiCalls={apiCalls}
+          visible={!!(v9Meta || displaySignals.length)}
+        />
         <LoadingScanner
           active={scanning || autoScanning}
           title={loaderText}
@@ -735,7 +756,11 @@ export function DashboardClient({
         />
         <div className="main-grid">
           <div className="signals-col">
-            {!scanning && !autoScanning && !signals.length ? (
+            <V9ScanSummary meta={v9Meta} />
+            {(v9Meta?.liveCount ?? 0) === 0 ? (
+              <OpportunityRadar items={v9Meta?.radarTop ?? []} />
+            ) : null}
+            {!scanning && !autoScanning && !displaySignals.length && !v9Meta ? (
               <div className="empty">
                 <div className="empty-icon">📡</div>
                 <div className="empty-txt">
@@ -745,17 +770,21 @@ export function DashboardClient({
                   <br />
                   <br />
                   <span style={{ color: "var(--m2)" }}>
-                    V8: Permission box · Min Grade · Sound alerts · Journal autosave
+                    V9: Live permission · Practice signals · Opportunity Radar · Why-no-signal
                   </span>
                 </div>
               </div>
             ) : (
-              signals.map((sig, idx) => (
+              displaySignals.map((sig, idx) => (
                 <SignalCard key={sig.signalUid} sig={sig} delay={idx * 60} timeZone={timeZone} />
               ))
             )}
+            <WhyNoSignalPanel
+              items={v9Meta?.whyNoSignal ?? []}
+              visible={(v9Meta?.liveCount ?? 0) === 0 && Boolean(v9Meta)}
+            />
           </div>
-          <SupportPanel signals={signals} errors={marketErrors} />
+          <SupportPanel signals={displaySignals} errors={marketErrors} v9Meta={v9Meta} />
         </div>
       </div>
       {rulesModalOpen && rulesState.active && !termsState.required && (

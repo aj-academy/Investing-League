@@ -70,6 +70,7 @@ export function v8RawToComputed(raw: V8RawSignal, mode: TradingMode): ComputedSi
     maxEntryDrift: raw.pair.includes("JPY") ? "0.030" : "0.00010",
     entryNote: "Enter near candle open · verify platform quote",
     riskNote: raw.blockers.join(" · ") || raw.reason,
+    blockers: raw.blockers,
     rsi: String(raw.rsi),
     stoch: String(raw.stoch),
     cci: String(raw.cci),

@@ -150,6 +150,20 @@ export function ScannerControls({
           </select>
         </div>
         <div className="scanner-field">
+          <label>Show signals</label>
+          <select
+            value={settings.showSignals}
+            disabled={lockFilters}
+            onChange={(e) =>
+              onChange({ showSignals: e.target.value as ScanSettings["showSignals"] })
+            }
+          >
+            <option value="all">All · Live + Practice + Radar</option>
+            <option value="live">Live only</option>
+            <option value="practice_live">Practice + Live</option>
+          </select>
+        </div>
+        <div className="scanner-field">
           <label>Daily trade cap</label>
           <select
             value={String(settings.dailyTradeLimit)}
@@ -253,8 +267,8 @@ export function ScannerControls({
 
       <div className="scanner-tip">
         <span className="scanner-tip-icon">💡</span>
-        Grade = setup quality. Permission box = <strong>TRADE ALLOWED</strong>,{" "}
-        <strong>OBSERVE ONLY</strong>, or <strong>DO NOT TRADE</strong>.
+        V9: Live stays strict. Practice and Opportunity Radar keep every scan useful without
+        forcing risky entries.
       </div>
     </div>
   );

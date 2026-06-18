@@ -45,6 +45,7 @@ export default async function DashboardPage() {
       plan,
     ),
     mode: (settings?.default_mode as "practice" | "live") || "practice",
+    showSignals: "all",
   };
 
   return (

@@ -610,3 +610,48 @@
 @media (max-width: 640px) {
   .cpp-plan-limits { grid-template-columns: 1fr; }
 }
+
+/* V9 opportunity radar + practice distinction */
+.v9-summary{grid-column:1/-1;background:linear-gradient(135deg,rgba(0,170,255,.08),rgba(240,160,32,.06));border:1px solid rgba(0,170,255,.24);border-radius:14px;padding:14px;margin-bottom:12px}
+.v9-kicker{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:6px}
+.v9-title{font-family:var(--mono);font-size:17px;letter-spacing:1px;color:var(--txt2);margin-bottom:6px}
+.v9-sub{font-size:12px;line-height:1.7;color:var(--txt)}
+.v9-weekend-note{margin-top:8px;font-size:11px;color:var(--gold2)}
+.v9-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-top:12px}
+.v9-metric{background:rgba(2,3,10,.45);border:1px solid var(--bd2);border-radius:10px;padding:10px;text-align:center}
+.v9-metric b{display:block;font-family:var(--mono);font-size:16px;margin-bottom:3px}
+.v9-metric span{font-size:9px;color:var(--m3);letter-spacing:1px;text-transform:uppercase}
+.radar-wrap{grid-column:1/-1;background:var(--p1);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.radar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.radar-head h3{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:2px;margin:0}
+.radar-note{font-size:11px;color:var(--m3);margin:0}
+.radar-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px}
+.radar-card{background:var(--p2);border:1px solid var(--bd2);border-radius:12px;padding:11px}
+.radar-card.live{border-color:rgba(0,214,143,.45);background:rgba(0,214,143,.06)}
+.radar-card.practice{border-color:rgba(240,160,32,.42);background:rgba(240,160,32,.06)}
+.radar-card.blocked{border-color:rgba(255,51,85,.32);background:rgba(255,51,85,.045)}
+.radar-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.radar-pair{font-family:var(--mono);font-size:12px;color:var(--txt2);letter-spacing:1px}
+.radar-ready{font-family:var(--mono);font-size:13px;font-weight:700}
+.radar-bar{height:5px;background:var(--bd);border-radius:20px;overflow:hidden;margin:7px 0}
+.radar-fill{height:100%;border-radius:20px}
+.radar-reason{font-size:11px;color:var(--txt);line-height:1.55;margin:0}
+.layer-chip{display:inline-flex;align-items:center;margin-top:8px;padding:3px 8px;border-radius:20px;font-family:var(--mono);font-size:9px;letter-spacing:1px;border:1px solid var(--bd2);color:var(--m3)}
+.layer-chip.live{color:var(--bull);border-color:rgba(0,214,143,.4);background:rgba(0,214,143,.08)}
+.layer-chip.practice{color:var(--gold);border-color:rgba(240,160,32,.4);background:rgba(240,160,32,.08)}
+.layer-chip.radar{color:var(--blue2);border-color:rgba(0,170,255,.35);background:rgba(0,170,255,.08)}
+.layer-chip.rejected{color:var(--bear);border-color:rgba(255,51,85,.35);background:rgba(255,51,85,.08)}
+.why-panel{grid-column:1/-1;margin-top:4px;margin-bottom:12px}
+.why-panel-title{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:2px;margin:0 0 6px}
+.why-panel-sub{font-size:11px;color:var(--m3);margin:0 0 10px;line-height:1.5}
+.why-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.why-item{border:1px solid var(--bd);background:rgba(8,13,24,.65);border-radius:10px;padding:9px}
+.why-title{font-family:var(--mono);font-size:10px;color:var(--txt2);letter-spacing:1px;margin-bottom:4px}
+.why-reason{font-size:10px;color:var(--m3);line-height:1.45}
+.sc.practice{border-top:3px solid var(--gold)!important;position:relative;overflow:hidden}
+.sc.practice .decision{background:rgba(240,160,32,.08)!important;border-color:rgba(240,160,32,.3)!important}
+.sc.practice .ch-badge{background:var(--goldd)!important;color:var(--gold)!important;border-color:rgba(240,160,32,.3)!important}
+.sc.v9-live{box-shadow:0 0 0 1px rgba(0,214,143,.25)}
+.practice-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-size:42px;font-weight:900;color:rgba(240,160,32,.06);pointer-events:none;letter-spacing:8px;white-space:nowrap;z-index:0}
+.sc.practice>*:not(.practice-watermark){position:relative;z-index:1}
+.sb-wide{grid-column:span 2}

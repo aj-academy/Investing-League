@@ -17,7 +17,15 @@ import {
   sanitizeProviderErrors,
 } from "@/lib/market/providerErrors";
 import { buildTickerForPairs } from "@/lib/market/tickerService";
-import { computeSignal, filterSignals, finalizeScanSignals, type V8JournalRow } from "@/lib/signal-engine";
+import { computeV8Signal } from "@/lib/signal-engine/v8/adapter";
+import {
+  applyV9Layers,
+  buildV9ScanMeta,
+  filterSignals,
+  finalizeScanSignals,
+  shouldJournalV9Signal,
+  type V8JournalRow,
+} from "@/lib/signal-engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
@@ -87,6 +95,8 @@ function journalRow(userId: string, signalId: string | null, sig: ComputedSignal
     result_source: "Unverified",
     entry_status: "Pending",
     scan_mode: sig.mode,
+    v9_layer: sig.v9Layer ?? null,
+    v9_readiness: sig.v9Readiness ?? null,
   };
 }
 
@@ -216,7 +226,7 @@ export async function POST(request: Request) {
     const { data: journalRows } = await supabase
       .from("trade_journal")
       .select(
-        "pair,timeframe,direction,signal_type,signal_entry_time,trade_eligible,result,created_at"
+        "pair,timeframe,direction,signal_type,signal_entry_time,trade_eligible,result,created_at,v9_layer"
       )
       .eq("user_id", auth!.user.id)
       .order("created_at", { ascending: false })
@@ -230,15 +240,17 @@ export async function POST(request: Request) {
       const eligible =
         r.trade_eligible &&
         (r.signal_type === "FINAL TRADE" || r.signal_type === "STRONG FINAL");
+      const v9Layer = (r as { v9_layer?: string | null }).v9_layer ?? null;
       return {
         date,
         signalTime,
         type: r.signal_type || "WATCH ONLY",
-        counted: eligible ? "YES" : "NO",
+        counted: eligible && (v9Layer == null || v9Layer === "LIVE") ? "YES" : "NO",
         pair: r.pair,
         direction: r.direction,
         result: r.result,
         entryTime: r.signal_entry_time,
+        v9Layer,
       };
     });
 
@@ -253,10 +265,7 @@ export async function POST(request: Request) {
           const candleResult = await getCandlesCached(pair, tf, 150);
           if (candleResult.providerCall) providerCalls++;
           if (candleResult.cacheHit) cacheHits++;
-          const sig = computeSignal(candleResult.candles, pair, tf, mode, [], {
-            timeZone,
-            minGrade,
-          });
+          const sig = computeV8Signal(candleResult.candles, pair, tf, mode, timeZone);
           if (sig) rawSignals.push(sig);
         } catch (e) {
           marketErrors.push(
@@ -266,12 +275,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const finalized = finalizeScanSignals(rawSignals, {
-      mode,
-      journal: v8Journal,
-      dailyLimit: dailyTradeLimit,
-      timeZone,
-    });
+    const finalized = applyV9Layers(
+      finalizeScanSignals(rawSignals, {
+        mode,
+        journal: v8Journal,
+        dailyLimit: dailyTradeLimit,
+        timeZone,
+      }),
+    );
 
     const filteredSignals = filterSignals(finalized, {
       pairs,
@@ -280,6 +291,11 @@ export async function POST(request: Request) {
       minGrade,
       showBSignals,
       sessionFilter,
+    });
+
+    const v9Meta = buildV9ScanMeta(finalized, {
+      apiCalls: providerCalls,
+      marketErrors,
     });
 
     const toPersist =
@@ -301,6 +317,7 @@ export async function POST(request: Request) {
       : null;
     const writer = admin ?? supabase;
     const signalsToSave = toDisplay.length > 0 ? toDisplay : toPersist;
+    const journalToSave = signalsToSave.filter(shouldJournalV9Signal);
     let journalSaved = 0;
     let signalsSaved = 0;
     const persistErrors: string[] = [];
@@ -325,6 +342,10 @@ export async function POST(request: Request) {
         continue;
       }
       signalsSaved++;
+
+      if (!journalToSave.some((j) => j.signalUid === sig.signalUid)) {
+        continue;
+      }
 
       const { error: journalErr } = await writer.from("trade_journal").upsert(
         journalRow(auth!.user.id, savedSignal?.id || null, sig),
@@ -381,6 +402,8 @@ export async function POST(request: Request) {
       auto: isAuto,
       scanSessionId: scanSession.id,
       signals,
+      v9: v9Meta,
+      allSignals: finalized,
       ticker: tickerResult.items,
       connected: !!process.env.TWELVE_DATA_API_KEY,
       usage: {
