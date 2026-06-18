@@ -15,6 +15,7 @@ import type { MinGradeFilter } from "@/lib/signal-engine/permission";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import type { V9ScanMeta } from "@/lib/signal-engine/v9/types";
 import { filterByShowSignals } from "@/lib/signal-engine/v9/classify";
+import { hydrateV9ScanResult } from "@/lib/signal-engine/v9/hydrate";
 import { playScanAlerts } from "@/lib/sound/signalAlerts";
 import { toast } from "sonner";
 import { AssetChipGrid, loadStoredPairs, saveStoredPairs } from "./AssetChipGrid";
@@ -198,20 +199,62 @@ export function DashboardClient({
     });
   }, [allowedPairs]);
 
-  const applyLatestScan = useCallback((json: {
-    signals?: ComputedSignal[];
-    ticker?: TickerItem[];
-    message?: string;
-    hasLatest?: boolean;
-  }) => {
-    if (json.signals?.length) {
-      setSignals(json.signals);
-      if (json.ticker?.length) setTicker(json.ticker);
-      setRestoreMessage(json.message || null);
-      return true;
-    }
-    return false;
-  }, []);
+  const applyScanResult = useCallback(
+    (
+      rawSignals: ComputedSignal[],
+      options?: {
+        v9?: V9ScanMeta | null;
+        apiCalls?: number;
+        marketErrors?: string[];
+        scanSessionId?: string;
+        ticker?: TickerItem[];
+      },
+    ) => {
+      const { signals: layered, v9 } = hydrateV9ScanResult(rawSignals, {
+        v9: options?.v9,
+        apiCalls: options?.apiCalls,
+        marketErrors: options?.marketErrors,
+      });
+      setSignals(layered);
+      setV9Meta(v9);
+      if (options?.ticker?.length) setTicker(options.ticker);
+      if (layered.length || v9) {
+        saveScanToSessionCache({
+          ts: Date.now(),
+          scanSessionId: options?.scanSessionId,
+          signals: layered,
+          ticker: options?.ticker,
+          v9,
+        });
+      }
+      if (layered.length) playScanAlerts(layered);
+      return layered;
+    },
+    [],
+  );
+
+  const applyLatestScan = useCallback(
+    (json: {
+      signals?: ComputedSignal[];
+      v9?: V9ScanMeta | null;
+      ticker?: TickerItem[];
+      message?: string;
+      hasLatest?: boolean;
+      scanSessionId?: string;
+    }) => {
+      if (json.signals?.length || json.v9) {
+        applyScanResult(json.signals || [], {
+          v9: json.v9,
+          ticker: json.ticker,
+          scanSessionId: json.scanSessionId,
+        });
+        setRestoreMessage(json.message || null);
+        return true;
+      }
+      return false;
+    },
+    [applyScanResult],
+  );
 
   const pairsForScan = useCallback(
     (isAuto: boolean) => {
@@ -267,13 +310,7 @@ export function DashboardClient({
       const res = await fetch("/api/signals/latest");
       const json = await res.json();
       if (applyLatestScan(json)) {
-        saveScanToSessionCache({
-          ts: Date.now(),
-          scanSessionId: json.scanSessionId,
-          signals: json.signals || [],
-          ticker: json.ticker,
-        });
-        toast.success(json.message || "Last scan loaded");
+        toast.success(json.message || "Last V9 scan loaded");
       } else {
         toast.message(json.message || "No recent scan to reload");
       }
@@ -286,24 +323,20 @@ export function DashboardClient({
 
   useEffect(() => {
     const cached = readScanFromSessionCache();
-    if (cached?.signals?.length) {
-      setSignals(cached.signals);
-      if (cached.ticker?.length) setTicker(cached.ticker);
-      setRestoreMessage("Restored your last scan from this browser session.");
+    if (cached?.signals?.length || cached?.v9) {
+      applyScanResult(cached?.signals || [], {
+        v9: cached?.v9,
+        ticker: cached?.ticker,
+        scanSessionId: cached?.scanSessionId,
+      });
+      setRestoreMessage("Restored your last V9 scan from this browser session.");
     }
 
     fetch("/api/signals/latest")
       .then((r) => r.json())
       .then((json) => {
         if (hasScannedRef.current) return;
-        if (applyLatestScan(json)) {
-          saveScanToSessionCache({
-            ts: Date.now(),
-            scanSessionId: json.scanSessionId,
-            signals: json.signals || [],
-            ticker: json.ticker,
-          });
-        }
+        applyLatestScan(json);
       })
       .catch(() => {
         /* no latest scan */
@@ -505,10 +538,11 @@ export function DashboardClient({
       setScanning(true);
       setProgress(0);
       setSignals([]);
+      setV9Meta(null);
       setRestoreMessage(null);
       setMarketErrors([]);
-      setLoaderText("V8 SCANNING");
-      setLoaderSub("Running decision-support engine...");
+      setLoaderText("V9 SCANNING");
+      setLoaderSub("Running V9 decision engine — Live · Practice · Radar layers...");
     }
 
     const activeSettings = settingsRef.current;
@@ -567,22 +601,18 @@ export function DashboardClient({
         return;
       }
       hasScannedRef.current = true;
-      const list = json.signals || [];
-      setSignals(list);
-      setV9Meta(json.v9 || null);
-      if (json.ticker?.length) setTicker(json.ticker);
+      const list =
+        (json.allSignals?.length ? json.allSignals : json.signals) || [];
+      applyScanResult(list, {
+        v9: json.v9,
+        apiCalls: json.usage?.providerCalls,
+        marketErrors: json.marketErrors,
+        scanSessionId: json.scanSessionId,
+        ticker: json.ticker,
+      });
       setMarketLive(Boolean(json.ticker?.length));
       setApiCalls(json.usage?.providerCalls);
       setMarketErrors(json.marketErrors || []);
-      if (list.length) {
-        saveScanToSessionCache({
-          ts: Date.now(),
-          scanSessionId: json.scanSessionId,
-          signals: list,
-          ticker: json.ticker,
-        });
-        playScanAlerts(list);
-      }
       if (json.usage) {
         setScanUsage((prev) => ({
           plan: json.usage.plan,
@@ -596,7 +626,7 @@ export function DashboardClient({
         list.length === 0
           ? json.message
           : json.filteredSignalCount < json.rawSignalCount
-            ? `Showing ${list.length} setup(s). ${json.journalSaved ?? 0} saved to journal.`
+            ? `V9: showing ${list.length} setup(s). ${json.journalSaved ?? 0} saved to journal.`
             : null
       );
       void loadRiskStatus();
@@ -633,6 +663,7 @@ export function DashboardClient({
     termsState.required,
     rulesState.required,
     liveModeLocked,
+    applyScanResult,
     loadRiskStatus,
     timeZone,
     updateSettings,
@@ -653,10 +684,11 @@ export function DashboardClient({
         <section className="scanner-section" aria-label="Market scanner">
           <header className="scanner-section-head">
             <div className="scanner-section-intro">
-              <span className="scanner-section-kicker">V8 Decision Engine</span>
+              <span className="scanner-section-kicker">V9 Decision Engine</span>
               <h2 className="scanner-section-title">Market Scanner</h2>
               <p className="scanner-section-sub">
-                Pick your pairs, set your filters, and run an educational setup scan.
+                Live permission · Practice signals · Opportunity Radar · Why-no-signal — same V8
+                core, V9 classification layer.
               </p>
             </div>
           </header>

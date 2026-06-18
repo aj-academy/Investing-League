@@ -16,8 +16,8 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "V8 Market Scanner",
-  description: "Educational FX setup scanner — Decision Lab",
+  title: "V9 Market Scanner",
+  description: "Educational FX setup scanner — V9 Live · Practice · Radar layers",
 };
 
 export default async function ScannerPage() {

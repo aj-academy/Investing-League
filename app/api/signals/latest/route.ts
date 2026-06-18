@@ -4,6 +4,7 @@ import { getUserPlan } from "@/lib/billing/planLimits";
 import { sanitizeProviderError } from "@/lib/market/providerErrors";
 import { buildTickerForPairs, readLatestScanTicker } from "@/lib/market/tickerService";
 import { loadLatestScanForUser } from "@/lib/signals/loadLatestScan";
+import { hydrateV9ScanResult } from "@/lib/signal-engine/v9/hydrate";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -36,14 +37,17 @@ export async function GET() {
       { fromLatestScan: scanTicker }
     );
 
+    const { signals, v9 } = hydrateV9ScanResult(latest.signals);
+
     return NextResponse.json({
       ok: true,
       hasLatest: true,
       scanSessionId: latest.sessionId,
-      signals: latest.signals,
+      signals,
+      v9,
       ticker: tickerResult.items,
       message:
-        "Showing your latest scan result. Click SCAN MARKET to generate a fresh decision.",
+        "Showing your latest V9 scan result. Click SCAN MARKET to generate a fresh decision.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Could not load latest scan";

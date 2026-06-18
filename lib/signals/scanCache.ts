@@ -1,7 +1,8 @@
 import type { ComputedSignal } from "@/lib/signal-engine/types";
+import type { V9ScanMeta } from "@/lib/signal-engine/v9/types";
 import type { TickerItem } from "@/lib/market/tickerService";
 
-const KEY = "til_last_scan_v1";
+const KEY = "til_last_scan_v2";
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export type CachedScanPayload = {
@@ -9,6 +10,7 @@ export type CachedScanPayload = {
   scanSessionId?: string;
   signals: ComputedSignal[];
   ticker?: TickerItem[];
+  v9?: V9ScanMeta | null;
 };
 
 export function saveScanToSessionCache(payload: CachedScanPayload) {

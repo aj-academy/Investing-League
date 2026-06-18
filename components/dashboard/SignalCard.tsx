@@ -132,7 +132,7 @@ export function SignalCard({
       </div>
       <div className="score-section">
         <div className="score-header">
-          <span className="score-label">V8 Confluence Confidence</span>
+          <span className="score-label">V9 Confluence Confidence</span>
           <span className="score-val" style={{ color: confColor }}>
             {sig.conf}% — {sig.tier}
           </span>
