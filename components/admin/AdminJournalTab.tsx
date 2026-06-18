@@ -1,6 +1,7 @@
 "use client";
 
 import { formatAppDateTime } from "@/lib/datetime";
+import { PAIRS } from "@/lib/utils";
 import type {
   AdminJournalRow,
   AdminJournalSummary,
@@ -169,11 +170,17 @@ export function AdminJournalTab() {
         </div>
         <div className="f">
           <label>Pair</label>
-          <input
+          <select
             value={filters.pair}
             onChange={(e) => setFilters((s) => ({ ...s, pair: e.target.value }))}
-            placeholder="EUR/USD"
-          />
+          >
+            <option value="">All pairs</option>
+            {PAIRS.map((pair) => (
+              <option key={pair} value={pair}>
+                {pair}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="f">
           <label>Result</label>
