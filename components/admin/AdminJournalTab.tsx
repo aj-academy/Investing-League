@@ -140,6 +140,7 @@ export function AdminJournalTab() {
         <div className="f">
           <label>User</label>
           <select
+            className="admin-journal-select"
             value={filters.userId}
             disabled={usersLoading}
             onChange={(e) => setFilters((s) => ({ ...s, userId: e.target.value }))}
@@ -171,6 +172,7 @@ export function AdminJournalTab() {
         <div className="f">
           <label>Pair</label>
           <select
+            className="admin-journal-select"
             value={filters.pair}
             onChange={(e) => setFilters((s) => ({ ...s, pair: e.target.value }))}
           >
@@ -185,6 +187,7 @@ export function AdminJournalTab() {
         <div className="f">
           <label>Result</label>
           <select
+            className="admin-journal-select"
             value={filters.result}
             onChange={(e) => setFilters((s) => ({ ...s, result: e.target.value }))}
           >
@@ -198,6 +201,7 @@ export function AdminJournalTab() {
         <div className="f">
           <label>Signal type</label>
           <select
+            className="admin-journal-select"
             value={filters.signalType}
             onChange={(e) => setFilters((s) => ({ ...s, signalType: e.target.value }))}
           >
@@ -211,6 +215,7 @@ export function AdminJournalTab() {
         <div className="f">
           <label>Mode</label>
           <select
+            className="admin-journal-select"
             value={filters.mode}
             onChange={(e) => setFilters((s) => ({ ...s, mode: e.target.value }))}
           >
@@ -222,6 +227,7 @@ export function AdminJournalTab() {
         <div className="f">
           <label>Timeframe</label>
           <select
+            className="admin-journal-select"
             value={filters.timeframe}
             onChange={(e) => setFilters((s) => ({ ...s, timeframe: e.target.value }))}
           >
@@ -233,6 +239,7 @@ export function AdminJournalTab() {
         <div className="f">
           <label>Plan</label>
           <select
+            className="admin-journal-select"
             value={filters.plan}
             onChange={(e) => setFilters((s) => ({ ...s, plan: e.target.value }))}
           >
