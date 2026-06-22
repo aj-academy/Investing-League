@@ -8,6 +8,29 @@ import { getProfileCapitalFields, refreshDailySummaryFromJournal } from "@/lib/r
 import { num } from "@/lib/risk/capitalProtection";
 import { NextResponse } from "next/server";
 
+function isSettledResult(result: string) {
+  return result === "Win" || result === "Loss" || result === "Refund";
+}
+
+function shouldRefreshRiskSummary(
+  prevResult: string,
+  nextResult: string,
+  body: Record<string, unknown>,
+  lossLimitReached: boolean,
+) {
+  if (lossLimitReached) return true;
+  if (body.result !== undefined && body.result !== null) return true;
+  if (
+    body.tradeAmount !== undefined ||
+    body.payoutPercent !== undefined ||
+    body.returnAmount !== undefined
+  ) {
+    return true;
+  }
+  if (isSettledResult(nextResult) && nextResult !== prevResult) return true;
+  return false;
+}
+
 export async function PATCH(request: Request) {
   try {
     const { auth, error } = await requireApiAuth();
@@ -63,7 +86,8 @@ export async function PATCH(request: Request) {
     const v9Layer = (row as { v9_layer?: string | null }).v9_layer ?? null;
     const eligibleForWr = isEligibleType(row.signal_type, row.grade, v9Layer);
 
-    let result = row.result as string;
+    const prevResult = row.result as string;
+    let result = prevResult;
     let resultSource = row.result_source as string;
 
     if (body.result !== undefined && body.result !== null) {
@@ -119,6 +143,13 @@ export async function PATCH(request: Request) {
       result,
     });
 
+    const needsRefresh = shouldRefreshRiskSummary(
+      prevResult,
+      result,
+      body,
+      capitalEffects.lossLimitReached,
+    );
+
     const { row: updated, error: updateError } = await saveJournalRowForUser(
       auth!.user.id,
       row.id,
@@ -145,11 +176,13 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const profileAfter = await getProfileCapitalFields(auth!.user.id);
+    const profileAfter = needsRefresh
+      ? await getProfileCapitalFields(auth!.user.id)
+      : null;
     let liveModeLocked = capitalEffects.lossLimitReached;
     let cooldownUntil: string | null = null;
 
-    if (profileAfter) {
+    if (needsRefresh && profileAfter) {
       const summaryResult = await refreshDailySummaryFromJournal(
         auth!.user.id,
         {

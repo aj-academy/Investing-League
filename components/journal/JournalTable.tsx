@@ -1,7 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   driftDisplay,
   formatJournalDate,
@@ -12,6 +10,9 @@ import {
   rowPermission,
   signalTypeClass,
 } from "@/lib/journal/journalDisplay";
+import { decimalsForPair } from "@/lib/utils";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export interface JournalRow {
   id: string;
@@ -69,7 +70,11 @@ type EditableField =
 type RowDraft = Partial<Record<EditableField, string>>;
 type RowStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
-const AUTOSAVE_MS = 700;
+const AUTOSAVE_MS = 900;
+
+const BLUR_SAVE_FIELDS: EditableField[] = ["openTime", "openingQuote", "closingQuote"];
+
+const QUOTE_FIELD_ORDER: EditableField[] = ["openTime", "openingQuote", "closingQuote"];
 
 const EDITABLE_FIELDS: EditableField[] = [
   "tradeId",
@@ -110,6 +115,19 @@ function fieldValue(row: JournalRow, field: EditableField): string {
   }
 }
 
+function parseQuoteValue(raw: string | undefined): number | null {
+  if (raw === undefined || raw.trim() === "") return null;
+  const n = Number(raw.replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function quotePlaceholder(row: JournalRow, kind: "open" | "close"): string {
+  if (kind === "open" && row.signal_entry_price != null) {
+    return String(row.signal_entry_price);
+  }
+  return kind === "open" ? "Open quote" : "Close quote";
+}
+
 function buildPatchBody(row: JournalRow, draft: RowDraft): Record<string, string> {
   const body: Record<string, string> = {};
   for (const field of EDITABLE_FIELDS) {
@@ -122,12 +140,46 @@ function buildPatchBody(row: JournalRow, draft: RowDraft): Record<string, string
   return body;
 }
 
+function draftToOptimisticRow(row: JournalRow, draft: RowDraft): JournalRow {
+  const next = { ...row };
+  if (draft.openTime !== undefined) {
+    next.olymp_open_time = draft.openTime.trim() === "" ? null : draft.openTime;
+  }
+  if (draft.openingQuote !== undefined) {
+    next.olymp_opening_quote = parseQuoteValue(draft.openingQuote);
+  }
+  if (draft.closingQuote !== undefined) {
+    next.olymp_closing_quote = parseQuoteValue(draft.closingQuote);
+  }
+  if (draft.tradeId !== undefined) {
+    next.olymp_trade_id = draft.tradeId.trim() === "" ? null : draft.tradeId;
+  }
+  if (draft.tradeAmount !== undefined) {
+    next.trade_amount = parseQuoteValue(draft.tradeAmount);
+  }
+  if (draft.payoutPercent !== undefined) {
+    next.payout_percent = parseQuoteValue(draft.payoutPercent);
+  }
+  if (draft.returnAmount !== undefined) {
+    next.return_amount = parseQuoteValue(draft.returnAmount);
+  }
+  return next;
+}
+
 function statusLabel(status: RowStatus) {
   if (status === "saving") return "Saving…";
   if (status === "saved") return "Saved";
   if (status === "dirty") return "Editing…";
   if (status === "error") return "Error";
   return "";
+}
+
+function focusQuoteField(rowId: string, field: EditableField) {
+  const el = document.querySelector<HTMLInputElement>(
+    `[data-journal-row="${rowId}"][data-journal-field="${field}"]`,
+  );
+  el?.focus();
+  el?.select();
 }
 
 export function JournalTable({
@@ -140,6 +192,8 @@ export function JournalTable({
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({});
   const [rowStatus, setRowStatus] = useState<Record<string, RowStatus>>({});
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const savingRef = useRef<Record<string, boolean>>({});
+  const pendingRef = useRef<Record<string, boolean>>({});
   const rowsRef = useRef(rows);
   const draftsRef = useRef(drafts);
   const flushRef = useRef<(rowId: string) => Promise<void>>(async () => {});
@@ -164,6 +218,11 @@ export function JournalTable({
         delete timersRef.current[rowId];
       }
 
+      if (savingRef.current[rowId]) {
+        pendingRef.current[rowId] = true;
+        return;
+      }
+
       const row = rowsRef.current.find((r) => r.id === rowId);
       if (!row) return;
 
@@ -174,7 +233,9 @@ export function JournalTable({
         return;
       }
 
+      savingRef.current[rowId] = true;
       setRowStatus((s) => ({ ...s, [rowId]: "saving" }));
+      onUpdated(draftToOptimisticRow(row, draft));
 
       try {
         const res = await fetch("/api/journal/update", {
@@ -204,11 +265,17 @@ export function JournalTable({
           setRowStatus((s) => ({ ...s, [rowId]: "saved" }));
           window.setTimeout(() => {
             setRowStatus((s) => ({ ...s, [rowId]: "idle" }));
-          }, 2000);
+          }, 1500);
         }
       } catch {
         setRowStatus((s) => ({ ...s, [rowId]: "error" }));
         toast.error("Network error — journal row not saved");
+      } finally {
+        savingRef.current[rowId] = false;
+        if (pendingRef.current[rowId]) {
+          pendingRef.current[rowId] = false;
+          void flushRef.current(rowId);
+        }
       }
     },
     [clearDraft, onUpdated],
@@ -230,13 +297,56 @@ export function JournalTable({
         ...prev,
         [rowId]: { ...prev[rowId], [field]: value },
       }));
-      scheduleSave(rowId);
+      if (BLUR_SAVE_FIELDS.includes(field)) {
+        setRowStatus((s) => ({ ...s, [rowId]: "dirty" }));
+      } else {
+        scheduleSave(rowId);
+      }
     },
     [scheduleSave],
   );
 
+  const fillFromSignal = useCallback((row: JournalRow) => {
+    const updates: RowDraft = {};
+    if (row.signal_entry_price != null) {
+      updates.openingQuote = String(row.signal_entry_price);
+    }
+    if (row.signal_entry_time) {
+      updates.openTime = row.signal_entry_time;
+    }
+    if (!updates.openingQuote && !updates.openTime) {
+      toast.message("No signal price or time on this row.");
+      return;
+    }
+    setDrafts((prev) => ({
+      ...prev,
+      [row.id]: { ...prev[row.id], ...updates },
+    }));
+    setRowStatus((s) => ({ ...s, [row.id]: "dirty" }));
+    focusQuoteField(row.id, "closingQuote");
+  }, []);
+
+  const handleQuoteKeyDown = useCallback(
+    (row: JournalRow, field: EditableField, e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      void flushSave(row.id);
+      const idx = QUOTE_FIELD_ORDER.indexOf(field);
+      if (idx >= 0 && idx < QUOTE_FIELD_ORDER.length - 1) {
+        focusQuoteField(row.id, QUOTE_FIELD_ORDER[idx + 1]);
+      }
+    },
+    [flushSave],
+  );
+
   const getDisplayValue = (row: JournalRow, field: EditableField) =>
     drafts[row.id]?.[field] ?? fieldValue(row, field);
+
+  const openingForRow = (row: JournalRow) => {
+    const draft = drafts[row.id]?.openingQuote;
+    if (draft !== undefined) return parseQuoteValue(draft);
+    return row.olymp_opening_quote;
+  };
 
   const flushAll = useCallback(async () => {
     const ids = new Set<string>();
@@ -342,13 +452,13 @@ export function JournalTable({
           const drift = driftDisplay(
             r.pair,
             r.signal_entry_price,
-            r.olymp_opening_quote,
+            openingForRow(r),
             r.entry_status,
             r.entry_drift,
           );
           const counted = isCountedInWr(r.signal_type, r.grade, r.result, r.v9_layer);
           const status = rowStatus[r.id] ?? "idle";
-          const isSaving = status === "saving";
+          const quoteStep = decimalsForPair(r.pair) === 3 ? "0.001" : "0.00001";
 
           return (
             <tr key={r.id}>
@@ -373,7 +483,6 @@ export function JournalTable({
                   className="jinput jinput-wide"
                   value={getDisplayValue(r, "tradeId")}
                   placeholder="Trade ID"
-                  disabled={isSaving}
                   onChange={(e) => setField(r.id, "tradeId", e.target.value)}
                   onBlur={() => void flushSave(r.id)}
                 />
@@ -386,41 +495,75 @@ export function JournalTable({
               <td>{r.signal_entry_time || "—"}</td>
               <td>{r.signal_entry_price ?? "—"}</td>
               <td>
-                <input
-                  className="jinput jinput-wide"
-                  value={getDisplayValue(r, "openTime")}
-                  placeholder="12:00:00"
-                  disabled={isSaving}
-                  onChange={(e) => setField(r.id, "openTime", e.target.value)}
-                  onBlur={() => void flushSave(r.id)}
-                />
+                <div className="journal-quote-cell">
+                  <input
+                    className="jinput jinput-wide"
+                    data-journal-row={r.id}
+                    data-journal-field="openTime"
+                    value={getDisplayValue(r, "openTime")}
+                    placeholder={r.signal_entry_time || "12:00:00"}
+                    onChange={(e) => setField(r.id, "openTime", e.target.value)}
+                    onBlur={() => void flushSave(r.id)}
+                    onKeyDown={(e) => handleQuoteKeyDown(r, "openTime", e)}
+                  />
+                </div>
               </td>
               <td>
-                <input
-                  className="jinput jinput-price"
-                  value={getDisplayValue(r, "openingQuote")}
-                  placeholder="Open quote"
-                  disabled={isSaving}
-                  onChange={(e) => setField(r.id, "openingQuote", e.target.value)}
-                  onBlur={() => void flushSave(r.id)}
-                />
+                <div className="journal-quote-cell">
+                  <input
+                    className="jinput jinput-price"
+                    data-journal-row={r.id}
+                    data-journal-field="openingQuote"
+                    type="text"
+                    inputMode="decimal"
+                    step={quoteStep}
+                    value={getDisplayValue(r, "openingQuote")}
+                    placeholder={quotePlaceholder(r, "open")}
+                    onChange={(e) => setField(r.id, "openingQuote", e.target.value)}
+                    onBlur={() => void flushSave(r.id)}
+                    onKeyDown={(e) => handleQuoteKeyDown(r, "openingQuote", e)}
+                  />
+                  <button
+                    type="button"
+                    className="journal-quote-fill"
+                    title="Fill open time and price from signal"
+                    onClick={() => fillFromSignal(r)}
+                  >
+                    Signal
+                  </button>
+                </div>
               </td>
               <td>
-                <input
-                  className="jinput jinput-price"
-                  value={getDisplayValue(r, "closingQuote")}
-                  placeholder="Close quote"
-                  disabled={isSaving}
-                  onChange={(e) => setField(r.id, "closingQuote", e.target.value)}
-                  onBlur={() => void flushSave(r.id)}
-                />
+                <div className="journal-quote-cell">
+                  <input
+                    className="jinput jinput-price"
+                    data-journal-row={r.id}
+                    data-journal-field="closingQuote"
+                    type="text"
+                    inputMode="decimal"
+                    step={quoteStep}
+                    value={getDisplayValue(r, "closingQuote")}
+                    placeholder={quotePlaceholder(r, "close")}
+                    onChange={(e) => setField(r.id, "closingQuote", e.target.value)}
+                    onBlur={() => void flushSave(r.id)}
+                    onKeyDown={(e) => handleQuoteKeyDown(r, "closingQuote", e)}
+                  />
+                  <button
+                    type="button"
+                    className="journal-quote-save"
+                    title="Save quotes now"
+                    onClick={() => void flushSave(r.id)}
+                  >
+                    Save
+                  </button>
+                </div>
               </td>
               <td>
                 <input
                   className="jinput jinput-price"
                   value={getDisplayValue(r, "tradeAmount")}
                   placeholder="2"
-                  disabled={isSaving}
+                  inputMode="decimal"
                   onChange={(e) => setField(r.id, "tradeAmount", e.target.value)}
                   onBlur={() => void flushSave(r.id)}
                 />
@@ -430,7 +573,7 @@ export function JournalTable({
                   className="jinput jinput-pct"
                   value={getDisplayValue(r, "payoutPercent")}
                   placeholder="90"
-                  disabled={isSaving}
+                  inputMode="decimal"
                   onChange={(e) => setField(r.id, "payoutPercent", e.target.value)}
                   onBlur={() => void flushSave(r.id)}
                 />
@@ -440,7 +583,7 @@ export function JournalTable({
                   className="jinput jinput-price"
                   value={getDisplayValue(r, "returnAmount")}
                   placeholder="Profit"
-                  disabled={isSaving}
+                  inputMode="decimal"
                   onChange={(e) => setField(r.id, "returnAmount", e.target.value)}
                   onBlur={() => void flushSave(r.id)}
                 />
@@ -472,7 +615,6 @@ export function JournalTable({
                         name={`result-${r.id}`}
                         checked={r.result === res}
                         onChange={() => void markResult(r, res)}
-                        disabled={isSaving}
                       />
                       {res}
                     </label>

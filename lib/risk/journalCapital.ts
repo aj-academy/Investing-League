@@ -42,10 +42,9 @@ export async function applyJournalCapitalUpdate(
     result: string;
   },
 ): Promise<JournalCapitalResult> {
-  const profile = await getProfileCapitalFields(userId);
   const defaultResult: JournalCapitalResult = {
     patch: {},
-    profileCapital: profile?.current_capital ?? null,
+    profileCapital: null,
     capitalWarning: null,
     lossLimitReached: false,
     consecutiveLosses: 0,
@@ -53,6 +52,18 @@ export async function applyJournalCapitalUpdate(
     cooldownUntil: null,
   };
 
+  const result = input.result;
+  const settled = result === "Win" || result === "Loss" || result === "Refund";
+  const hasCapitalInput =
+    input.tradeAmount !== undefined ||
+    input.payoutPercent !== undefined ||
+    input.returnAmount !== undefined;
+
+  if (!settled && !hasCapitalInput) {
+    return defaultResult;
+  }
+
+  const profile = await getProfileCapitalFields(userId);
   if (!profile) return defaultResult;
 
   const tradeAmount =
@@ -68,13 +79,10 @@ export async function applyJournalCapitalUpdate(
       ? num(input.returnAmount)
       : num(row.return_amount);
 
-  const result = input.result;
-
   if (returnAmount === 0 && payoutPercent > 0 && tradeAmount > 0 && result === "Win") {
     returnAmount = tradeAmount * (payoutPercent / 100);
   }
 
-  const settled = result === "Win" || result === "Loss" || result === "Refund";
   const patch: Record<string, unknown> = {
     trade_amount: tradeAmount,
     payout_percent: payoutPercent,
@@ -82,7 +90,11 @@ export async function applyJournalCapitalUpdate(
   };
 
   if (!settled) {
-    return { ...defaultResult, patch };
+    return {
+      ...defaultResult,
+      profileCapital: profile.current_capital,
+      patch,
+    };
   }
 
   const netProfit = computeNetProfit(tradeAmount, returnAmount, result, payoutPercent);
