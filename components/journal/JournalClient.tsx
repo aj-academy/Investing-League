@@ -1,20 +1,31 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { LossLimitModal } from "@/components/risk/LossLimitModal";
+import {
+  DEFAULT_JOURNAL_FILTERS,
+  filterJournalRows,
+  pairsForJournalFilter,
+  type JournalFilterState,
+} from "@/lib/journal/journalFilters";
+import { JournalFilters } from "./JournalFilters";
 import { JournalStats } from "./JournalStats";
 import { JournalTable, type JournalRow, type JournalRiskPayload } from "./JournalTable";
 
 export function JournalClient({ initialRows }: { initialRows: JournalRow[] }) {
   const router = useRouter();
   const [rows, setRows] = useState(initialRows);
+  const [filters, setFilters] = useState<JournalFilterState>(DEFAULT_JOURNAL_FILTERS);
   const [refreshing, startRefresh] = useTransition();
   const [showLossModal, setShowLossModal] = useState(false);
 
   useEffect(() => {
     setRows(initialRows);
   }, [initialRows]);
+
+  const pairs = useMemo(() => pairsForJournalFilter(rows), [rows]);
+  const filteredRows = useMemo(() => filterJournalRows(rows, filters), [rows, filters]);
 
   const onRowUpdated = useCallback((updated: JournalRow, risk?: JournalRiskPayload) => {
     setRows((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
@@ -47,9 +58,23 @@ export function JournalClient({ initialRows }: { initialRows: JournalRow[] }) {
           {refreshing ? "Refreshing..." : "↻ Refresh journal"}
         </button>
       </div>
-      <JournalStats rows={rows} />
+      <JournalFilters
+        filters={filters}
+        onChange={setFilters}
+        pairs={pairs}
+        totalCount={rows.length}
+        filteredCount={filteredRows.length}
+      />
+      <JournalStats rows={filteredRows} />
       <div className="journal-table-wrap">
-        <JournalTable rows={rows} onUpdated={onRowUpdated} />
+        {filteredRows.length === 0 && rows.length > 0 ? (
+          <div className="journal-empty">
+            No journal rows match these filters. Try widening the date range or set permission to
+            &quot;All permissions&quot;.
+          </div>
+        ) : (
+          <JournalTable rows={filteredRows} onUpdated={onRowUpdated} />
+        )}
       </div>
       {showLossModal && (
         <LossLimitModal

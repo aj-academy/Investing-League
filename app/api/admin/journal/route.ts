@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     to: url.searchParams.get("to") || undefined,
     pair: url.searchParams.get("pair") || undefined,
     result: url.searchParams.get("result") || undefined,
+    permission: url.searchParams.get("permission") || undefined,
     signalType: url.searchParams.get("signalType") || undefined,
     mode: url.searchParams.get("mode") || undefined,
     timeframe: url.searchParams.get("timeframe") || undefined,
@@ -87,6 +88,9 @@ export async function GET(request: Request) {
   }
   if (filters.signalType) {
     rows = rows.filter((r) => matchesSignalTypeFilter(r.signal_type_label, filters.signalType!));
+  }
+  if (filters.permission) {
+    rows = rows.filter((r) => r.permission === filters.permission);
   }
   if (filters.verifiedOnly) {
     rows = rows.filter((r) => r.verified);

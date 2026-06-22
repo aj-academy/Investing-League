@@ -1,4 +1,6 @@
 import { mapSignalTypeFilter } from "@/lib/risk/capitalProtection";
+import { rowPermission } from "@/lib/journal/journalDisplay";
+import type { TradePermission } from "@/lib/signal-engine/permission";
 
 export type AdminJournalFilters = {
   userId?: string;
@@ -7,6 +9,7 @@ export type AdminJournalFilters = {
   to?: string;
   pair?: string;
   result?: string;
+  permission?: string;
   signalType?: string;
   mode?: string;
   timeframe?: string;
@@ -28,6 +31,7 @@ export type AdminJournalRow = {
   scan_mode: string | null;
   signal_type: string | null;
   signal_type_label: string;
+  permission: TradePermission;
   direction: string;
   grade: string | null;
   confidence: number | null;
@@ -153,6 +157,7 @@ export function normalizeAdminJournalRow(
     scan_mode: (row.scan_mode as string | null) ?? "practice",
     signal_type: signalType,
     signal_type_label: mapSignalTypeFilter(signalType, tradeEligible),
+    permission: rowPermission(signalType, tradeEligible),
     direction: String(row.direction),
     grade: (row.grade as string | null) ?? null,
     confidence: row.confidence != null ? Number(row.confidence) : null,

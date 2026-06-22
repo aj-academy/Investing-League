@@ -1,6 +1,8 @@
 "use client";
 
 import { formatAppDateTime } from "@/lib/datetime";
+import { JOURNAL_PERMISSION_OPTIONS, JOURNAL_RESULT_OPTIONS } from "@/lib/journal/journalFilters";
+import { permissionClass } from "@/lib/journal/journalDisplay";
 import { PAIRS } from "@/lib/utils";
 import type {
   AdminJournalRow,
@@ -19,6 +21,13 @@ const SIGNAL_TYPES = [
   "Trend Exhausted",
   "Do Not Trade",
 ];
+
+function permissionShortLabel(perm: string) {
+  if (perm === "TRADE ALLOWED") return "Allowed";
+  if (perm === "OBSERVE ONLY") return "Observe";
+  if (perm === "DO NOT TRADE") return "DNT";
+  return perm;
+}
 
 type AdminJournalUser = {
   id: string;
@@ -44,6 +53,7 @@ export function AdminJournalTab() {
     to: "",
     pair: "",
     result: "",
+    permission: "",
     signalType: "",
     mode: "",
     timeframe: "",
@@ -76,6 +86,7 @@ export function AdminJournalTab() {
     if (filters.to) params.set("to", filters.to);
     if (filters.pair) params.set("pair", filters.pair);
     if (filters.result) params.set("result", filters.result);
+    if (filters.permission) params.set("permission", filters.permission);
     if (filters.signalType) params.set("signalType", filters.signalType);
     if (filters.mode) params.set("mode", filters.mode);
     if (filters.timeframe) params.set("timeframe", filters.timeframe);
@@ -136,121 +147,167 @@ export function AdminJournalTab() {
         Complete journal across all users with capital and discipline filters.
       </p>
 
-      <div className="ctrl-row">
-        <div className="f">
-          <label>User</label>
-          <select
-            className="admin-journal-select"
-            value={filters.userId}
-            disabled={usersLoading}
-            onChange={(e) => setFilters((s) => ({ ...s, userId: e.target.value }))}
+      <div className="journal-filters admin-journal-filters">
+        <div className="journal-filters-main">
+          <div className="f">
+            <label>User</label>
+            <select
+              className="journal-filter-select"
+              value={filters.userId}
+              disabled={usersLoading}
+              onChange={(e) => setFilters((s) => ({ ...s, userId: e.target.value }))}
+            >
+              <option value="">{usersLoading ? "Loading users…" : "All users"}</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {userOptionLabel(u)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="f">
+            <label>From date</label>
+            <input
+              type="date"
+              className="journal-filter-date"
+              value={filters.from}
+              onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))}
+            />
+          </div>
+          <div className="f">
+            <label>To date</label>
+            <input
+              type="date"
+              className="journal-filter-date"
+              value={filters.to}
+              onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))}
+            />
+          </div>
+          <div className="f">
+            <label>Permission</label>
+            <select
+              className="journal-filter-select"
+              value={filters.permission}
+              onChange={(e) => setFilters((s) => ({ ...s, permission: e.target.value }))}
+            >
+              {JOURNAL_PERMISSION_OPTIONS.map((opt) => (
+                <option key={opt.value || "all"} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="f">
+            <label>Asset / pair</label>
+            <select
+              className="journal-filter-select"
+              value={filters.pair}
+              onChange={(e) => setFilters((s) => ({ ...s, pair: e.target.value }))}
+            >
+              <option value="">All pairs</option>
+              {PAIRS.map((pair) => (
+                <option key={pair} value={pair}>
+                  {pair}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="f">
+            <label>Result</label>
+            <select
+              className="journal-filter-select"
+              value={filters.result}
+              onChange={(e) => setFilters((s) => ({ ...s, result: e.target.value }))}
+            >
+              {JOURNAL_RESULT_OPTIONS.map((opt) => (
+                <option key={opt.value || "all"} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="f">
+            <label>Signal label</label>
+            <select
+              className="journal-filter-select"
+              value={filters.signalType}
+              onChange={(e) => setFilters((s) => ({ ...s, signalType: e.target.value }))}
+            >
+              {SIGNAL_TYPES.map((t) => (
+                <option key={t || "all"} value={t}>
+                  {t || "All labels"}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="f">
+            <label>Mode</label>
+            <select
+              className="journal-filter-select"
+              value={filters.mode}
+              onChange={(e) => setFilters((s) => ({ ...s, mode: e.target.value }))}
+            >
+              <option value="">All modes</option>
+              <option value="practice">Practice</option>
+              <option value="live">Live</option>
+            </select>
+          </div>
+          <div className="f">
+            <label>Timeframe</label>
+            <select
+              className="journal-filter-select"
+              value={filters.timeframe}
+              onChange={(e) => setFilters((s) => ({ ...s, timeframe: e.target.value }))}
+            >
+              <option value="">All</option>
+              <option value="5min">5min</option>
+              <option value="15min">15min</option>
+            </select>
+          </div>
+          <div className="f">
+            <label>Plan</label>
+            <select
+              className="journal-filter-select"
+              value={filters.plan}
+              onChange={(e) => setFilters((s) => ({ ...s, plan: e.target.value }))}
+            >
+              <option value="">All plans</option>
+              <option value="free">Free</option>
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="journal-filters-quick">
+          <span className="journal-filter-count">
+            {loading ? "Loading…" : (
+              <>
+                <strong>{rows.length}</strong> row{rows.length === 1 ? "" : "s"}
+              </>
+            )}
+          </span>
+          <button
+            type="button"
+            className="journal-filter-chip"
+            onClick={() =>
+              setFilters((s) => ({
+                ...s,
+                permission: "TRADE ALLOWED",
+                result: "Pending",
+              }))
+            }
           >
-            <option value="">{usersLoading ? "Loading users…" : "All users"}</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {userOptionLabel(u)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="f">
-          <label>From</label>
-          <input
-            type="date"
-            value={filters.from}
-            onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))}
-          />
-        </div>
-        <div className="f">
-          <label>To</label>
-          <input
-            type="date"
-            value={filters.to}
-            onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))}
-          />
-        </div>
-        <div className="f">
-          <label>Pair</label>
-          <select
-            className="admin-journal-select"
-            value={filters.pair}
-            onChange={(e) => setFilters((s) => ({ ...s, pair: e.target.value }))}
+            Trade allowed · pending
+          </button>
+          <button
+            type="button"
+            className="journal-filter-chip"
+            onClick={() => setFilters((s) => ({ ...s, permission: "TRADE ALLOWED", result: "" }))}
           >
-            <option value="">All pairs</option>
-            {PAIRS.map((pair) => (
-              <option key={pair} value={pair}>
-                {pair}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="f">
-          <label>Result</label>
-          <select
-            className="admin-journal-select"
-            value={filters.result}
-            onChange={(e) => setFilters((s) => ({ ...s, result: e.target.value }))}
-          >
-            <option value="">All</option>
-            <option value="Win">Win</option>
-            <option value="Loss">Loss</option>
-            <option value="Refund">Refund</option>
-            <option value="Pending">Pending</option>
-          </select>
-        </div>
-        <div className="f">
-          <label>Signal type</label>
-          <select
-            className="admin-journal-select"
-            value={filters.signalType}
-            onChange={(e) => setFilters((s) => ({ ...s, signalType: e.target.value }))}
-          >
-            {SIGNAL_TYPES.map((t) => (
-              <option key={t || "all"} value={t}>
-                {t || "All"}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="f">
-          <label>Mode</label>
-          <select
-            className="admin-journal-select"
-            value={filters.mode}
-            onChange={(e) => setFilters((s) => ({ ...s, mode: e.target.value }))}
-          >
-            <option value="">All</option>
-            <option value="practice">Practice</option>
-            <option value="live">Live</option>
-          </select>
-        </div>
-        <div className="f">
-          <label>Timeframe</label>
-          <select
-            className="admin-journal-select"
-            value={filters.timeframe}
-            onChange={(e) => setFilters((s) => ({ ...s, timeframe: e.target.value }))}
-          >
-            <option value="">All</option>
-            <option value="5min">5min</option>
-            <option value="15min">15min</option>
-          </select>
-        </div>
-        <div className="f">
-          <label>Plan</label>
-          <select
-            className="admin-journal-select"
-            value={filters.plan}
-            onChange={(e) => setFilters((s) => ({ ...s, plan: e.target.value }))}
-          >
-            <option value="">All</option>
-            <option value="free">Free</option>
-            <option value="starter">Starter</option>
-            <option value="pro">Pro</option>
-          </select>
-        </div>
-        <div className="f" style={{ alignSelf: "end" }}>
-          <label>
+            Trade allowed
+          </button>
+          <label className="journal-filter-check">
             <input
               type="checkbox"
               checked={filters.verifiedOnly}
@@ -258,9 +315,7 @@ export function AdminJournalTab() {
             />
             Verified only
           </label>
-        </div>
-        <div className="f" style={{ alignSelf: "end" }}>
-          <label>
+          <label className="journal-filter-check">
             <input
               type="checkbox"
               checked={filters.pendingOnly}
@@ -268,13 +323,9 @@ export function AdminJournalTab() {
             />
             Pending only
           </label>
-        </div>
-        <div className="f" style={{ alignSelf: "end" }}>
           <button type="button" className="jbtn" onClick={() => void load()}>
-            Apply filters
+            Refresh
           </button>
-        </div>
-        <div className="f" style={{ alignSelf: "end" }}>
           <button type="button" className="jbtn" onClick={exportCsv}>
             Export CSV
           </button>
@@ -400,6 +451,7 @@ export function AdminJournalTab() {
                 <th>Pair</th>
                 <th>TF</th>
                 <th>Mode</th>
+                <th>Permission</th>
                 <th>Signal</th>
                 <th>Dir</th>
                 <th>Grade</th>
@@ -424,6 +476,11 @@ export function AdminJournalTab() {
                   <td>{r.pair}</td>
                   <td>{r.timeframe}</td>
                   <td>{r.scan_mode ?? "practice"}</td>
+                  <td>
+                    <span className={`permission-pill ${permissionClass(r.permission)}`}>
+                      {permissionShortLabel(r.permission)}
+                    </span>
+                  </td>
                   <td>{r.signal_type_label}</td>
                   <td>{r.direction}</td>
                   <td>{r.grade ?? "—"}</td>
