@@ -797,8 +797,8 @@ export function DashboardClient({
                 <div className="empty-icon">📡</div>
                 <div className="empty-txt">
                   Select assets above, tune your filters, then hit{" "}
-                  <strong style={{ color: "var(--blue2)" }}>Run scan</strong> for educational
-                  market setup analysis.
+                  <strong style={{ color: "var(--blue2)" }}>Run scan</strong> for structured market
+                  setup analysis.
                   <br />
                   <br />
                   <span style={{ color: "var(--m2)" }}>

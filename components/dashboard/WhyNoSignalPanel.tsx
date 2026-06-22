@@ -7,8 +7,8 @@ export function WhyNoSignalPanel({ items, visible }: { items: V9WhyItem[]; visib
     <div className="why-panel">
       <h3 className="why-panel-title">Why No Live Signal?</h3>
       <p className="why-panel-sub">
-        The engine is filtering the market — not failing. Educational analysis only; no profit
-        guarantee.
+        The engine is filtering the market — not failing. Analysis for discipline and journaling
+        only; no profit guarantee.
       </p>
       <div className="why-list">
         {items.map((item) => (

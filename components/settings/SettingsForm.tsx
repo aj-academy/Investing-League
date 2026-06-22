@@ -1,7 +1,9 @@
 "use client";
 
-import { DISCLAIMER } from "@/lib/utils";
-import { RISK_DISCLAIMER } from "@/lib/risk/capitalProtection";
+import {
+  PLATFORM_DISCLAIMER,
+  PLATFORM_RISK_DISCLAIMER,
+} from "@/lib/platform/userCopy";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CapitalProtectionModal } from "@/components/risk/CapitalProtectionCard";
@@ -129,7 +131,7 @@ export function SettingsForm({
       <button type="button" className="jbtn" onClick={() => setCppOpen(true)}>
         Configure Capital Protection
       </button>
-      <p className="cpp-disclaimer" style={{ marginTop: 10 }}>{RISK_DISCLAIMER}</p>
+      <p className="cpp-disclaimer" style={{ marginTop: 10 }}>{PLATFORM_RISK_DISCLAIMER}</p>
 
       <div className="ctrl-title" style={{ marginTop: 20 }}>
         SCANNER DEFAULTS
@@ -172,7 +174,7 @@ export function SettingsForm({
       </div>
       <label style={{ display: "flex", gap: 8, fontSize: 10, color: "var(--m3)", marginBottom: 16 }}>
         <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
-        <span>{DISCLAIMER}</span>
+        <span>{PLATFORM_DISCLAIMER}</span>
       </label>
       <button type="button" className="btn-scan" onClick={save} disabled={saving}>
         {saving ? "Saving..." : "Save Settings"}

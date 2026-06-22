@@ -1,6 +1,6 @@
 "use client";
 
-import { RISK_DISCLAIMER } from "@/lib/risk/capitalProtection";
+import { PLATFORM_RISK_DISCLAIMER } from "@/lib/platform/userCopy";
 import type { RecoveryMetrics, RiskStatus } from "@/lib/risk/types";
 
 function riskClass(status: RiskStatus) {
@@ -140,7 +140,7 @@ export function CapitalProtectionCard({
               <strong>
                 {dailyProfitTargetPercent}% · ~{fmtMoney(dailyProfitTargetAmt)}
               </strong>
-              <span className="cpp-limit-hint">Educational daily reference</span>
+              <span className="cpp-limit-hint">Daily reference target</span>
             </div>
             <div className="cpp-limit-item">
               <span className="cpp-limit-label">Daily loss limit</span>
@@ -182,7 +182,7 @@ export function CapitalProtectionCard({
         </>
       )}
 
-      <p className="cpp-disclaimer cpp-card-footer">{RISK_DISCLAIMER}</p>
+      <p className="cpp-disclaimer cpp-card-footer">{PLATFORM_RISK_DISCLAIMER}</p>
     </div>
   );
 }
@@ -324,10 +324,10 @@ export function CapitalProtectionModal({
         </div>
         <p className="cpp-plan-preview">
           At {values.riskPerTradePercent}% risk, suggested reference trade size from current
-          capital: <strong>{riskAmt}</strong> (educational only).
+          capital: <strong>{riskAmt}</strong> (reference only).
         </p>
         {recovery?.message && <div className="cpp-recovery-warn">{recovery.message}</div>}
-        <p className="cpp-disclaimer">{RISK_DISCLAIMER}</p>
+        <p className="cpp-disclaimer">{PLATFORM_RISK_DISCLAIMER}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
           <button type="button" className="btn-scan" disabled={saving} onClick={onSave}>
             {saving ? "Saving..." : "Save Plan"}

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { DISCLAIMER } from "@/lib/utils";
+import { PLATFORM_DISCLAIMER } from "@/lib/platform/userCopy";
 
 const MARKETING_PREFIXES = [
   "/about",
@@ -27,7 +27,7 @@ export default function SiteFooter() {
 
   return (
     <footer className="z site-footer" style={{ textAlign: "center", fontSize: 10, color: "var(--m3)" }}>
-      {DISCLAIMER}
+      {PLATFORM_DISCLAIMER}
     </footer>
   );
 }

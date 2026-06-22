@@ -9,6 +9,11 @@ import {
 } from "@/lib/risk/dailyRiskSummary";
 import type { CapitalProfileFields } from "@/lib/risk/types";
 import { computeRecovery, num, todayDateString } from "@/lib/risk/capitalProtection";
+import {
+  PLATFORM_CAPITAL_UNAVAILABLE,
+  PLATFORM_SAVE_FAILED,
+} from "@/lib/platform/userCopy";
+import { sanitizeServiceWarning, sanitizeUserFacingError } from "@/lib/platform/sanitizeUserFacingError";
 import { NextResponse } from "next/server";
 
 function isMigrationError(message: string) {
@@ -59,7 +64,7 @@ export async function GET() {
   const payload = await buildRiskStatusPayload(auth!.user.id);
   const schemaWarning = columnsReady
     ? undefined
-    : "Run capital_protection_plan.sql in Supabase, then run: NOTIFY pgrst, 'reload schema';";
+    : PLATFORM_CAPITAL_UNAVAILABLE;
 
   if (!payload) {
     return NextResponse.json({
@@ -168,9 +173,7 @@ export async function PATCH(request: Request) {
     const migration = isMigrationError(persistError);
     return NextResponse.json(
       {
-        error: migration
-          ? "Database columns missing or schema cache stale. Run capital_protection_plan.sql then NOTIFY pgrst, 'reload schema'; in Supabase SQL Editor."
-          : persistError,
+        error: migration ? PLATFORM_CAPITAL_UNAVAILABLE : sanitizeUserFacingError(persistError),
         code: migration ? "MIGRATION_REQUIRED" : "UPDATE_FAILED",
       },
       { status: 400 },

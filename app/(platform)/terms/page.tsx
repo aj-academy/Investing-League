@@ -1,4 +1,5 @@
 import { getActiveTerms } from "@/lib/terms/terms";
+import { PLATFORM_TERMS_FALLBACK } from "@/lib/platform/userCopy";
 import Link from "next/link";
 
 export default async function TermsPage() {
@@ -15,9 +16,7 @@ export default async function TermsPage() {
         </div>
         {!active ? (
           <p style={{ fontSize: 12, color: "var(--m3)", lineHeight: 1.7 }}>
-            This platform is for educational analysis, signal testing, and trade journaling only.
-            It does not guarantee profit and does not provide financial advice. Trading involves
-            risk. Users are responsible for their own trading decisions.
+            {PLATFORM_TERMS_FALLBACK}
           </p>
         ) : (
           <>

@@ -1,16 +1,9 @@
 "use client";
 
-import { RISK_DISCLAIMER } from "@/lib/risk/capitalProtection";
-
-const RULES = [
-  "This platform is for educational analysis and trade journaling only.",
-  "Trade only when the system says Trade Allowed.",
-  "Do not trade Watch Only, Late Entry, Repeated Signal, Trend Exhausted, or Do Not Trade setups.",
-  "Do not increase trade amount after a loss.",
-  "Stop after your daily loss limit or continuous loss limit.",
-  "Always verify platform opening and closing quotes.",
-  "Your goal is not more trades. Your goal is better decisions.",
-];
+import {
+  PLATFORM_LOGIN_RULES,
+  PLATFORM_RISK_DISCLAIMER,
+} from "@/lib/platform/userCopy";
 
 export function LoginRulesModal({
   accepting,
@@ -41,11 +34,11 @@ export function LoginRulesModal({
           Discipline protects your capital. Better decisions create better results.
         </p>
         <ul className="cpp-rules-list">
-          {RULES.map((rule) => (
+          {PLATFORM_LOGIN_RULES.map((rule) => (
             <li key={rule}>{rule}</li>
           ))}
         </ul>
-        <p className="cpp-disclaimer">{RISK_DISCLAIMER}</p>
+        <p className="cpp-disclaimer">{PLATFORM_RISK_DISCLAIMER}</p>
         <button
           type="button"
           className="btn-scan"

@@ -1,7 +1,7 @@
 "use client";
 
 import { LoginForm } from "@/components/auth/LoginForm";
-import { DISCLAIMER } from "@/lib/utils";
+import { PLATFORM_DISCLAIMER, PLATFORM_SETUP_REQUIRED } from "@/lib/platform/userCopy";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -34,9 +34,7 @@ function LoginContent() {
             className="key-msg show err"
             style={{ display: "block", marginBottom: 14 }}
           >
-            Supabase is not configured. Copy <code>.env.example</code> to{" "}
-            <code>.env.local</code>, add your project URL and anon key, then restart{" "}
-            <code>npm run dev</code>.
+            {PLATFORM_SETUP_REQUIRED}
           </div>
         )}
         <h1>THE INVESTING LEAGUE</h1>
@@ -48,7 +46,7 @@ function LoginContent() {
           </Link>
         </p>
         <LoginForm />
-        <p style={{ fontSize: 9, color: "var(--m3)", marginTop: 16, lineHeight: 1.6 }}>{DISCLAIMER}</p>
+        <p style={{ fontSize: 9, color: "var(--m3)", marginTop: 16, lineHeight: 1.6 }}>{PLATFORM_DISCLAIMER}</p>
       </div>
     </div>
   );

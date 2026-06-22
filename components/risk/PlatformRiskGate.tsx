@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  PLATFORM_RULES_SAVE_FAILED,
+  PLATFORM_RULES_SAVE_PENDING,
+} from "@/lib/platform/userCopy";
+import { sanitizeServiceWarning } from "@/lib/platform/sanitizeUserFacingError";
 import { todayDateString } from "@/lib/risk/capitalProtection";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -64,15 +69,12 @@ export function PlatformRiskGate({ children }: { children: React.ReactNode }) {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || !json.ok) {
-        toast.error(
-          json.error ||
-            "Could not save acknowledgement to server. Popup closed for this session — run the Supabase migration if this keeps happening.",
-        );
+        toast.error(sanitizeServiceWarning(json.error) || PLATFORM_RULES_SAVE_FAILED);
         return;
       }
 
       if (!json.persisted && json.warning) {
-        toast.message("Rules acknowledged for today. Server save pending — check Supabase migration.");
+        toast.message(PLATFORM_RULES_SAVE_PENDING);
       }
     } catch {
       toast.error("Network error — popup closed for this session.");

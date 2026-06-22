@@ -12,7 +12,7 @@ import {
   showDataQualityWarning,
   signalTypeBucketStats,
 } from "@/lib/analytics/insights";
-import { DISCLAIMER } from "@/lib/utils";
+import { PLATFORM_DISCLAIMER } from "@/lib/platform/userCopy";
 import {
   AnalyticsBarRow,
   AnalyticsDonut,
@@ -349,7 +349,7 @@ export function AnalyticsView({
         </ol>
       </div>
 
-      <div className="disclaimer-banner analytics-disclaimer">{DISCLAIMER}</div>
+      <div className="disclaimer-banner analytics-disclaimer">{PLATFORM_DISCLAIMER}</div>
     </div>
   );
 }

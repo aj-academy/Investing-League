@@ -2,6 +2,8 @@ import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { getActiveTerms, hasValidServiceRoleKey } from "@/lib/terms/terms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { PLATFORM_SAVE_FAILED } from "@/lib/platform/userCopy";
+import { sanitizeUserFacingError } from "@/lib/platform/sanitizeUserFacingError";
 import { NextResponse } from "next/server";
 
 function clientIp(request: Request) {
@@ -146,9 +148,7 @@ export async function POST(request: Request) {
     const rlsBlocked = /row-level security|policy/i.test(acceptError);
     return NextResponse.json(
       {
-        error: rlsBlocked
-          ? "Terms could not be saved. In Supabase SQL Editor run the file supabase/migrations/terms_acceptance_rls_fix.sql (copy all, click Run). Also set SUPABASE_SERVICE_ROLE_KEY in Vercel (service_role secret, not anon key)."
-          : acceptError,
+        error: sanitizeUserFacingError(acceptError, PLATFORM_SAVE_FAILED),
         code: rlsBlocked ? "RLS_BLOCKED" : "ACCEPT_FAILED",
       },
       { status: 500 },

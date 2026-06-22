@@ -1,5 +1,5 @@
-import { DISCLAIMER } from "@/lib/utils";
+import { PLATFORM_DISCLAIMER } from "@/lib/platform/userCopy";
 
 export function RiskDisclaimerBanner() {
-  return <div className="disclaimer-banner z wrap">{DISCLAIMER}</div>;
+  return <div className="disclaimer-banner z wrap">{PLATFORM_DISCLAIMER}</div>;
 }

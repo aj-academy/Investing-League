@@ -1,6 +1,7 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { PLATFORM_SAVE_FAILED } from "@/lib/platform/userCopy";
 import { NextResponse } from "next/server";
 
 export async function PATCH(request: Request) {
@@ -19,10 +20,7 @@ export async function PATCH(request: Request) {
   const email = auth!.user.email;
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json(
-      { error: "SUPABASE_SERVICE_ROLE_KEY is not set on the server (add it in Vercel env)." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: PLATFORM_SAVE_FAILED }, { status: 500 });
   }
 
   // Service role ensures profile row can be created (RLS insert often missing on older DBs).

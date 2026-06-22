@@ -1,5 +1,6 @@
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { PLATFORM_JOURNAL_PARTIAL_SAVE } from "@/lib/platform/userCopy";
 
 export function buildJournalRow(
   userId: string,
@@ -73,7 +74,6 @@ export async function upsertTradeJournalRow(
   return {
     error: null,
     usedFallback: true,
-    warning:
-      "Journal saved without V9/capital columns — run capital_protection_plan.sql and v9_signal_layers.sql in Supabase.",
+    warning: PLATFORM_JOURNAL_PARTIAL_SAVE,
   };
 }

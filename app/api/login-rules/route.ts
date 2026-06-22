@@ -2,6 +2,8 @@ import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { isSameCalendarDay, todayDateString } from "@/lib/risk/capitalProtection";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { PLATFORM_CAPITAL_UNAVAILABLE, PLATFORM_RULES_SAVE_PENDING } from "@/lib/platform/userCopy";
+import { sanitizeServiceWarning } from "@/lib/platform/sanitizeUserFacingError";
 import { NextResponse } from "next/server";
 
 async function readLoginRulesState(userId: string) {
@@ -50,7 +52,7 @@ export async function GET() {
       ok: true,
       showPopup: true,
       columnsReady: false,
-      warning: readError || "Capital protection columns not found — run Supabase migration.",
+      warning: sanitizeServiceWarning(readError) || PLATFORM_CAPITAL_UNAVAILABLE,
     });
   }
 
@@ -105,7 +107,7 @@ export async function POST() {
     return NextResponse.json({
       ok: true,
       persisted: false,
-      warning: updateError,
+      warning: sanitizeServiceWarning(updateError) || PLATFORM_RULES_SAVE_PENDING,
       loginRulesSeenAt: now,
     });
   }

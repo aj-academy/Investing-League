@@ -26,6 +26,8 @@ import {
   shouldJournalV9Signal,
   type V8JournalRow,
 } from "@/lib/signal-engine";
+import { PLATFORM_SAVE_FAILED } from "@/lib/platform/userCopy";
+import { sanitizeUserFacingErrors } from "@/lib/platform/sanitizeUserFacingError";
 import { upsertTradeJournalRow } from "@/lib/journal/upsertJournal";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -298,7 +300,7 @@ export async function POST(request: Request) {
 
     if (!admin && signalsToSave.length > 0) {
       persistErrors.push(
-        "Server missing SUPABASE_SERVICE_ROLE_KEY — scan results may not persist after you leave the page."
+        "Scan results may not persist after you leave this page. Contact support if this continues.",
       );
     }
 
@@ -377,6 +379,7 @@ export async function POST(request: Request) {
     const tickerResult = await buildTickerForPairs(pairs, plan);
     const scansUsedAfter = scanQuota.scansUsedToday + 1;
     const clientMarketErrors = sanitizeProviderErrors(marketErrors, isAdmin);
+    const clientPersistErrors = sanitizeUserFacingErrors(persistErrors, PLATFORM_SAVE_FAILED);
 
     return NextResponse.json({
       ok: true,
@@ -403,13 +406,13 @@ export async function POST(request: Request) {
       filteredSignalCount: filteredSignals.length,
       journalSaved,
       signalsSaved,
-      persistErrors,
+      persistErrors: clientPersistErrors,
       marketErrors: clientMarketErrors,
       message:
         journalSaved > 0
           ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
-          : signals.length > 0 && persistErrors.length > 0
-            ? `Scan complete — ${signals.length} setup(s) on screen but journal save failed: ${persistErrors[0]}`
+          : signals.length > 0 && clientPersistErrors.length > 0
+            ? `Scan complete — ${signals.length} setup(s) on screen but journal save failed: ${clientPersistErrors[0]}`
             : signals.length > 0 && journalToSave.length === 0
               ? `Scan complete — ${signals.length} setup(s) shown. Only Live and Practice layers are saved to journal (Radar/Rejected are not stored).`
               : clientMarketErrors.length > 0
