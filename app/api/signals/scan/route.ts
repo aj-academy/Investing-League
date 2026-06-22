@@ -26,6 +26,7 @@ import {
   shouldJournalV9Signal,
   type V8JournalRow,
 } from "@/lib/signal-engine";
+import { upsertTradeJournalRow } from "@/lib/journal/upsertJournal";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
@@ -70,33 +71,6 @@ function signalRow(userId: string, scanSessionId: string, sig: ComputedSignal) {
     candle_strength: sig.candleStrengthText,
     live_rank: sig.liveRank || null,
     raw_payload: sig,
-  };
-}
-
-function journalRow(userId: string, signalId: string | null, sig: ComputedSignal) {
-  return {
-    user_id: userId,
-    signal_id: signalId,
-    signal_uid: sig.signalUid,
-    pair: sig.pair,
-    timeframe: sig.tf,
-    direction: sig.direction,
-    grade: sig.grade,
-    confidence: sig.conf,
-    score: sig.score,
-    signal_type: sig.signalType,
-    signal_reason: sig.signalReason,
-    trade_eligible: sig.tradeEligible,
-    signal_entry_time: sig.entryTime,
-    signal_entry_price: parseFloat(sig.price),
-    expiry_time: sig.expTime,
-    expiry_minutes: sig.expMin,
-    result: "Pending",
-    result_source: "Unverified",
-    entry_status: "Pending",
-    scan_mode: sig.mode,
-    v9_layer: sig.v9Layer ?? null,
-    v9_readiness: sig.v9Readiness ?? null,
   };
 }
 
@@ -329,6 +303,7 @@ export async function POST(request: Request) {
     }
 
     for (const sig of signalsToSave) {
+      let signalId: string | null = null;
       const { data: savedSignal, error: sigErr } = await writer
         .from("signals")
         .upsert(signalRow(auth!.user.id, scanSession.id, sig), {
@@ -338,24 +313,30 @@ export async function POST(request: Request) {
         .single();
 
       if (sigErr) {
-        persistErrors.push(`${sig.pair}: ${sigErr.message}`);
-        continue;
+        persistErrors.push(`signal ${sig.pair}: ${sigErr.message}`);
+      } else {
+        signalsSaved++;
+        signalId = savedSignal?.id || null;
       }
-      signalsSaved++;
 
       if (!journalToSave.some((j) => j.signalUid === sig.signalUid)) {
         continue;
       }
 
-      const { error: journalErr } = await writer.from("trade_journal").upsert(
-        journalRow(auth!.user.id, savedSignal?.id || null, sig),
-        { onConflict: "user_id,signal_uid" }
+      const journalResult = await upsertTradeJournalRow(
+        writer,
+        auth!.user.id,
+        signalId,
+        sig,
       );
 
-      if (journalErr) {
-        persistErrors.push(`journal ${sig.pair}: ${journalErr.message}`);
+      if (journalResult.error) {
+        persistErrors.push(`journal ${sig.pair}: ${journalResult.error}`);
       } else {
         journalSaved++;
+        if (journalResult.warning) {
+          persistErrors.push(journalResult.warning);
+        }
       }
     }
 
@@ -428,8 +409,10 @@ export async function POST(request: Request) {
         journalSaved > 0
           ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
           : signals.length > 0 && persistErrors.length > 0
-            ? `Scan complete — ${signals.length} setup(s) on screen but save failed. Check Vercel SUPABASE_SERVICE_ROLE_KEY.`
-            : clientMarketErrors.length > 0
+            ? `Scan complete — ${signals.length} setup(s) on screen but journal save failed: ${persistErrors[0]}`
+            : signals.length > 0 && journalToSave.length === 0
+              ? `Scan complete — ${signals.length} setup(s) shown. Only Live and Practice layers are saved to journal (Radar/Rejected are not stored).`
+              : clientMarketErrors.length > 0
               ? `Scan finished but no market data: ${clientMarketErrors[0]}`
               : rawSignals.length === 0
                 ? "Scan complete — no setups found. Try another session filter or lower min grade."
