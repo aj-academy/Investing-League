@@ -710,8 +710,8 @@ export function DashboardClient({
 
           {liveModeLocked && (
             <div className="disclaimer-banner cpp-live-lock-banner">
-              Live Mode is off after consecutive losses. Practice Mode remains available. Contact
-              admin to restore Live access after your 30-minute discipline pause.
+              Live Mode is paused for 30 minutes after consecutive losses. Practice Mode remains
+              available. Live unlocks automatically when the timer ends.
             </div>
           )}
 

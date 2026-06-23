@@ -220,6 +220,31 @@ export async function aggregateTodayJournal(userId: string, tradeDate = todayDat
   return { wins, losses, refunds, netProfit, totalTrades, consecutiveLosses, rows };
 }
 
+/** After the 30-minute cooldown ends, clear live lock so Live mode works again without admin. */
+async function expireLiveLockIfCooldownEnded(
+  userId: string,
+  daily: DailyRiskSummary | null,
+): Promise<DailyRiskSummary | null> {
+  if (!daily?.live_mode_locked) return daily;
+  if (cooldownActive(daily.cooldown_until)) return daily;
+
+  const result = await upsertDailyRiskSummary(userId, {
+    trade_date: daily.trade_date,
+    live_mode_locked: false,
+    cooldown_until: null,
+    starting_capital: daily.starting_capital,
+    current_capital: daily.current_capital,
+    wins: daily.wins,
+    losses: daily.losses,
+    refunds: daily.refunds,
+    net_profit: daily.net_profit,
+    total_trades: daily.total_trades,
+    consecutive_losses: daily.consecutive_losses,
+  });
+
+  return result.summary ?? { ...daily, live_mode_locked: false, cooldown_until: null };
+}
+
 export async function buildRiskStatusPayload(userId: string): Promise<RiskStatusPayload | null> {
   await reconcileJournalCapitalForUser(userId);
 
@@ -244,6 +269,8 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
     });
     daily = upsert.summary ?? null;
   }
+
+  daily = await expireLiveLockIfCooldownEnded(userId, daily);
 
   const cooldownUntil = daily?.cooldown_until ?? null;
   const liveModeLocked = Boolean(daily?.live_mode_locked);
@@ -280,15 +307,19 @@ export async function isLiveModeBlocked(userId: string): Promise<{
   inCooldown: boolean;
 }> {
   const tradeDate = todayDateString();
-  const daily = await getDailyRiskSummary(userId, tradeDate);
+  let daily = await getDailyRiskSummary(userId, tradeDate);
+  if (!daily?.live_mode_locked) {
+    return { blocked: false, cooldownUntil: null, message: null, inCooldown: false };
+  }
+
+  daily = await expireLiveLockIfCooldownEnded(userId, daily);
   if (!daily?.live_mode_locked) {
     return { blocked: false, cooldownUntil: null, message: null, inCooldown: false };
   }
 
   const inCooldown = cooldownActive(daily.cooldown_until);
-  const message = inCooldown
-    ? "Live Mode is paused for 30 minutes after consecutive losses. Practice Mode remains available. Contact admin to restore Live after review."
-    : "Live Mode is disabled after consecutive losses. Practice Mode remains available. Contact admin to restore Live access.";
+  const message =
+    "Live Mode is paused for 30 minutes after consecutive losses. Practice Mode remains available. Live unlocks automatically when the timer ends.";
 
   return {
     blocked: true,

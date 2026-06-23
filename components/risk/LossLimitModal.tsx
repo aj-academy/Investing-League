@@ -27,9 +27,9 @@ export function LossLimitModal({
       <div className="ctrl cpp-modal cpp-loss-modal" style={{ width: "min(520px, 96vw)" }}>
         <div className="ctrl-title cpp-loss-title">Stop Trading Now</div>
         <p className="cpp-loss-body">
-          You have reached your consecutive loss limit. Your account is now on Practice Mode only.
-          Live Mode stays off until an admin reactivates it. Use the 30-minute pause to step away,
-          review your journal, and reset discipline.
+          You have reached your consecutive loss limit. Your account is on Practice Mode for the
+          next 30 minutes. Live unlocks automatically when the timer ends. Review your journal
+          before trading live again.
         </p>
         <div className="cpp-loss-actions">
           <Link href="/journal" className="btn-scan" onClick={onViewJournal}>
