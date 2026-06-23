@@ -123,6 +123,15 @@ export async function GET(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  const { data: auditLogs } = await admin
+    .from("audit_logs")
+    .select("id,action,entity_type,entity_id,metadata,created_at,ip_address,user_id")
+    .or(`user_id.eq.${userId},entity_id.eq.${userId}`)
+    .gte("created_at", fromIso)
+    .lte("created_at", toIso)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
   const allowedAssets = await resolveUserAllowedPairs(
     userId,
     (profile.plan || "free") as "free" | "starter" | "pro" | "admin",
@@ -225,6 +234,7 @@ export async function GET(
     recentScans: recentScans || [],
     recentJournal: journalRows.slice(0, 100),
     journalEntries: journalRows.slice(0, 200),
+    auditLogs: auditLogs || [],
   };
 
   if (format === "csv") {

@@ -1,5 +1,6 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
 import { isSameCalendarDay, todayDateString } from "@/lib/risk/capitalProtection";
+import { clientIp, writeAuditLog } from "@/lib/audit/writeAuditLog";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { PLATFORM_CAPITAL_UNAVAILABLE, PLATFORM_RULES_SAVE_PENDING } from "@/lib/platform/userCopy";
@@ -74,7 +75,7 @@ export async function GET() {
   });
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const { auth, error } = await requireApiAuth();
   if (error) return error;
 
@@ -111,6 +112,16 @@ export async function POST() {
       loginRulesSeenAt: now,
     });
   }
+
+  await writeAuditLog({
+    userId: auth!.user.id,
+    action: "user_login_rules_accept",
+    entityType: "profiles",
+    entityId: auth!.user.id,
+    metadata: { loginRulesSeenAt: now },
+    ipAddress: clientIp(request),
+    userAgent: request.headers.get("user-agent"),
+  });
 
   return NextResponse.json({ ok: true, persisted: true, loginRulesSeenAt: now });
 }

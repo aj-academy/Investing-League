@@ -94,7 +94,7 @@ export function ScannerControls({
             disabled={lockFilters || liveModeLocked}
             title={
               liveModeLocked
-                ? "Live Mode paused for capital protection"
+                ? "Live disabled after consecutive losses — contact admin to restore"
                 : "Best signal"
             }
             onClick={() => {

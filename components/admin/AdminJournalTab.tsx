@@ -129,14 +129,14 @@ export function AdminJournalTab() {
     const res = await fetch("/api/risk/pause", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "admin_clear_lock", userId }),
+      body: JSON.stringify({ action: "admin_activate_live", userId }),
     });
     const json = await res.json();
     if (!res.ok) {
-      toast.error(json.error || "Could not clear lock");
+      toast.error(json.error || "Could not activate live mode");
       return;
     }
-    toast.success("Live mode lock cleared");
+    toast.success("Live mode activated for user");
     void load();
   };
 
@@ -426,7 +426,7 @@ export function AdminJournalTab() {
                       className="jbtn"
                       onClick={() => void clearUserLock(u.user_id)}
                     >
-                      Clear lock
+                      Activate live
                     </button>
                   </td>
                 </tr>

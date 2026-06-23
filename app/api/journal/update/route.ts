@@ -1,4 +1,5 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
+import { clientIp, writeAuditLog } from "@/lib/audit/writeAuditLog";
 import { calculateEntryDrift } from "@/lib/journal/entryDrift";
 import { fetchJournalRowForUser, saveJournalRowForUser } from "@/lib/journal/journalAccess";
 import { calculateResult } from "@/lib/journal/resultCalculator";
@@ -175,6 +176,21 @@ export async function PATCH(request: Request) {
         { status: updateError === "Journal record not found" ? 404 : 500 },
       );
     }
+
+    await writeAuditLog({
+      userId: auth!.user.id,
+      action: "user_journal_update",
+      entityType: "trade_journal",
+      entityId: updated.id,
+      metadata: {
+        pair: updated.pair,
+        result: updated.result,
+        opening: updated.olymp_opening_quote,
+        closing: updated.olymp_closing_quote,
+      },
+      ipAddress: clientIp(request),
+      userAgent: request.headers.get("user-agent"),
+    });
 
     const profileAfter = needsRefresh
       ? await getProfileCapitalFields(auth!.user.id)

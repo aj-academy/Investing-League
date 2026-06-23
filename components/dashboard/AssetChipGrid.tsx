@@ -46,10 +46,10 @@ export function AssetChipGrid({
   onChange: (pairs: string[]) => void;
 }) {
   const set = new Set(selected);
-  const cap = Math.max(1, maxPairsPerScan);
+  const selectableCap = Math.min(Math.max(1, maxPairsPerScan), allowedPairs.length);
 
   const applySelection = (next: string[]) => {
-    const trimmed = next.slice(0, cap);
+    const trimmed = next.slice(0, selectableCap);
     onChange(trimmed);
     saveStoredPairs(trimmed);
   };
@@ -58,8 +58,8 @@ export function AssetChipGrid({
     if (disabled || !allowedPairs.includes(pair)) return;
     const next = new Set(selected);
     if (next.has(pair)) next.delete(pair);
-    else if (next.size >= cap) {
-      toast.message(`Your plan allows up to ${cap} pair(s) per scan.`);
+    else if (next.size >= selectableCap) {
+      toast.message(`Your plan allows up to ${selectableCap} pair(s) per scan.`);
       return;
     } else next.add(pair);
     applySelection(allowedPairs.filter((p) => next.has(p)));
@@ -83,10 +83,12 @@ export function AssetChipGrid({
       <div className="scanner-assets-head">
         <div>
           <h3 className="scanner-assets-title">Select assets</h3>
-          <p className="scanner-assets-sub">Tap pairs to include in this scan</p>
+          <p className="scanner-assets-sub">
+            Tap pairs to include in this scan (up to {selectableCap} on your plan)
+          </p>
         </div>
         <span className="scanner-assets-badge">
-          {selected.length} / {cap} selected
+          {selected.length} / {selectableCap} selected
         </span>
       </div>
 

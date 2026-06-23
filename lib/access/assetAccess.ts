@@ -66,9 +66,9 @@ export async function resolveUserAllowedPairs(
   const enabled = new Set(
     customRows
       .filter((r) => r.is_allowed && !isCustomAssetEmptyMarker(r.pair))
-      .map((r) => r.pair as PairSymbol)
+      .map((r) => r.pair),
   );
-  return ALL_PAIRS.filter((p) => enabled.has(p));
+  return planPairs.filter((p) => enabled.has(p));
 }
 
 export async function validatePairsForUser(

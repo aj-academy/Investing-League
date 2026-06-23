@@ -176,6 +176,8 @@ export function AdminView() {
     }>;
   } | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditUserFilter, setAuditUserFilter] = useState("");
+  const [auditLoading, setAuditLoading] = useState(false);
   const [selectedReportUser, setSelectedReportUser] = useState<string>("");
   const [report, setReport] = useState<any | null>(null);
   const [newTerms, setNewTerms] = useState({
@@ -287,10 +289,29 @@ export function AdminView() {
   };
 
   const loadAudit = () => {
-    fetch("/api/admin/audit")
+    setAuditLoading(true);
+    const params = new URLSearchParams();
+    if (auditUserFilter) params.set("userId", auditUserFilter);
+    fetch(`/api/admin/audit?${params.toString()}`)
       .then((r) => r.json())
       .then((json) => setAuditLogs(json.logs || []))
-      .catch(() => setAuditLogs([]));
+      .catch(() => setAuditLogs([]))
+      .finally(() => setAuditLoading(false));
+  };
+
+  const activateLiveForUser = async (userId: string) => {
+    const res = await fetch("/api/risk/pause", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "admin_activate_live", userId }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      toast.error(json.error || "Could not activate live mode");
+      return;
+    }
+    toast.success("Live mode activated");
+    if (selectedReportUser === userId) void loadUserReport(userId);
   };
 
   useEffect(() => {
@@ -306,7 +327,7 @@ export function AdminView() {
     if (activeTab === "pricing") loadPricing();
     if (activeTab === "api") loadUsage();
     if (activeTab === "audit") loadAudit();
-  }, [activeTab]);
+  }, [activeTab, auditUserFilter]);
 
   useEffect(() => {
     if (!assetsData?.users) return;
@@ -1622,6 +1643,17 @@ export function AdminView() {
                   totalNetProfit: report.totals?.totalNetProfit ?? 0,
                 }}
               />
+              {report?.capitalProtection?.liveModeLocked && selectedReportUser && (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="jbtn"
+                    onClick={() => void activateLiveForUser(selectedReportUser)}
+                  >
+                    Activate live mode for this user
+                  </button>
+                </div>
+              )}
               <div className="journal-stats" style={{ marginTop: 12 }}>
                 <div className="jstat">
                   <div className="jstat-v">{report?.usage?.scansInRange ?? 0}</div>
@@ -1666,6 +1698,41 @@ export function AdminView() {
                   <div className="jstat-l">Allowed Assets</div>
                 </div>
               </div>
+              {(report.auditLogs || []).length > 0 && (
+                <div className="journal-table-wrap" style={{ marginTop: 12, maxHeight: 240 }}>
+                  <div className="ctrl-title" style={{ padding: "10px 12px 0" }}>
+                    User audit log (range)
+                  </div>
+                  <table className="journal-table">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Action</th>
+                        <th>Entity</th>
+                        <th>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.auditLogs.map((log: {
+                        id: string;
+                        created_at: string;
+                        action: string;
+                        entity_type?: string | null;
+                        metadata?: Record<string, unknown>;
+                      }) => (
+                        <tr key={log.id}>
+                          <td>{formatAppDateTime(log.created_at)}</td>
+                          <td>{log.action}</td>
+                          <td>{log.entity_type || "—"}</td>
+                          <td style={{ whiteSpace: "normal", maxWidth: 280 }}>
+                            <code>{JSON.stringify(log.metadata || {})}</code>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="journal-table-wrap" style={{ marginTop: 12, maxHeight: 280 }}>
                 <table className="journal-table">
                   <thead>
@@ -1885,13 +1952,41 @@ export function AdminView() {
       {activeTab === "audit" && (
         <div className="ctrl" style={{ marginTop: 16 }}>
           <div className="ctrl-title">Audit Logs</div>
+          <div className="journal-filters" style={{ marginBottom: 12 }}>
+            <div className="f">
+              <label>Filter by user</label>
+              <select
+                className="journal-filter-select"
+                value={auditUserFilter}
+                onChange={(e) => setAuditUserFilter(e.target.value)}
+              >
+                <option value="">All users</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.full_name || u.email || u.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="f" style={{ alignSelf: "end" }}>
+              <button type="button" className="jbtn" onClick={() => loadAudit()}>
+                Refresh
+              </button>
+            </div>
+          </div>
           <div className="journal-table-wrap" style={{ maxHeight: 480 }}>
+            {auditLoading ? (
+              <p className="empty-txt">Loading audit logs…</p>
+            ) : auditLogs.length === 0 ? (
+              <p className="empty-txt">No audit logs found for this filter.</p>
+            ) : (
             <table className="journal-table">
               <thead>
                 <tr>
                   <th>Action</th>
                   <th>Entity</th>
                   <th>User</th>
+                  <th>Target</th>
                   <th>Time</th>
                   <th>Metadata</th>
                 </tr>
@@ -1902,6 +1997,7 @@ export function AdminView() {
                     <td>{log.action}</td>
                     <td>{log.entity_type || "—"}</td>
                     <td title={log.user_id || undefined}>{log.user_name || log.user_id || "—"}</td>
+                    <td title={log.entity_id || undefined}>{log.entity_name || log.entity_id || "—"}</td>
                     <td>{formatAppDateTime(log.created_at)}</td>
                     <td style={{ whiteSpace: "normal", maxWidth: 360 }}>
                       <code>{JSON.stringify(log.metadata || {})}</code>
@@ -1910,6 +2006,7 @@ export function AdminView() {
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </div>
       )}

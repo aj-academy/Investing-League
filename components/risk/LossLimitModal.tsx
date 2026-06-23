@@ -27,8 +27,9 @@ export function LossLimitModal({
       <div className="ctrl cpp-modal cpp-loss-modal" style={{ width: "min(520px, 96vw)" }}>
         <div className="ctrl-title cpp-loss-title">Stop Trading Now</div>
         <p className="cpp-loss-body">
-          You have reached your continuous loss limit. This is the moment to protect your capital.
-          Stop live trading, review your journal, and restart only after a break.
+          You have reached your consecutive loss limit. Your account is now on Practice Mode only.
+          Live Mode stays off until an admin reactivates it. Use the 30-minute pause to step away,
+          review your journal, and reset discipline.
         </p>
         <div className="cpp-loss-actions">
           <Link href="/journal" className="btn-scan" onClick={onViewJournal}>
@@ -38,7 +39,7 @@ export function LossLimitModal({
             Continue Practice Only
           </button>
           <button type="button" className="jbtn cpp-pause-btn" onClick={onPause}>
-            Pause for 30 Minutes
+            Pause 30 Minutes
           </button>
         </div>
       </div>

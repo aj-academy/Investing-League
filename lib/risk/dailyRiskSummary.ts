@@ -246,8 +246,8 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
   }
 
   const cooldownUntil = daily?.cooldown_until ?? null;
-  const lockActive =
-    Boolean(daily?.live_mode_locked) && cooldownActive(cooldownUntil);
+  const liveModeLocked = Boolean(daily?.live_mode_locked);
+  const cooldownActiveNow = cooldownActive(cooldownUntil);
 
   const consecutiveLosses = daily?.consecutive_losses ?? agg.consecutiveLosses;
   const todayNetProfit = agg.netProfit;
@@ -264,9 +264,9 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
     riskStatus,
     daily,
     profile,
-    liveModeLocked: lockActive,
+    liveModeLocked,
     cooldownUntil,
-    cooldownActive: lockActive,
+    cooldownActive: cooldownActiveNow,
     todayNetProfit,
     consecutiveLosses,
     recovery: computeRecovery(profile.starting_capital, profile.current_capital),
@@ -277,20 +277,24 @@ export async function isLiveModeBlocked(userId: string): Promise<{
   blocked: boolean;
   cooldownUntil: string | null;
   message: string | null;
+  inCooldown: boolean;
 }> {
   const tradeDate = todayDateString();
   const daily = await getDailyRiskSummary(userId, tradeDate);
   if (!daily?.live_mode_locked) {
-    return { blocked: false, cooldownUntil: null, message: null };
+    return { blocked: false, cooldownUntil: null, message: null, inCooldown: false };
   }
-  if (!cooldownActive(daily.cooldown_until)) {
-    return { blocked: false, cooldownUntil: daily.cooldown_until, message: null };
-  }
+
+  const inCooldown = cooldownActive(daily.cooldown_until);
+  const message = inCooldown
+    ? "Live Mode is paused for 30 minutes after consecutive losses. Practice Mode remains available. Contact admin to restore Live after review."
+    : "Live Mode is disabled after consecutive losses. Practice Mode remains available. Contact admin to restore Live access.";
+
   return {
     blocked: true,
     cooldownUntil: daily.cooldown_until,
-    message:
-      "Live Mode paused for capital protection. You can continue Practice Mode or review your journal.",
+    message,
+    inCooldown,
   };
 }
 

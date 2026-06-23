@@ -710,8 +710,8 @@ export function DashboardClient({
 
           {liveModeLocked && (
             <div className="disclaimer-banner cpp-live-lock-banner">
-              Live Mode paused for capital protection. You can continue Practice Mode or review your
-              journal.
+              Live Mode is off after consecutive losses. Practice Mode remains available. Contact
+              admin to restore Live access after your 30-minute discipline pause.
             </div>
           )}
 

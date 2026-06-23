@@ -8,6 +8,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action");
+  const userId = searchParams.get("userId");
   const limit = Math.min(500, Math.max(10, Number(searchParams.get("limit") || "200")));
 
   const admin = createAdminClient();
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (action) query = query.eq("action", action);
+  if (userId) query = query.or(`user_id.eq.${userId},entity_id.eq.${userId}`);
 
   const { data, error: dbError } = await query;
   if (dbError) {
@@ -24,7 +26,11 @@ export async function GET(request: Request) {
   }
 
   const logs = data || [];
-  const userIds = [...new Set(logs.map((log) => log.user_id).filter(Boolean))] as string[];
+  const userIds = [
+    ...new Set(
+      logs.flatMap((log) => [log.user_id, log.entity_id]).filter(Boolean),
+    ),
+  ] as string[];
   const nameByUserId = new Map<string, string>();
 
   if (userIds.length) {
@@ -43,6 +49,7 @@ export async function GET(request: Request) {
     logs: logs.map((log) => ({
       ...log,
       user_name: log.user_id ? nameByUserId.get(log.user_id) || null : null,
+      entity_name: log.entity_id ? nameByUserId.get(log.entity_id) || null : null,
     })),
   });
 }
