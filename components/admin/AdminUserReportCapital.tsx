@@ -13,6 +13,7 @@ export type AdminReportCapitalPayload = {
   liveModeLocked: boolean;
   riskPerTradePercent: number;
   dailyProfitTargetPercent: number;
+  dailyProfitTargetAmount: number;
   dailyLossLimitPercent: number;
   maxConsecutiveLosses: number;
   recovery: RecoveryMetrics | null;
@@ -91,6 +92,7 @@ export function AdminUserReportCapital({
         liveModeLocked={capital.liveModeLocked}
         riskPerTradePercent={capital.riskPerTradePercent}
         dailyProfitTargetPercent={capital.dailyProfitTargetPercent}
+        dailyProfitTargetAmount={capital.dailyProfitTargetAmount}
         dailyLossLimitPercent={capital.dailyLossLimitPercent}
         maxConsecutiveLosses={capital.maxConsecutiveLosses}
         recovery={capital.recovery}

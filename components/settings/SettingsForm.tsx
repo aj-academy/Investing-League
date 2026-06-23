@@ -35,6 +35,7 @@ export function SettingsForm({
     currentCapital: Number(capitalProfile?.current_capital) || 0,
     riskPerTradePercent: Number(capitalProfile?.risk_per_trade_percent) || 5,
     dailyProfitTargetPercent: Number(capitalProfile?.daily_profit_target_percent) || 10,
+    dailyProfitTargetAmount: Number(capitalProfile?.daily_profit_target_amount) || 0,
     dailyLossLimitPercent: Number(capitalProfile?.daily_loss_limit_percent) || 15,
     maxConsecutiveLosses: Number(capitalProfile?.max_consecutive_losses) || 3,
   });
@@ -87,6 +88,7 @@ export function SettingsForm({
           currentCapital: cppValues.currentCapital,
           riskPerTradePercent: cppValues.riskPerTradePercent,
           dailyProfitTargetPercent: cppValues.dailyProfitTargetPercent,
+          dailyProfitTargetAmount: cppValues.dailyProfitTargetAmount,
           dailyLossLimitPercent: cppValues.dailyLossLimitPercent,
           maxConsecutiveLosses: cppValues.maxConsecutiveLosses,
         }),

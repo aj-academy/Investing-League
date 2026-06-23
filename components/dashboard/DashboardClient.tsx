@@ -150,6 +150,7 @@ export function DashboardClient({
     currentCapital: 0,
     riskPerTradePercent: 5,
     dailyProfitTargetPercent: 10,
+    dailyProfitTargetAmount: 0,
     dailyLossLimitPercent: 15,
     maxConsecutiveLosses: 3,
   });
@@ -439,6 +440,7 @@ export function DashboardClient({
         currentCapital: current,
         riskPerTradePercent: Number(json.profile?.risk_per_trade_percent) || 5,
         dailyProfitTargetPercent: Number(json.profile?.daily_profit_target_percent) || 10,
+        dailyProfitTargetAmount: Number(json.profile?.daily_profit_target_amount) || 0,
         dailyLossLimitPercent: Number(json.profile?.daily_loss_limit_percent) || 15,
         maxConsecutiveLosses: Number(json.profile?.max_consecutive_losses) || 3,
       });
@@ -468,6 +470,7 @@ export function DashboardClient({
           currentCapital: cppValues.currentCapital,
           riskPerTradePercent: cppValues.riskPerTradePercent,
           dailyProfitTargetPercent: cppValues.dailyProfitTargetPercent,
+          dailyProfitTargetAmount: cppValues.dailyProfitTargetAmount,
           dailyLossLimitPercent: cppValues.dailyLossLimitPercent,
           maxConsecutiveLosses: cppValues.maxConsecutiveLosses,
         }),
@@ -488,6 +491,7 @@ export function DashboardClient({
         currentCapital: savedCurrent,
         riskPerTradePercent: Number(p?.risk_per_trade_percent ?? s.riskPerTradePercent),
         dailyProfitTargetPercent: Number(p?.daily_profit_target_percent ?? s.dailyProfitTargetPercent),
+        dailyProfitTargetAmount: Number(p?.daily_profit_target_amount ?? s.dailyProfitTargetAmount),
         dailyLossLimitPercent: Number(p?.daily_loss_limit_percent ?? s.dailyLossLimitPercent),
         maxConsecutiveLosses: Number(p?.max_consecutive_losses ?? s.maxConsecutiveLosses),
       }));
@@ -702,6 +706,7 @@ export function DashboardClient({
             liveModeLocked={liveModeLocked}
             riskPerTradePercent={cppValues.riskPerTradePercent}
             dailyProfitTargetPercent={cppValues.dailyProfitTargetPercent}
+            dailyProfitTargetAmount={cppValues.dailyProfitTargetAmount}
             dailyLossLimitPercent={cppValues.dailyLossLimitPercent}
             maxConsecutiveLosses={cppValues.maxConsecutiveLosses}
             recovery={recovery}

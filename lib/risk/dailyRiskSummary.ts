@@ -33,6 +33,7 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
     current_capital: 0,
     risk_per_trade_percent: 5,
     daily_profit_target_percent: 10,
+    daily_profit_target_amount: 0,
     daily_loss_limit_percent: 15,
     max_consecutive_losses: 3,
     trading_rules_accepted: false,
@@ -44,7 +45,7 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
   const { data, error } = await client
     .from("profiles")
     .select(
-      "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
+      "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -63,6 +64,7 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
     current_capital: num(data.current_capital),
     risk_per_trade_percent: num(data.risk_per_trade_percent, 5),
     daily_profit_target_percent: num(data.daily_profit_target_percent, 10),
+    daily_profit_target_amount: num(data.daily_profit_target_amount),
     daily_loss_limit_percent: num(data.daily_loss_limit_percent, 15),
     max_consecutive_losses: num(data.max_consecutive_losses, 3),
     trading_rules_accepted: Boolean(data.trading_rules_accepted),

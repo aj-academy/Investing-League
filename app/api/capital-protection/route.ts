@@ -30,6 +30,7 @@ function profileFromPatch(
     current_capital: num(patch.current_capital),
     risk_per_trade_percent: num(patch.risk_per_trade_percent, 5),
     daily_profit_target_percent: num(patch.daily_profit_target_percent, 10),
+    daily_profit_target_amount: Math.max(0, num(patch.daily_profit_target_amount)),
     daily_loss_limit_percent: num(patch.daily_loss_limit_percent, 15),
     max_consecutive_losses: num(patch.max_consecutive_losses, 3),
     trading_rules_accepted: existing?.trading_rules_accepted ?? false,
@@ -43,6 +44,7 @@ function profileFromRow(row: Record<string, unknown>): CapitalProfileFields {
     current_capital: num(row.current_capital),
     risk_per_trade_percent: num(row.risk_per_trade_percent, 5),
     daily_profit_target_percent: num(row.daily_profit_target_percent, 10),
+    daily_profit_target_amount: num(row.daily_profit_target_amount),
     daily_loss_limit_percent: num(row.daily_loss_limit_percent, 15),
     max_consecutive_losses: num(row.max_consecutive_losses, 3),
     trading_rules_accepted: Boolean(row.trading_rules_accepted),
@@ -118,6 +120,7 @@ export async function PATCH(request: Request) {
     current_capital: currentCapital,
     risk_per_trade_percent: num(body.riskPerTradePercent, 5),
     daily_profit_target_percent: num(body.dailyProfitTargetPercent, 10),
+    daily_profit_target_amount: Math.max(0, num(body.dailyProfitTargetAmount)),
     daily_loss_limit_percent: num(body.dailyLossLimitPercent, 15),
     max_consecutive_losses: Math.max(1, Math.round(num(body.maxConsecutiveLosses, 3))),
     updated_at: new Date().toISOString(),
@@ -140,7 +143,7 @@ export async function PATCH(request: Request) {
         { onConflict: "id" },
       )
       .select(
-        "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
+        "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
       )
       .single();
 
@@ -156,7 +159,7 @@ export async function PATCH(request: Request) {
       .update(patch)
       .eq("id", userId)
       .select(
-        "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
+        "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
       )
       .maybeSingle();
 

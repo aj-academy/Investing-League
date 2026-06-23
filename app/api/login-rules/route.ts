@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 
 async function readLoginRulesState(userId: string) {
   const select =
-    "trading_rules_accepted, login_rules_seen_at, starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses";
+    "trading_rules_accepted, login_rules_seen_at, starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses";
 
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const admin = createAdminClient();

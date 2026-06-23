@@ -114,6 +114,19 @@ export function computeNetProfit(
   return 0;
 }
 
+/** Fixed amount wins when set; otherwise % of starting capital. */
+export function resolveDailyProfitTarget(
+  startingCapital: number,
+  dailyProfitTargetPercent: number,
+  dailyProfitTargetAmount: number,
+): number {
+  if (num(dailyProfitTargetAmount) > 0) return num(dailyProfitTargetAmount);
+  const start = num(startingCapital);
+  const pct = num(dailyProfitTargetPercent);
+  if (start > 0 && pct > 0) return (start * pct) / 100;
+  return 0;
+}
+
 export function deriveRiskStatus(
   consecutiveLosses: number,
   maxConsecutiveLosses: number,

@@ -6,6 +6,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS starting_capital numeric DE
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS current_capital numeric DEFAULT 0;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS risk_per_trade_percent numeric DEFAULT 5;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_profit_target_percent numeric DEFAULT 10;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_profit_target_amount numeric DEFAULT 0;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_loss_limit_percent numeric DEFAULT 15;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS max_consecutive_losses int DEFAULT 3;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS login_rules_seen_at timestamptz;
@@ -60,7 +61,7 @@ CREATE POLICY "daily_risk_update_own_or_admin" ON public.daily_risk_summary
   FOR UPDATE USING (auth.uid() = user_id OR public.is_admin())
   WITH CHECK (auth.uid() = user_id OR public.is_admin());
 
--- ─── verify (should return 8 rows) ───
+-- ─── verify (should return 9 rows) ───
 SELECT column_name
 FROM information_schema.columns
 WHERE table_schema = 'public'
@@ -70,6 +71,7 @@ WHERE table_schema = 'public'
     'current_capital',
     'risk_per_trade_percent',
     'daily_profit_target_percent',
+    'daily_profit_target_amount',
     'daily_loss_limit_percent',
     'max_consecutive_losses',
     'login_rules_seen_at',

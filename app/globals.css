@@ -578,6 +578,24 @@
   color: var(--m3);
   line-height: 1.35;
 }
+.cpp-field-hint {
+  font-size: 9px;
+  color: var(--m3);
+  line-height: 1.35;
+  margin-top: 4px;
+}
+.cpp-target-progress {
+  margin-top: 6px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bd);
+  overflow: hidden;
+}
+.cpp-target-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
 .cpp-how-it-works {
   margin-top: 12px;
   padding: 12px 14px;

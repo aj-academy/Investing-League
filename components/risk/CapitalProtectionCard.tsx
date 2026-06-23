@@ -1,6 +1,7 @@
 "use client";
 
 import { PLATFORM_RISK_DISCLAIMER } from "@/lib/platform/userCopy";
+import { resolveDailyProfitTarget } from "@/lib/risk/capitalProtection";
 import type { RecoveryMetrics, RiskStatus } from "@/lib/risk/types";
 
 function riskClass(status: RiskStatus) {
@@ -28,6 +29,7 @@ export function CapitalProtectionCard({
   liveModeLocked,
   riskPerTradePercent,
   dailyProfitTargetPercent,
+  dailyProfitTargetAmount,
   dailyLossLimitPercent,
   maxConsecutiveLosses,
   recovery,
@@ -41,6 +43,7 @@ export function CapitalProtectionCard({
   liveModeLocked: boolean;
   riskPerTradePercent: number;
   dailyProfitTargetPercent: number;
+  dailyProfitTargetAmount: number;
   dailyLossLimitPercent: number;
   maxConsecutiveLosses: number;
   recovery: RecoveryMetrics | null;
@@ -49,7 +52,18 @@ export function CapitalProtectionCard({
   const planActive = startingCapital > 0;
   const riskPerTradeAmt = planActive ? (currentCapital * riskPerTradePercent) / 100 : 0;
   const dailyLossLimitAmt = planActive ? (startingCapital * dailyLossLimitPercent) / 100 : 0;
-  const dailyProfitTargetAmt = planActive ? (startingCapital * dailyProfitTargetPercent) / 100 : 0;
+  const dailyProfitTargetAmt = planActive
+    ? resolveDailyProfitTarget(
+        startingCapital,
+        dailyProfitTargetPercent,
+        dailyProfitTargetAmount,
+      )
+    : 0;
+  const targetProgressPct =
+    dailyProfitTargetAmt > 0
+      ? Math.min(100, Math.max(0, (todayNetProfit / dailyProfitTargetAmt) * 100))
+      : 0;
+  const targetReached = dailyProfitTargetAmt > 0 && todayNetProfit >= dailyProfitTargetAmt;
   const capitalDelta = currentCapital - startingCapital;
   const capitalDeltaPct =
     planActive && startingCapital > 0 ? (capitalDelta / startingCapital) * 100 : 0;
@@ -136,11 +150,36 @@ export function CapitalProtectionCard({
               <span className="cpp-limit-hint">Based on current capital</span>
             </div>
             <div className="cpp-limit-item">
-              <span className="cpp-limit-label">Daily profit target</span>
+              <span className="cpp-limit-label">Target for the day</span>
               <strong>
-                {dailyProfitTargetPercent}% · ~{fmtMoney(dailyProfitTargetAmt)}
+                {fmtMoney(dailyProfitTargetAmt)}
+                {dailyProfitTargetAmount <= 0 && dailyProfitTargetPercent > 0
+                  ? ` (${dailyProfitTargetPercent}% of start)`
+                  : ""}
               </strong>
-              <span className="cpp-limit-hint">Daily reference target</span>
+              <span className="cpp-limit-hint">
+                {targetReached
+                  ? "Daily target reached — consider stopping for discipline"
+                  : `Today: ${fmtMoney(todayNetProfit)} of ${fmtMoney(dailyProfitTargetAmt)}`}
+              </span>
+              {dailyProfitTargetAmt > 0 && (
+                <div className="cpp-target-progress" aria-hidden>
+                  <div
+                    className="cpp-target-progress-fill"
+                    style={{
+                      width: `${targetProgressPct}%`,
+                      background: targetReached ? "var(--bull)" : "var(--gold2)",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="cpp-limit-item">
+              <span className="cpp-limit-label">Daily profit target %</span>
+              <strong>{dailyProfitTargetPercent}%</strong>
+              <span className="cpp-limit-hint">
+                Used when target amount is left at 0
+              </span>
             </div>
             <div className="cpp-limit-item">
               <span className="cpp-limit-label">Daily loss limit</span>
@@ -205,6 +244,7 @@ export function CapitalProtectionModal({
     currentCapital: number;
     riskPerTradePercent: number;
     dailyProfitTargetPercent: number;
+    dailyProfitTargetAmount: number;
     dailyLossLimitPercent: number;
     maxConsecutiveLosses: number;
   };
@@ -286,6 +326,20 @@ export function CapitalProtectionModal({
             />
           </div>
           <div className="cpp-field">
+            <label>Target for the Day</label>
+            <input
+              className="cpp-input key-in"
+              type="number"
+              min={0}
+              step="0.01"
+              value={values.dailyProfitTargetAmount}
+              onChange={(e) => onChange({ dailyProfitTargetAmount: Number(e.target.value) })}
+            />
+            <span className="cpp-field-hint">
+              Fixed profit goal for today. Leave 0 to use % of starting capital below.
+            </span>
+          </div>
+          <div className="cpp-field">
             <label>Daily Profit Target %</label>
             <input
               className="cpp-input key-in"
@@ -325,6 +379,21 @@ export function CapitalProtectionModal({
         <p className="cpp-plan-preview">
           At {values.riskPerTradePercent}% risk, suggested reference trade size from current
           capital: <strong>{riskAmt}</strong> (reference only).
+          {values.dailyProfitTargetAmount > 0 ? (
+            <>
+              {" "}
+              Target for the day: <strong>{values.dailyProfitTargetAmount}</strong>.
+            </>
+          ) : values.startingCapital > 0 && values.dailyProfitTargetPercent > 0 ? (
+            <>
+              {" "}
+              Target for the day (from %):{" "}
+              <strong>
+                {((values.startingCapital * values.dailyProfitTargetPercent) / 100).toFixed(2)}
+              </strong>
+              .
+            </>
+          ) : null}
         </p>
         {recovery?.message && <div className="cpp-recovery-warn">{recovery.message}</div>}
         <p className="cpp-disclaimer">{PLATFORM_RISK_DISCLAIMER}</p>

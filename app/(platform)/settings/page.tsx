@@ -22,7 +22,7 @@ export default async function SettingsPage() {
   const { data: capitalProfile } = await supabase
     .from("profiles")
     .select(
-      "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_loss_limit_percent, max_consecutive_losses",
+      "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses",
     )
     .eq("id", auth.user.id)
     .maybeSingle();

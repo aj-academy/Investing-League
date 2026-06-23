@@ -5,6 +5,7 @@ export type CapitalProfileFields = {
   current_capital: number;
   risk_per_trade_percent: number;
   daily_profit_target_percent: number;
+  daily_profit_target_amount: number;
   daily_loss_limit_percent: number;
   max_consecutive_losses: number;
   trading_rules_accepted: boolean;

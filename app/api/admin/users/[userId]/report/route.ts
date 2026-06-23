@@ -182,6 +182,7 @@ export async function GET(
         liveModeLocked: riskPayload.liveModeLocked,
         riskPerTradePercent: riskPayload.profile.risk_per_trade_percent,
         dailyProfitTargetPercent: riskPayload.profile.daily_profit_target_percent,
+        dailyProfitTargetAmount: riskPayload.profile.daily_profit_target_amount,
         dailyLossLimitPercent: riskPayload.profile.daily_loss_limit_percent,
         maxConsecutiveLosses: riskPayload.profile.max_consecutive_losses,
         recovery: riskPayload.recovery,

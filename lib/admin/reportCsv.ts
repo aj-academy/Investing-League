@@ -17,6 +17,7 @@ type ReportCsvInput = {
     liveModeLocked?: boolean;
     riskPerTradePercent?: number;
     dailyProfitTargetPercent?: number;
+    dailyProfitTargetAmount?: number;
     dailyLossLimitPercent?: number;
     maxConsecutiveLosses?: number;
     recovery?: { message?: string | null };
@@ -98,6 +99,8 @@ export function userReportToCsv(data: ReportCsvInput): string {
         cap.riskPerTradePercent,
         "Daily Profit Target %",
         cap.dailyProfitTargetPercent,
+        "Target for the Day",
+        cap.dailyProfitTargetAmount,
         "Daily Loss Limit %",
         cap.dailyLossLimitPercent,
         "Max Consecutive Losses",
