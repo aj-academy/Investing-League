@@ -1,55 +1,22 @@
 import { requireApiAuth } from "@/lib/auth/apiAuth";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import {
   buildRiskStatusPayload,
   checkCapitalColumnsReady,
   getProfileCapitalFields,
   upsertDailyRiskSummary,
 } from "@/lib/risk/dailyRiskSummary";
-import type { CapitalProfileFields } from "@/lib/risk/types";
+import { persistCapitalProfile } from "@/lib/risk/persistCapitalProfile";
 import { computeRecovery, num, todayDateString } from "@/lib/risk/capitalProtection";
 import {
   PLATFORM_CAPITAL_UNAVAILABLE,
-  PLATFORM_SAVE_FAILED,
+  PLATFORM_DAILY_TARGET_AMOUNT_PENDING,
 } from "@/lib/platform/userCopy";
-import { sanitizeServiceWarning, sanitizeUserFacingError } from "@/lib/platform/sanitizeUserFacingError";
+import { isSchemaColumnError } from "@/lib/risk/capitalProfileColumns";
+import { sanitizeUserFacingError } from "@/lib/platform/sanitizeUserFacingError";
 import { NextResponse } from "next/server";
 
 function isMigrationError(message: string) {
-  return /column|schema cache/i.test(message);
-}
-
-function profileFromPatch(
-  userId: string,
-  patch: Record<string, unknown>,
-  existing?: CapitalProfileFields | null,
-): CapitalProfileFields {
-  return {
-    starting_capital: num(patch.starting_capital),
-    current_capital: num(patch.current_capital),
-    risk_per_trade_percent: num(patch.risk_per_trade_percent, 5),
-    daily_profit_target_percent: num(patch.daily_profit_target_percent, 10),
-    daily_profit_target_amount: Math.max(0, num(patch.daily_profit_target_amount)),
-    daily_loss_limit_percent: num(patch.daily_loss_limit_percent, 15),
-    max_consecutive_losses: num(patch.max_consecutive_losses, 3),
-    trading_rules_accepted: existing?.trading_rules_accepted ?? false,
-    login_rules_seen_at: existing?.login_rules_seen_at ?? null,
-  };
-}
-
-function profileFromRow(row: Record<string, unknown>): CapitalProfileFields {
-  return {
-    starting_capital: num(row.starting_capital),
-    current_capital: num(row.current_capital),
-    risk_per_trade_percent: num(row.risk_per_trade_percent, 5),
-    daily_profit_target_percent: num(row.daily_profit_target_percent, 10),
-    daily_profit_target_amount: num(row.daily_profit_target_amount),
-    daily_loss_limit_percent: num(row.daily_loss_limit_percent, 15),
-    max_consecutive_losses: num(row.max_consecutive_losses, 3),
-    trading_rules_accepted: Boolean(row.trading_rules_accepted),
-    login_rules_seen_at: (row.login_rules_seen_at as string | null) ?? null,
-  };
+  return isSchemaColumnError(message);
 }
 
 export async function GET() {
@@ -126,54 +93,11 @@ export async function PATCH(request: Request) {
     updated_at: new Date().toISOString(),
   };
 
-  const existing = await getProfileCapitalFields(userId);
-  let savedProfile = profileFromPatch(userId, patch, existing);
-  let persistError: string | null = null;
+  const { profile: savedProfile, error: persistError, dailyTargetAmountSaved } =
+    await persistCapitalProfile(userId, email, patch);
 
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const admin = createAdminClient();
-    const { data, error: upsertError } = await admin
-      .from("profiles")
-      .upsert(
-        {
-          id: userId,
-          email,
-          ...patch,
-        },
-        { onConflict: "id" },
-      )
-      .select(
-        "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
-      )
-      .single();
-
-    if (upsertError) {
-      persistError = upsertError.message;
-    } else if (data) {
-      savedProfile = profileFromRow(data as Record<string, unknown>);
-    }
-  } else {
-    const supabase = await createClient();
-    const { data, error: updateError } = await supabase
-      .from("profiles")
-      .update(patch)
-      .eq("id", userId)
-      .select(
-        "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
-      )
-      .maybeSingle();
-
-    if (updateError) {
-      persistError = updateError.message;
-    } else if (data) {
-      savedProfile = profileFromRow(data as Record<string, unknown>);
-    } else {
-      persistError = "Profile row not found — contact support or re-login.";
-    }
-  }
-
-  if (persistError) {
-    const migration = isMigrationError(persistError);
+  if (persistError || !savedProfile) {
+    const migration = isMigrationError(persistError ?? "");
     return NextResponse.json(
       {
         error: migration ? PLATFORM_CAPITAL_UNAVAILABLE : sanitizeUserFacingError(persistError),
@@ -199,6 +123,8 @@ export async function PATCH(request: Request) {
     columnsReady: true,
     profile: savedProfile,
     recovery,
+    dailyTargetAmountSaved,
+    warning: dailyTargetAmountSaved ? undefined : PLATFORM_DAILY_TARGET_AMOUNT_PENDING,
     dailySummarySaved: !summaryResult.error,
     dailySummaryWarning: summaryResult.error,
   });

@@ -7,6 +7,12 @@ import {
   num,
   todayDateString,
 } from "./capitalProtection";
+import {
+  CAPITAL_PROFILE_COLUMNS_FULL,
+  CAPITAL_PROFILE_COLUMNS_LEGACY,
+  isSchemaColumnError,
+  omitDailyProfitTargetAmount,
+} from "./capitalProfileColumns";
 import { reconcileJournalCapitalForUser } from "./reconcileJournalCapital";
 import type { CapitalProfileFields, DailyRiskSummary, RiskStatusPayload } from "./types";
 
@@ -42,16 +48,29 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
 
   const admin = riskWriter();
   const client = admin ?? await createClient();
-  const { data, error } = await client
+  let data: Record<string, unknown> | null = null;
+  let error: { message: string } | null = null;
+
+  const full = await client
     .from("profiles")
-    .select(
-      "starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, daily_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses, trading_rules_accepted, login_rules_seen_at",
-    )
+    .select(CAPITAL_PROFILE_COLUMNS_FULL)
     .eq("id", userId)
     .maybeSingle();
+  data = full.data as Record<string, unknown> | null;
+  error = full.error;
+
+  if (error && isSchemaColumnError(error.message)) {
+    const legacy = await client
+      .from("profiles")
+      .select(CAPITAL_PROFILE_COLUMNS_LEGACY)
+      .eq("id", userId)
+      .maybeSingle();
+    data = legacy.data as Record<string, unknown> | null;
+    error = legacy.error;
+  }
 
   if (error) {
-    if (/column|schema cache/i.test(error.message)) {
+    if (isSchemaColumnError(error.message)) {
       return defaults;
     }
     return null;
@@ -68,7 +87,7 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
     daily_loss_limit_percent: num(data.daily_loss_limit_percent, 15),
     max_consecutive_losses: num(data.max_consecutive_losses, 3),
     trading_rules_accepted: Boolean(data.trading_rules_accepted),
-    login_rules_seen_at: data.login_rules_seen_at ?? null,
+    login_rules_seen_at: (data.login_rules_seen_at as string | null) ?? null,
   };
 }
 

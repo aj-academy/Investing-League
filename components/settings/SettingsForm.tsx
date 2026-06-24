@@ -100,6 +100,7 @@ export function SettingsForm({
       }
       setRecovery(json.recovery || null);
       toast.success("Capital Protection Plan saved");
+      if (json.warning) toast.message(json.warning);
       setCppOpen(false);
     } catch {
       toast.error("Could not save capital plan");

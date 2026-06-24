@@ -496,6 +496,7 @@ export function DashboardClient({
         maxConsecutiveLosses: Number(p?.max_consecutive_losses ?? s.maxConsecutiveLosses),
       }));
       toast.success("Capital Protection Plan saved — see limits below.");
+      if (json.warning) toast.message(json.warning);
       setRecovery(json.recovery || null);
       setCppModalOpen(false);
       void loadRiskStatus();
