@@ -190,7 +190,7 @@ export default function PremiumLanding() {
                 <i />
                 <i />
               </div>
-              <div className="lp-mock-title">DECISION LAB · V8 ENGINE</div>
+              <div className="lp-mock-title">DECISION LAB · V9 ENGINE</div>
             </div>
             <div className="lp-mock-stats">
               <div className="lp-mock-stat">
@@ -244,8 +244,8 @@ export default function PremiumLanding() {
             <div className="lbl">Assets</div>
           </div>
           <div className="lp-stat-card">
-            <div className="num">V8</div>
-            <div className="lbl">Multi-Factor Scanner</div>
+            <div className="num">V9</div>
+            <div className="lbl">Decision Engine</div>
           </div>
           <div className="lp-stat-card">
             <div className="num">Risk</div>

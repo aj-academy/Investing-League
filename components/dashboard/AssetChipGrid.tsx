@@ -1,8 +1,7 @@
 "use client";
 
+import { readTilStorageItem, writeTilStorageItem } from "@/lib/storage/tilStorageKeys";
 import { toast } from "sonner";
-
-const SELECTED_KEY = "til_v8_selected_pairs";
 
 const PAIR_SHORT: Record<string, { base: string; quote: string }> = {
   "EUR/USD": { base: "EUR", quote: "USD" },
@@ -18,7 +17,7 @@ const PAIR_SHORT: Record<string, { base: string; quote: string }> = {
 export function loadStoredPairs(allowed: string[]): string[] {
   if (typeof window === "undefined") return allowed.slice(0, 2);
   try {
-    const raw = JSON.parse(localStorage.getItem(SELECTED_KEY) || "[]") as string[];
+    const raw = JSON.parse(readTilStorageItem("selectedPairs") || "[]") as string[];
     const filtered = raw.filter((p) => allowed.includes(p));
     if (filtered.length) return filtered;
   } catch {
@@ -29,7 +28,7 @@ export function loadStoredPairs(allowed: string[]): string[] {
 }
 
 export function saveStoredPairs(pairs: string[]) {
-  localStorage.setItem(SELECTED_KEY, JSON.stringify(pairs));
+  writeTilStorageItem("selectedPairs", JSON.stringify(pairs));
 }
 
 export function AssetChipGrid({

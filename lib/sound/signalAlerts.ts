@@ -2,8 +2,7 @@
 
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { isV9LiveDisplay } from "@/lib/signal-engine/v9/classify";
-
-const ALERT_STORE_KEY = "til_v8_alerted_daily";
+import { readTilStorageItem, writeTilStorageItem } from "@/lib/storage/tilStorageKeys";
 
 let audioCtx: AudioContext | null = null;
 let soundEnabled = false;
@@ -76,7 +75,7 @@ function loadAlertStore() {
   if (typeof window === "undefined") return { date: "", ids: [] as string[] };
   const today = new Date().toISOString().slice(0, 10);
   try {
-    const s = JSON.parse(localStorage.getItem(ALERT_STORE_KEY) || "{}") as {
+    const s = JSON.parse(readTilStorageItem("alertedDaily") || "{}") as {
       date?: string;
       ids?: string[];
     };
@@ -88,7 +87,7 @@ function loadAlertStore() {
 }
 
 function saveAlertStore(store: { date: string; ids: string[] }) {
-  localStorage.setItem(ALERT_STORE_KEY, JSON.stringify(store));
+  writeTilStorageItem("alertedDaily", JSON.stringify(store));
 }
 
 /** Play at most one new LIVE (V9) alert per scan. */

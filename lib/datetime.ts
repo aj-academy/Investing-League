@@ -37,7 +37,7 @@ export function formatAppDateTime(value: Date | string | number, timeZone?: stri
   });
 }
 
-/** dd/mm/yyyy with slashes — used by V8 journal matching. */
+/** dd/mm/yyyy with slashes — used by scan journal matching. */
 export function formatAppDateSlash(
   value: Date | string | number,
   timeZone: string = DEFAULT_TIME_ZONE,

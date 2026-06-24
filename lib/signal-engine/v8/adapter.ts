@@ -115,3 +115,6 @@ export function computeV8Signal(
   if (!raw) return null;
   return v8RawToComputed(raw, mode);
 }
+
+/** V9 scan entry point — core scoring pipeline (internal implementation). */
+export const computeV9Signal = computeV8Signal;

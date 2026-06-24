@@ -48,7 +48,7 @@ function nextCondition(blockers: string[], sig: ComputedSignal): string {
   return primary.replace(/\.$/, "");
 }
 
-/** Classify one signal — does not change V8 permission thresholds. */
+/** Classify one signal — does not change live permission thresholds. */
 export function classifyV9Layer(sig: ComputedSignal, weekend = isWeekendMarket()): ComputedSignal {
   const blockers = extractBlockers(sig);
   const permission = resolvePermission(sig);

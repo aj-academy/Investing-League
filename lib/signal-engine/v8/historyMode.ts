@@ -16,6 +16,9 @@ export interface V8JournalRow {
   v9Layer?: string | null;
 }
 
+/** Journal rows fed into scan history/cooldown (V9 pipeline). */
+export type ScanJournalRow = V8JournalRow;
+
 function parseDateTime(dateStr: string, timeStr: string): Date | null {
   try {
     if (dateStr.includes("/")) {

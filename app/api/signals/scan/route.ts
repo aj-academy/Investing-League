@@ -17,14 +17,14 @@ import {
   sanitizeProviderErrors,
 } from "@/lib/market/providerErrors";
 import { buildTickerForPairs } from "@/lib/market/tickerService";
-import { computeV8Signal } from "@/lib/signal-engine/v8/adapter";
 import {
   applyV9Layers,
   buildV9ScanMeta,
+  computeV9Signal,
   filterSignals,
   finalizeScanSignals,
   shouldJournalV9Signal,
-  type V8JournalRow,
+  type ScanJournalRow,
 } from "@/lib/signal-engine";
 import { PLATFORM_SAVE_FAILED } from "@/lib/platform/userCopy";
 import { sanitizeUserFacingErrors } from "@/lib/platform/sanitizeUserFacingError";
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
       .order("created_at", { ascending: false })
       .limit(500);
 
-    const v8Journal: V8JournalRow[] = (journalRows || []).map((r) => {
+    const scanJournal: ScanJournalRow[] = (journalRows || []).map((r) => {
       const created = r.created_at ? new Date(r.created_at) : new Date();
       const date = formatAppDateSlash(created, timeZone);
       const signalTime =
@@ -241,7 +241,7 @@ export async function POST(request: Request) {
           const candleResult = await getCandlesCached(pair, tf, 150);
           if (candleResult.providerCall) providerCalls++;
           if (candleResult.cacheHit) cacheHits++;
-          const sig = computeV8Signal(candleResult.candles, pair, tf, mode, timeZone);
+          const sig = computeV9Signal(candleResult.candles, pair, tf, mode, timeZone);
           if (sig) rawSignals.push(sig);
         } catch (e) {
           marketErrors.push(
@@ -254,7 +254,7 @@ export async function POST(request: Request) {
     const finalized = applyV9Layers(
       finalizeScanSignals(rawSignals, {
         mode,
-        journal: v8Journal,
+        journal: scanJournal,
         dailyLimit: dailyTradeLimit,
         timeZone,
       }),

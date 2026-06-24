@@ -33,7 +33,7 @@ export function ScannerSection() {
             Decision Lab
           </p>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            V8 Market Scanner
+            V9 Market Scanner
           </h2>
           <div className="w-20 h-1 bg-green-500 mx-auto mb-6" />
           <p className="text-gray-300 max-w-2xl mx-auto text-lg">

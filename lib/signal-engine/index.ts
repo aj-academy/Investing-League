@@ -1,8 +1,8 @@
 import { gradeAllowed, type MinGradeFilter } from "./permission";
 import { sessionOk, isWeekendMarket } from "./session";
 import type { ComputedSignal, JournalHistoryRow, OHLC, TradingMode } from "./types";
-import { computeV8Signal } from "./v8/adapter";
-import { applyV8HistoryAndMode, type V8JournalRow } from "./v8/historyMode";
+import { computeV9Signal } from "./v8/adapter";
+import { applyV8HistoryAndMode, type ScanJournalRow } from "./v8/historyMode";
 import { applyV8NewsBlock, isNewsBlocked } from "./v8/news";
 import { rankV8Signals } from "./v8/rank";
 import { applyV9Layers } from "./v9/classify";
@@ -16,7 +16,7 @@ export * from "./session";
 export { gradeAllowed, type MinGradeFilter } from "./permission";
 export { isNewsBlocked } from "./v8/news";
 
-/** Single-pair V8 compute (batch finalize via finalizeScanSignals). */
+/** Single-pair V9 compute (batch finalize via finalizeScanSignals). */
 export function computeSignal(
   ohlc: OHLC[],
   pair: string,
@@ -25,7 +25,7 @@ export function computeSignal(
   _journalHistory: JournalHistoryRow[] = [],
   options?: { timeZone?: string; minGrade?: MinGradeFilter }
 ): ComputedSignal | null {
-  const sig = computeV8Signal(ohlc, pair, tf, mode, options?.timeZone);
+  const sig = computeV9Signal(ohlc, pair, tf, mode, options?.timeZone);
   if (!sig) return null;
   const minGrade = options?.minGrade ?? "A";
   if (!gradeAllowed(sig.grade, minGrade)) return null;
@@ -34,13 +34,13 @@ export function computeSignal(
 
 export interface FinalizeScanOptions {
   mode: TradingMode;
-  journal: V8JournalRow[];
+  journal: ScanJournalRow[];
   dailyLimit?: number;
   timeZone?: string;
   applyNews?: boolean;
 }
 
-/** V8 post-scan: history cooldown, daily limit, live selector, news block, sort. */
+/** V9 post-scan: history cooldown, daily limit, live selector, news block, sort. */
 export function finalizeScanSignals(
   signals: ComputedSignal[],
   options: FinalizeScanOptions
@@ -77,4 +77,5 @@ export function filterSignals(
     .sort(rankV8Signals);
 }
 
-export type { V8JournalRow } from "./v8/historyMode";
+export type { ScanJournalRow, V8JournalRow } from "./v8/historyMode";
+export { computeV9Signal } from "./v8/adapter";

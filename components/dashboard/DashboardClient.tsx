@@ -723,8 +723,8 @@ export function DashboardClient({
               <span className="scanner-section-kicker">V9 Decision Engine</span>
               <h2 className="scanner-section-title">Market Scanner</h2>
               <p className="scanner-section-sub">
-                Live permission · Practice signals · Opportunity Radar · Why-no-signal — same V8
-                core, V9 classification layer.
+                Live permission · Practice signals · Opportunity Radar · Why-no-signal — powered by
+                the V9 Decision Engine.
               </p>
             </div>
           </header>
