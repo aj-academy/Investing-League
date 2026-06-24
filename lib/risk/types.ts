@@ -5,7 +5,7 @@ export type CapitalProfileFields = {
   current_capital: number;
   risk_per_trade_percent: number;
   daily_profit_target_percent: number;
-  daily_profit_target_amount: number;
+  weekly_profit_target_amount: number;
   daily_loss_limit_percent: number;
   max_consecutive_losses: number;
   trading_rules_accepted: boolean;
@@ -44,6 +44,7 @@ export type RiskStatusPayload = {
   cooldownUntil: string | null;
   cooldownActive: boolean;
   todayNetProfit: number;
+  weekNetProfit: number;
   consecutiveLosses: number;
   recovery: RecoveryMetrics;
 };

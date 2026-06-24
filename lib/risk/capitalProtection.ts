@@ -114,17 +114,18 @@ export function computeNetProfit(
   return 0;
 }
 
-/** Fixed amount wins when set; otherwise % of starting capital. */
-export function resolveDailyProfitTarget(
-  startingCapital: number,
-  dailyProfitTargetPercent: number,
-  dailyProfitTargetAmount: number,
-): number {
-  if (num(dailyProfitTargetAmount) > 0) return num(dailyProfitTargetAmount);
-  const start = num(startingCapital);
-  const pct = num(dailyProfitTargetPercent);
-  if (start > 0 && pct > 0) return (start * pct) / 100;
-  return 0;
+/** Fixed weekly profit goal (amount only — daily reference uses %). */
+export function resolveWeeklyProfitTarget(weeklyProfitTargetAmount: number): number {
+  return Math.max(0, num(weeklyProfitTargetAmount));
+}
+
+/** Monday 00:00 UTC for the week containing refDate (YYYY-MM-DD). */
+export function weekStartDateString(refDate = todayDateString()): string {
+  const d = new Date(`${refDate}T12:00:00.000Z`);
+  const day = d.getUTCDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  d.setUTCDate(d.getUTCDate() - daysSinceMonday);
+  return d.toISOString().slice(0, 10);
 }
 
 export function deriveRiskStatus(

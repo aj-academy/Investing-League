@@ -138,6 +138,7 @@ export function DashboardClient({
   const [riskStatus, setRiskStatus] = useState<RiskStatus>("normal");
   const [liveModeLocked, setLiveModeLocked] = useState(false);
   const [todayNetProfit, setTodayNetProfit] = useState(0);
+  const [weekNetProfit, setWeekNetProfit] = useState(0);
   const [consecutiveLosses, setConsecutiveLosses] = useState(0);
   const [startingCapital, setStartingCapital] = useState(0);
   const [currentCapital, setCurrentCapital] = useState(0);
@@ -150,7 +151,7 @@ export function DashboardClient({
     currentCapital: 0,
     riskPerTradePercent: 5,
     dailyProfitTargetPercent: 10,
-    dailyProfitTargetAmount: 0,
+    weeklyProfitTargetAmount: 0,
     dailyLossLimitPercent: 15,
     maxConsecutiveLosses: 3,
   });
@@ -430,6 +431,7 @@ export function DashboardClient({
       setRiskStatus(json.riskStatus || "normal");
       setLiveModeLocked(Boolean(json.liveModeLocked));
       setTodayNetProfit(Number(json.todayNetProfit) || 0);
+      setWeekNetProfit(Number(json.weekNetProfit) || 0);
       setConsecutiveLosses(Number(json.consecutiveLosses) || 0);
       setStartingCapital(start);
       setCurrentCapital(current);
@@ -440,7 +442,7 @@ export function DashboardClient({
         currentCapital: current,
         riskPerTradePercent: Number(json.profile?.risk_per_trade_percent) || 5,
         dailyProfitTargetPercent: Number(json.profile?.daily_profit_target_percent) || 10,
-        dailyProfitTargetAmount: Number(json.profile?.daily_profit_target_amount) || 0,
+        weeklyProfitTargetAmount: Number(json.profile?.weekly_profit_target_amount) || 0,
         dailyLossLimitPercent: Number(json.profile?.daily_loss_limit_percent) || 15,
         maxConsecutiveLosses: Number(json.profile?.max_consecutive_losses) || 3,
       });
@@ -470,7 +472,7 @@ export function DashboardClient({
           currentCapital: cppValues.currentCapital,
           riskPerTradePercent: cppValues.riskPerTradePercent,
           dailyProfitTargetPercent: cppValues.dailyProfitTargetPercent,
-          dailyProfitTargetAmount: cppValues.dailyProfitTargetAmount,
+          weeklyProfitTargetAmount: cppValues.weeklyProfitTargetAmount,
           dailyLossLimitPercent: cppValues.dailyLossLimitPercent,
           maxConsecutiveLosses: cppValues.maxConsecutiveLosses,
         }),
@@ -491,7 +493,7 @@ export function DashboardClient({
         currentCapital: savedCurrent,
         riskPerTradePercent: Number(p?.risk_per_trade_percent ?? s.riskPerTradePercent),
         dailyProfitTargetPercent: Number(p?.daily_profit_target_percent ?? s.dailyProfitTargetPercent),
-        dailyProfitTargetAmount: Number(p?.daily_profit_target_amount ?? s.dailyProfitTargetAmount),
+        weeklyProfitTargetAmount: Number(p?.weekly_profit_target_amount ?? s.weeklyProfitTargetAmount),
         dailyLossLimitPercent: Number(p?.daily_loss_limit_percent ?? s.dailyLossLimitPercent),
         maxConsecutiveLosses: Number(p?.max_consecutive_losses ?? s.maxConsecutiveLosses),
       }));
@@ -702,12 +704,13 @@ export function DashboardClient({
             startingCapital={startingCapital}
             currentCapital={currentCapital}
             todayNetProfit={todayNetProfit}
+            weekNetProfit={weekNetProfit}
             consecutiveLosses={consecutiveLosses}
             riskStatus={riskStatus}
             liveModeLocked={liveModeLocked}
             riskPerTradePercent={cppValues.riskPerTradePercent}
             dailyProfitTargetPercent={cppValues.dailyProfitTargetPercent}
-            dailyProfitTargetAmount={cppValues.dailyProfitTargetAmount}
+            weeklyProfitTargetAmount={cppValues.weeklyProfitTargetAmount}
             dailyLossLimitPercent={cppValues.dailyLossLimitPercent}
             maxConsecutiveLosses={cppValues.maxConsecutiveLosses}
             recovery={recovery}

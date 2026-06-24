@@ -1,4 +1,4 @@
--- Alias: run weekly_profit_target_amount.sql (same script).
+-- Rename daily fixed target → weekly fixed target (safe to re-run).
 
 DO $$
 BEGIN

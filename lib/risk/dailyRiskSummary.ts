@@ -6,12 +6,14 @@ import {
   deriveRiskStatus,
   num,
   todayDateString,
+  weekStartDateString,
 } from "./capitalProtection";
 import {
   CAPITAL_PROFILE_COLUMNS_FULL,
   CAPITAL_PROFILE_COLUMNS_LEGACY,
+  CAPITAL_PROFILE_COLUMNS_LEGACY_DAILY_AMOUNT,
   isSchemaColumnError,
-  omitDailyProfitTargetAmount,
+  weeklyAmountFromRow,
 } from "./capitalProfileColumns";
 import { reconcileJournalCapitalForUser } from "./reconcileJournalCapital";
 import type { CapitalProfileFields, DailyRiskSummary, RiskStatusPayload } from "./types";
@@ -39,7 +41,7 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
     current_capital: 0,
     risk_per_trade_percent: 5,
     daily_profit_target_percent: 10,
-    daily_profit_target_amount: 0,
+    weekly_profit_target_amount: 0,
     daily_loss_limit_percent: 15,
     max_consecutive_losses: 3,
     trading_rules_accepted: false,
@@ -60,13 +62,23 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
   error = full.error;
 
   if (error && isSchemaColumnError(error.message)) {
-    const legacy = await client
+    const legacyDaily = await client
       .from("profiles")
-      .select(CAPITAL_PROFILE_COLUMNS_LEGACY)
+      .select(CAPITAL_PROFILE_COLUMNS_LEGACY_DAILY_AMOUNT)
       .eq("id", userId)
       .maybeSingle();
-    data = legacy.data as Record<string, unknown> | null;
-    error = legacy.error;
+    data = legacyDaily.data as Record<string, unknown> | null;
+    error = legacyDaily.error;
+
+    if (error && isSchemaColumnError(error.message)) {
+      const legacy = await client
+        .from("profiles")
+        .select(CAPITAL_PROFILE_COLUMNS_LEGACY)
+        .eq("id", userId)
+        .maybeSingle();
+      data = legacy.data as Record<string, unknown> | null;
+      error = legacy.error;
+    }
   }
 
   if (error) {
@@ -83,7 +95,7 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
     current_capital: num(data.current_capital),
     risk_per_trade_percent: num(data.risk_per_trade_percent, 5),
     daily_profit_target_percent: num(data.daily_profit_target_percent, 10),
-    daily_profit_target_amount: num(data.daily_profit_target_amount),
+    weekly_profit_target_amount: weeklyAmountFromRow(data),
     daily_loss_limit_percent: num(data.daily_loss_limit_percent, 15),
     max_consecutive_losses: num(data.max_consecutive_losses, 3),
     trading_rules_accepted: Boolean(data.trading_rules_accepted),
@@ -241,6 +253,46 @@ export async function aggregateTodayJournal(userId: string, tradeDate = todayDat
   return { wins, losses, refunds, netProfit, totalTrades, consecutiveLosses, rows };
 }
 
+export async function aggregateWeekJournal(userId: string, tradeDate = todayDateString()) {
+  const admin = riskWriter();
+  const client = admin ?? await createClient();
+  const weekStart = weekStartDateString(tradeDate);
+  const start = `${weekStart}T00:00:00.000Z`;
+  const end = `${tradeDate}T23:59:59.999Z`;
+
+  const { data } = await client
+    .from("trade_journal")
+    .select("result, net_profit, marked_time, updated_at, created_at")
+    .eq("user_id", userId)
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  const rows = data || [];
+  let wins = 0;
+  let losses = 0;
+  let refunds = 0;
+  let netProfit = 0;
+  let totalTrades = 0;
+
+  for (const r of rows) {
+    if (r.result === "Win") {
+      wins++;
+      totalTrades++;
+      netProfit += num(r.net_profit);
+    } else if (r.result === "Loss") {
+      losses++;
+      totalTrades++;
+      netProfit += num(r.net_profit);
+    } else if (r.result === "Refund") {
+      refunds++;
+      totalTrades++;
+      netProfit += num(r.net_profit);
+    }
+  }
+
+  return { wins, losses, refunds, netProfit, totalTrades, weekStart, rows };
+}
+
 /** After the 30-minute cooldown ends, clear live lock so Live mode works again without admin. */
 async function expireLiveLockIfCooldownEnded(
   userId: string,
@@ -275,6 +327,7 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
   const tradeDate = todayDateString();
   let daily = await getDailyRiskSummary(userId, tradeDate);
   const agg = await aggregateTodayJournal(userId, tradeDate);
+  const weekAgg = await aggregateWeekJournal(userId, tradeDate);
 
   if (!daily) {
     const upsert = await upsertDailyRiskSummary(userId, {
@@ -299,6 +352,7 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
 
   const consecutiveLosses = daily?.consecutive_losses ?? agg.consecutiveLosses;
   const todayNetProfit = agg.netProfit;
+  const weekNetProfit = weekAgg.netProfit;
 
   const riskStatus = deriveRiskStatus(
     consecutiveLosses,
@@ -316,6 +370,7 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
     cooldownUntil,
     cooldownActive: cooldownActiveNow,
     todayNetProfit,
+    weekNetProfit,
     consecutiveLosses,
     recovery: computeRecovery(profile.starting_capital, profile.current_capital),
   };

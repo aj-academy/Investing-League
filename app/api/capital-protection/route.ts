@@ -9,7 +9,7 @@ import { persistCapitalProfile } from "@/lib/risk/persistCapitalProfile";
 import { computeRecovery, num, todayDateString } from "@/lib/risk/capitalProtection";
 import {
   PLATFORM_CAPITAL_UNAVAILABLE,
-  PLATFORM_DAILY_TARGET_AMOUNT_PENDING,
+  PLATFORM_WEEKLY_TARGET_AMOUNT_PENDING,
 } from "@/lib/platform/userCopy";
 import { isSchemaColumnError } from "@/lib/risk/capitalProfileColumns";
 import { sanitizeUserFacingError } from "@/lib/platform/sanitizeUserFacingError";
@@ -44,6 +44,7 @@ export async function GET() {
       cooldownUntil: null,
       cooldownActive: false,
       todayNetProfit: 0,
+      weekNetProfit: 0,
       consecutiveLosses: 0,
       profile: probe,
       recovery: computeRecovery(probe.starting_capital, probe.current_capital),
@@ -87,13 +88,13 @@ export async function PATCH(request: Request) {
     current_capital: currentCapital,
     risk_per_trade_percent: num(body.riskPerTradePercent, 5),
     daily_profit_target_percent: num(body.dailyProfitTargetPercent, 10),
-    daily_profit_target_amount: Math.max(0, num(body.dailyProfitTargetAmount)),
+    weekly_profit_target_amount: Math.max(0, num(body.weeklyProfitTargetAmount)),
     daily_loss_limit_percent: num(body.dailyLossLimitPercent, 15),
     max_consecutive_losses: Math.max(1, Math.round(num(body.maxConsecutiveLosses, 3))),
     updated_at: new Date().toISOString(),
   };
 
-  const { profile: savedProfile, error: persistError, dailyTargetAmountSaved } =
+  const { profile: savedProfile, error: persistError, weeklyTargetAmountSaved } =
     await persistCapitalProfile(userId, email, patch);
 
   if (persistError || !savedProfile) {
@@ -123,8 +124,8 @@ export async function PATCH(request: Request) {
     columnsReady: true,
     profile: savedProfile,
     recovery,
-    dailyTargetAmountSaved,
-    warning: dailyTargetAmountSaved ? undefined : PLATFORM_DAILY_TARGET_AMOUNT_PENDING,
+    weeklyTargetAmountSaved,
+    warning: weeklyTargetAmountSaved ? undefined : PLATFORM_WEEKLY_TARGET_AMOUNT_PENDING,
     dailySummarySaved: !summaryResult.error,
     dailySummaryWarning: summaryResult.error,
   });

@@ -4,8 +4,10 @@ import { num } from "./capitalProtection";
 import {
   CAPITAL_PROFILE_COLUMNS_FULL,
   CAPITAL_PROFILE_COLUMNS_LEGACY,
+  CAPITAL_PROFILE_COLUMNS_LEGACY_DAILY_AMOUNT,
   isSchemaColumnError,
-  omitDailyProfitTargetAmount,
+  omitWeeklyProfitTargetAmount,
+  weeklyAmountFromRow,
 } from "./capitalProfileColumns";
 import type { CapitalProfileFields } from "./types";
 
@@ -15,7 +17,7 @@ function profileFromRow(row: Record<string, unknown>): CapitalProfileFields {
     current_capital: num(row.current_capital),
     risk_per_trade_percent: num(row.risk_per_trade_percent, 5),
     daily_profit_target_percent: num(row.daily_profit_target_percent, 10),
-    daily_profit_target_amount: num(row.daily_profit_target_amount),
+    weekly_profit_target_amount: weeklyAmountFromRow(row),
     daily_loss_limit_percent: num(row.daily_loss_limit_percent, 15),
     max_consecutive_losses: num(row.max_consecutive_losses, 3),
     trading_rules_accepted: Boolean(row.trading_rules_accepted),
@@ -26,7 +28,7 @@ function profileFromRow(row: Record<string, unknown>): CapitalProfileFields {
 export type PersistCapitalProfileResult = {
   profile: CapitalProfileFields | null;
   error: string | null;
-  dailyTargetAmountSaved: boolean;
+  weeklyTargetAmountSaved: boolean;
 };
 
 async function writeProfile(
@@ -67,22 +69,38 @@ export async function persistCapitalProfile(
   email: string,
   patch: Record<string, unknown>,
 ): Promise<PersistCapitalProfileResult> {
-  let dailyTargetAmountSaved = true;
+  let weeklyTargetAmountSaved = true;
 
   let result = await writeProfile(userId, email, patch, CAPITAL_PROFILE_COLUMNS_FULL);
   if (result.error && isSchemaColumnError(result.error)) {
-    dailyTargetAmountSaved = false;
-    const legacyPatch = omitDailyProfitTargetAmount(patch);
+    const legacyPatch = {
+      ...omitWeeklyProfitTargetAmount(patch),
+      daily_profit_target_amount: patch.weekly_profit_target_amount,
+    };
+    result = await writeProfile(
+      userId,
+      email,
+      legacyPatch,
+      CAPITAL_PROFILE_COLUMNS_LEGACY_DAILY_AMOUNT,
+    );
+    if (!result.error) {
+      weeklyTargetAmountSaved = true;
+    }
+  }
+
+  if (result.error && isSchemaColumnError(result.error)) {
+    weeklyTargetAmountSaved = false;
+    const legacyPatch = omitWeeklyProfitTargetAmount(patch);
     result = await writeProfile(userId, email, legacyPatch, CAPITAL_PROFILE_COLUMNS_LEGACY);
   }
 
   if (result.error) {
-    return { profile: null, error: result.error, dailyTargetAmountSaved: false };
+    return { profile: null, error: result.error, weeklyTargetAmountSaved: false };
   }
 
   return {
     profile: result.data ? profileFromRow(result.data) : null,
     error: null,
-    dailyTargetAmountSaved,
+    weeklyTargetAmountSaved,
   };
 }
