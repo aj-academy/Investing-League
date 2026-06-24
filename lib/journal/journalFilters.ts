@@ -21,12 +21,24 @@ export const DEFAULT_JOURNAL_FILTERS: JournalFilterState = {
   result: "",
 };
 
+export const JOURNAL_PERMISSION_FILTER_LABEL = "Permission level";
+
 export const JOURNAL_PERMISSION_OPTIONS: { value: JournalPermissionFilter; label: string }[] = [
-  { value: "", label: "All permissions" },
+  { value: "", label: "All levels" },
   { value: "TRADE ALLOWED", label: "Trade allowed" },
   { value: "OBSERVE ONLY", label: "Observe only" },
   { value: "DO NOT TRADE", label: "Do not trade" },
 ];
+
+export const JOURNAL_SETUP_TYPE_OPTIONS = [
+  { value: "", label: "All setup types" },
+  { value: "Trade Allowed", label: "Trade allowed" },
+  { value: "Watch Only", label: "Watch only" },
+  { value: "Late Entry", label: "Late entry" },
+  { value: "Repeated", label: "Repeated signal" },
+  { value: "Trend Exhausted", label: "Trend exhausted" },
+  { value: "Do Not Trade", label: "Do not trade" },
+] as const;
 
 export const JOURNAL_RESULT_OPTIONS = [
   { value: "", label: "All results" },

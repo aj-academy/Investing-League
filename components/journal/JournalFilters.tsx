@@ -3,6 +3,7 @@
 import { DatePickerField } from "@/components/ui/DatePickerField";
 import {
   DEFAULT_JOURNAL_FILTERS,
+  JOURNAL_PERMISSION_FILTER_LABEL,
   JOURNAL_PERMISSION_OPTIONS,
   JOURNAL_RESULT_OPTIONS,
   todayDateInputValue,
@@ -53,7 +54,7 @@ export function JournalFilters({
           />
         </div>
         <div className="f">
-          <label>Permission</label>
+          <label>{JOURNAL_PERMISSION_FILTER_LABEL}</label>
           <select
             className="journal-filter-select"
             value={filters.permission}
@@ -117,14 +118,14 @@ export function JournalFilters({
             set({ permission: "TRADE ALLOWED", result: "Pending", pair: "", from: "", to: "" })
           }
         >
-          Trade allowed · pending
+          Allowed · pending
         </button>
         <button
           type="button"
           className="journal-filter-chip"
           onClick={() => set({ permission: "TRADE ALLOWED", result: "", pair: "", from: "", to: "" })}
         >
-          Trade allowed
+          Allowed only
         </button>
         {!isDefault && (
           <button

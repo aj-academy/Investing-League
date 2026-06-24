@@ -2,7 +2,7 @@
 
 import { DatePickerField } from "@/components/ui/DatePickerField";
 import { formatAppDateTime } from "@/lib/datetime";
-import { JOURNAL_PERMISSION_OPTIONS, JOURNAL_RESULT_OPTIONS } from "@/lib/journal/journalFilters";
+import { JOURNAL_PERMISSION_FILTER_LABEL, JOURNAL_PERMISSION_OPTIONS, JOURNAL_RESULT_OPTIONS, JOURNAL_SETUP_TYPE_OPTIONS, todayDateInputValue, type JournalFilterState } from "@/lib/journal/journalFilters";
 import { permissionClass } from "@/lib/journal/journalDisplay";
 import { PAIRS } from "@/lib/utils";
 import type {
@@ -12,16 +12,6 @@ import type {
 } from "@/lib/admin/adminJournal";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-
-const SIGNAL_TYPES = [
-  "",
-  "Trade Allowed",
-  "Watch Only",
-  "Late Entry",
-  "Repeated",
-  "Trend Exhausted",
-  "Do Not Trade",
-];
 
 function permissionShortLabel(perm: string) {
   if (perm === "TRADE ALLOWED") return "Allowed";
@@ -185,7 +175,7 @@ export function AdminJournalTab() {
             />
           </div>
           <div className="f">
-            <label>Permission</label>
+            <label>{JOURNAL_PERMISSION_FILTER_LABEL}</label>
             <select
               className="journal-filter-select"
               value={filters.permission}
@@ -228,21 +218,21 @@ export function AdminJournalTab() {
             </select>
           </div>
           <div className="f">
-            <label>Signal label</label>
+            <label>Setup type</label>
             <select
               className="journal-filter-select"
               value={filters.signalType}
               onChange={(e) => setFilters((s) => ({ ...s, signalType: e.target.value }))}
             >
-              {SIGNAL_TYPES.map((t) => (
-                <option key={t || "all"} value={t}>
-                  {t || "All labels"}
+              {JOURNAL_SETUP_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value || "all"} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
           </div>
           <div className="f">
-            <label>Mode</label>
+            <label>Scan mode</label>
             <select
               className="journal-filter-select"
               value={filters.mode}
@@ -299,14 +289,14 @@ export function AdminJournalTab() {
               }))
             }
           >
-            Trade allowed · pending
+            Allowed · pending
           </button>
           <button
             type="button"
             className="journal-filter-chip"
             onClick={() => setFilters((s) => ({ ...s, permission: "TRADE ALLOWED", result: "" }))}
           >
-            Trade allowed
+            Allowed only
           </button>
           <label className="journal-filter-check">
             <input
@@ -452,8 +442,8 @@ export function AdminJournalTab() {
                 <th>Pair</th>
                 <th>TF</th>
                 <th>Mode</th>
-                <th>Permission</th>
-                <th>Signal</th>
+                <th>Level</th>
+                <th>Setup</th>
                 <th>Dir</th>
                 <th>Grade</th>
                 <th>Conf</th>
