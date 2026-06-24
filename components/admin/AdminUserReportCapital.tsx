@@ -13,8 +13,10 @@ export type AdminReportCapitalPayload = {
   liveModeLocked: boolean;
   riskPerTradePercent: number;
   dailyProfitTargetPercent: number;
-  weeklyProfitTargetAmount: number;
   weekNetProfit: number;
+  weekTargetFrom: string;
+  weekTargetTo: string;
+  weeklyProfitTargetAmount: number;
   dailyLossLimitPercent: number;
   maxConsecutiveLosses: number;
   recovery: RecoveryMetrics | null;
@@ -89,6 +91,8 @@ export function AdminUserReportCapital({
         currentCapital={capital.currentCapital}
         todayNetProfit={capital.todayNetProfit}
         weekNetProfit={capital.weekNetProfit}
+        weekTargetFrom={capital.weekTargetFrom}
+        weekTargetTo={capital.weekTargetTo}
         consecutiveLosses={capital.consecutiveLosses}
         riskStatus={capital.riskStatus}
         liveModeLocked={capital.liveModeLocked}

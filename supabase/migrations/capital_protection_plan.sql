@@ -7,6 +7,8 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS current_capital numeric DEF
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS risk_per_trade_percent numeric DEFAULT 5;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_profit_target_percent numeric DEFAULT 10;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS weekly_profit_target_amount numeric DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS weekly_target_from date;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS weekly_target_to date;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_loss_limit_percent numeric DEFAULT 15;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS max_consecutive_losses int DEFAULT 3;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS login_rules_seen_at timestamptz;

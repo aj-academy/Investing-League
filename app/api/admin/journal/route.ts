@@ -64,7 +64,7 @@ export async function GET(request: Request) {
   const { data: profiles } = await admin
     .from("profiles")
     .select(
-      "id, full_name, email, plan, starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, weekly_profit_target_amount, daily_loss_limit_percent, max_consecutive_losses",
+      "id, full_name, email, plan, starting_capital, current_capital, risk_per_trade_percent, daily_profit_target_percent, weekly_profit_target_amount, weekly_target_from, weekly_target_to, daily_loss_limit_percent, max_consecutive_losses",
     )
     .in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
 

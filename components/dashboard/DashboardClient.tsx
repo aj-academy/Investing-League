@@ -27,6 +27,7 @@ import {
 } from "@/components/risk/CapitalProtectionCard";
 import { LossLimitModal } from "@/components/risk/LossLimitModal";
 import type { RecoveryMetrics, RiskStatus } from "@/lib/risk/types";
+import { defaultWeeklyTargetRange, resolveWeeklyTargetRange } from "@/lib/risk/capitalProtection";
 import { LoadingScanner } from "./LoadingScanner";
 import { MarketTicker } from "./MarketTicker";
 import { ScannerControls } from "./ScannerControls";
@@ -139,6 +140,8 @@ export function DashboardClient({
   const [liveModeLocked, setLiveModeLocked] = useState(false);
   const [todayNetProfit, setTodayNetProfit] = useState(0);
   const [weekNetProfit, setWeekNetProfit] = useState(0);
+  const [weekTargetFrom, setWeekTargetFrom] = useState(defaultWeeklyTargetRange().from);
+  const [weekTargetTo, setWeekTargetTo] = useState(defaultWeeklyTargetRange().to);
   const [consecutiveLosses, setConsecutiveLosses] = useState(0);
   const [startingCapital, setStartingCapital] = useState(0);
   const [currentCapital, setCurrentCapital] = useState(0);
@@ -152,6 +155,8 @@ export function DashboardClient({
     riskPerTradePercent: 5,
     dailyProfitTargetPercent: 10,
     weeklyProfitTargetAmount: 0,
+    weeklyTargetFrom: defaultWeeklyTargetRange().from,
+    weeklyTargetTo: defaultWeeklyTargetRange().to,
     dailyLossLimitPercent: 15,
     maxConsecutiveLosses: 3,
   });
@@ -432,6 +437,12 @@ export function DashboardClient({
       setLiveModeLocked(Boolean(json.liveModeLocked));
       setTodayNetProfit(Number(json.todayNetProfit) || 0);
       setWeekNetProfit(Number(json.weekNetProfit) || 0);
+      const weekRange = resolveWeeklyTargetRange(
+        json.weekTargetFrom ?? json.profile?.weekly_target_from,
+        json.weekTargetTo ?? json.profile?.weekly_target_to,
+      );
+      setWeekTargetFrom(weekRange.from);
+      setWeekTargetTo(weekRange.to);
       setConsecutiveLosses(Number(json.consecutiveLosses) || 0);
       setStartingCapital(start);
       setCurrentCapital(current);
@@ -443,6 +454,8 @@ export function DashboardClient({
         riskPerTradePercent: Number(json.profile?.risk_per_trade_percent) || 5,
         dailyProfitTargetPercent: Number(json.profile?.daily_profit_target_percent) || 10,
         weeklyProfitTargetAmount: Number(json.profile?.weekly_profit_target_amount) || 0,
+        weeklyTargetFrom: weekRange.from,
+        weeklyTargetTo: weekRange.to,
         dailyLossLimitPercent: Number(json.profile?.daily_loss_limit_percent) || 15,
         maxConsecutiveLosses: Number(json.profile?.max_consecutive_losses) || 3,
       });
@@ -473,6 +486,8 @@ export function DashboardClient({
           riskPerTradePercent: cppValues.riskPerTradePercent,
           dailyProfitTargetPercent: cppValues.dailyProfitTargetPercent,
           weeklyProfitTargetAmount: cppValues.weeklyProfitTargetAmount,
+          weeklyTargetFrom: cppValues.weeklyTargetFrom,
+          weeklyTargetTo: cppValues.weeklyTargetTo,
           dailyLossLimitPercent: cppValues.dailyLossLimitPercent,
           maxConsecutiveLosses: cppValues.maxConsecutiveLosses,
         }),
@@ -494,9 +509,23 @@ export function DashboardClient({
         riskPerTradePercent: Number(p?.risk_per_trade_percent ?? s.riskPerTradePercent),
         dailyProfitTargetPercent: Number(p?.daily_profit_target_percent ?? s.dailyProfitTargetPercent),
         weeklyProfitTargetAmount: Number(p?.weekly_profit_target_amount ?? s.weeklyProfitTargetAmount),
+        weeklyTargetFrom: resolveWeeklyTargetRange(
+          p?.weekly_target_from ?? s.weeklyTargetFrom,
+          p?.weekly_target_to ?? s.weeklyTargetTo,
+        ).from,
+        weeklyTargetTo: resolveWeeklyTargetRange(
+          p?.weekly_target_from ?? s.weeklyTargetFrom,
+          p?.weekly_target_to ?? s.weeklyTargetTo,
+        ).to,
         dailyLossLimitPercent: Number(p?.daily_loss_limit_percent ?? s.dailyLossLimitPercent),
         maxConsecutiveLosses: Number(p?.max_consecutive_losses ?? s.maxConsecutiveLosses),
       }));
+      const savedWeek = resolveWeeklyTargetRange(
+        p?.weekly_target_from ?? cppValues.weeklyTargetFrom,
+        p?.weekly_target_to ?? cppValues.weeklyTargetTo,
+      );
+      setWeekTargetFrom(savedWeek.from);
+      setWeekTargetTo(savedWeek.to);
       toast.success("Capital Protection Plan saved — see limits below.");
       if (json.warning) toast.message(json.warning);
       setRecovery(json.recovery || null);
@@ -705,6 +734,8 @@ export function DashboardClient({
             currentCapital={currentCapital}
             todayNetProfit={todayNetProfit}
             weekNetProfit={weekNetProfit}
+            weekTargetFrom={weekTargetFrom}
+            weekTargetTo={weekTargetTo}
             consecutiveLosses={consecutiveLosses}
             riskStatus={riskStatus}
             liveModeLocked={liveModeLocked}

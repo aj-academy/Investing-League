@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/ui/DatePickerField";
 import { PLATFORM_RISK_DISCLAIMER } from "@/lib/platform/userCopy";
 import { resolveWeeklyProfitTarget } from "@/lib/risk/capitalProtection";
 import type { RecoveryMetrics, RiskStatus } from "@/lib/risk/types";
@@ -31,6 +32,8 @@ export function CapitalProtectionCard({
   riskPerTradePercent,
   dailyProfitTargetPercent,
   weeklyProfitTargetAmount,
+  weekTargetFrom,
+  weekTargetTo,
   dailyLossLimitPercent,
   maxConsecutiveLosses,
   recovery,
@@ -46,6 +49,8 @@ export function CapitalProtectionCard({
   riskPerTradePercent: number;
   dailyProfitTargetPercent: number;
   weeklyProfitTargetAmount: number;
+  weekTargetFrom: string;
+  weekTargetTo: string;
   dailyLossLimitPercent: number;
   maxConsecutiveLosses: number;
   recovery: RecoveryMetrics | null;
@@ -173,10 +178,10 @@ export function CapitalProtectionCard({
               <strong>{weeklyProfitTargetAmt > 0 ? fmtMoney(weeklyProfitTargetAmt) : "—"}</strong>
               <span className="cpp-limit-hint">
                 {weeklyProfitTargetAmt <= 0
-                  ? "Set a fixed weekly goal in your plan"
+                  ? "Set amount and week dates in your plan"
                   : weeklyTargetReached
                     ? "Weekly target reached — consider stopping for discipline"
-                    : `This week: ${fmtMoney(weekNetProfit)} of ${fmtMoney(weeklyProfitTargetAmt)}`}
+                    : `${weekTargetFrom} → ${weekTargetTo}: ${fmtMoney(weekNetProfit)} of ${fmtMoney(weeklyProfitTargetAmt)}`}
               </span>
               {weeklyProfitTargetAmt > 0 && (
                 <div className="cpp-target-progress" aria-hidden>
@@ -214,7 +219,7 @@ export function CapitalProtectionCard({
               <li>Set starting and current capital — journal trade results update current capital.</li>
               <li>
                 Today P/L and loss streak count settled journal results (Win / Loss / Refund) for
-                today only. This week P/L is Monday through today (UTC).
+                today only. This week P/L uses your selected week dates (UTC).
               </li>
               <li>
                 After {maxConsecutiveLosses} consecutive losses, Live Mode pauses for capital
@@ -254,6 +259,8 @@ export function CapitalProtectionModal({
     riskPerTradePercent: number;
     dailyProfitTargetPercent: number;
     weeklyProfitTargetAmount: number;
+    weeklyTargetFrom: string;
+    weeklyTargetTo: string;
     dailyLossLimitPercent: number;
     maxConsecutiveLosses: number;
   };
@@ -350,6 +357,25 @@ export function CapitalProtectionModal({
             </span>
           </div>
           <div className="cpp-field">
+            <label>Week From</label>
+            <DatePickerField
+              className="cpp-input date-picker-input"
+              value={values.weeklyTargetFrom}
+              max={values.weeklyTargetTo || undefined}
+              onChange={(weeklyTargetFrom) => onChange({ weeklyTargetFrom })}
+            />
+          </div>
+          <div className="cpp-field">
+            <label>Week To</label>
+            <DatePickerField
+              className="cpp-input date-picker-input"
+              value={values.weeklyTargetTo}
+              min={values.weeklyTargetFrom || undefined}
+              onChange={(weeklyTargetTo) => onChange({ weeklyTargetTo })}
+            />
+            <span className="cpp-field-hint">Pick the week range — calendar only, no typing.</span>
+          </div>
+          <div className="cpp-field">
             <label>Target for the Week</label>
             <input
               className="cpp-input key-in"
@@ -359,9 +385,7 @@ export function CapitalProtectionModal({
               value={values.weeklyProfitTargetAmount}
               onChange={(e) => onChange({ weeklyProfitTargetAmount: Number(e.target.value) })}
             />
-            <span className="cpp-field-hint">
-              Fixed profit goal for this week (Monday through today).
-            </span>
+            <span className="cpp-field-hint">Fixed profit goal for the selected week range.</span>
           </div>
           <div className="cpp-field">
             <label>Daily Loss Limit %</label>
@@ -394,7 +418,14 @@ export function CapitalProtectionModal({
           {values.weeklyProfitTargetAmount > 0 ? (
             <>
               {" "}
-              Target for the week: <strong>{values.weeklyProfitTargetAmount}</strong>.
+              Target for the week: <strong>{values.weeklyProfitTargetAmount}</strong>
+              {values.weeklyTargetFrom && values.weeklyTargetTo ? (
+                <>
+                  {" "}
+                  ({values.weeklyTargetFrom} → {values.weeklyTargetTo})
+                </>
+              ) : null}
+              .
             </>
           ) : null}
         </p>

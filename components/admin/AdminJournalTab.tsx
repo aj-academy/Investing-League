@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/ui/DatePickerField";
 import { formatAppDateTime } from "@/lib/datetime";
 import { JOURNAL_PERMISSION_OPTIONS, JOURNAL_RESULT_OPTIONS } from "@/lib/journal/journalFilters";
 import { permissionClass } from "@/lib/journal/journalDisplay";
@@ -167,20 +168,20 @@ export function AdminJournalTab() {
           </div>
           <div className="f">
             <label>From date</label>
-            <input
-              type="date"
+            <DatePickerField
               className="journal-filter-date"
               value={filters.from}
-              onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))}
+              max={filters.to || undefined}
+              onChange={(from) => setFilters((s) => ({ ...s, from }))}
             />
           </div>
           <div className="f">
             <label>To date</label>
-            <input
-              type="date"
+            <DatePickerField
               className="journal-filter-date"
               value={filters.to}
-              onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))}
+              min={filters.from || undefined}
+              onChange={(to) => setFilters((s) => ({ ...s, to }))}
             />
           </div>
           <div className="f">

@@ -128,6 +128,31 @@ export function weekStartDateString(refDate = todayDateString()): string {
   return d.toISOString().slice(0, 10);
 }
 
+export function defaultWeeklyTargetRange(): { from: string; to: string } {
+  const to = todayDateString();
+  return { from: weekStartDateString(to), to };
+}
+
+export function normalizeDateInput(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) return "";
+  const iso = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+export function resolveWeeklyTargetRange(
+  from: string | null | undefined,
+  to: string | null | undefined,
+): { from: string; to: string } {
+  const defaults = defaultWeeklyTargetRange();
+  let fromDate = normalizeDateInput(from ?? "") || defaults.from;
+  let toDate = normalizeDateInput(to ?? "") || defaults.to;
+  if (toDate < fromDate) toDate = fromDate;
+  return { from: fromDate, to: toDate };
+}
+
 export function deriveRiskStatus(
   consecutiveLosses: number,
   maxConsecutiveLosses: number,

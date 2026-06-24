@@ -29,7 +29,7 @@ export const PLATFORM_CAPITAL_UNAVAILABLE =
   "Capital protection is not available yet. Please contact support if this continues.";
 
 export const PLATFORM_WEEKLY_TARGET_AMOUNT_PENDING =
-  "Plan saved. Your weekly target could not be stored yet — other limits were saved.";
+  "Plan saved. Weekly target dates or amount could not be stored yet — other limits were saved.";
 
 export const PLATFORM_RULES_SAVE_PENDING =
   "Rules acknowledged for today. Sync to server is pending — try again shortly.";

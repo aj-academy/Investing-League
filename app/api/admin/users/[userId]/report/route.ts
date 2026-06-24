@@ -178,6 +178,8 @@ export async function GET(
         currentCapital: riskPayload.profile.current_capital,
         todayNetProfit: riskPayload.todayNetProfit,
         weekNetProfit: riskPayload.weekNetProfit,
+        weekTargetFrom: riskPayload.weekTargetFrom,
+        weekTargetTo: riskPayload.weekTargetTo,
         consecutiveLosses: riskPayload.consecutiveLosses,
         riskStatus: riskPayload.riskStatus,
         liveModeLocked: riskPayload.liveModeLocked,

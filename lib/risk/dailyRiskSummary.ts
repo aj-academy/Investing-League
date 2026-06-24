@@ -5,14 +5,17 @@ import {
   computeRecovery,
   deriveRiskStatus,
   num,
+  normalizeDateInput,
+  resolveWeeklyTargetRange,
   todayDateString,
-  weekStartDateString,
 } from "./capitalProtection";
 import {
   CAPITAL_PROFILE_COLUMNS_FULL,
   CAPITAL_PROFILE_COLUMNS_LEGACY,
   CAPITAL_PROFILE_COLUMNS_LEGACY_DAILY_AMOUNT,
+  CAPITAL_PROFILE_COLUMNS_LEGACY_WEEKLY_AMOUNT,
   isSchemaColumnError,
+  omitWeeklyTargetExtras,
   weeklyAmountFromRow,
 } from "./capitalProfileColumns";
 import { reconcileJournalCapitalForUser } from "./reconcileJournalCapital";
@@ -42,6 +45,8 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
     risk_per_trade_percent: 5,
     daily_profit_target_percent: 10,
     weekly_profit_target_amount: 0,
+    weekly_target_from: null,
+    weekly_target_to: null,
     daily_loss_limit_percent: 15,
     max_consecutive_losses: 3,
     trading_rules_accepted: false,
@@ -62,22 +67,32 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
   error = full.error;
 
   if (error && isSchemaColumnError(error.message)) {
-    const legacyDaily = await client
+    const weeklyAmountOnly = await client
       .from("profiles")
-      .select(CAPITAL_PROFILE_COLUMNS_LEGACY_DAILY_AMOUNT)
+      .select(CAPITAL_PROFILE_COLUMNS_LEGACY_WEEKLY_AMOUNT)
       .eq("id", userId)
       .maybeSingle();
-    data = legacyDaily.data as Record<string, unknown> | null;
-    error = legacyDaily.error;
+    data = weeklyAmountOnly.data as Record<string, unknown> | null;
+    error = weeklyAmountOnly.error;
 
     if (error && isSchemaColumnError(error.message)) {
-      const legacy = await client
+      const legacyDaily = await client
         .from("profiles")
-        .select(CAPITAL_PROFILE_COLUMNS_LEGACY)
+        .select(CAPITAL_PROFILE_COLUMNS_LEGACY_DAILY_AMOUNT)
         .eq("id", userId)
         .maybeSingle();
-      data = legacy.data as Record<string, unknown> | null;
-      error = legacy.error;
+      data = legacyDaily.data as Record<string, unknown> | null;
+      error = legacyDaily.error;
+
+      if (error && isSchemaColumnError(error.message)) {
+        const legacy = await client
+          .from("profiles")
+          .select(CAPITAL_PROFILE_COLUMNS_LEGACY)
+          .eq("id", userId)
+          .maybeSingle();
+        data = legacy.data as Record<string, unknown> | null;
+        error = legacy.error;
+      }
     }
   }
 
@@ -96,6 +111,8 @@ export async function getProfileCapitalFields(userId: string): Promise<CapitalPr
     risk_per_trade_percent: num(data.risk_per_trade_percent, 5),
     daily_profit_target_percent: num(data.daily_profit_target_percent, 10),
     weekly_profit_target_amount: weeklyAmountFromRow(data),
+    weekly_target_from: normalizeDateInput(data.weekly_target_from) || null,
+    weekly_target_to: normalizeDateInput(data.weekly_target_to) || null,
     daily_loss_limit_percent: num(data.daily_loss_limit_percent, 15),
     max_consecutive_losses: num(data.max_consecutive_losses, 3),
     trading_rules_accepted: Boolean(data.trading_rules_accepted),
@@ -253,12 +270,16 @@ export async function aggregateTodayJournal(userId: string, tradeDate = todayDat
   return { wins, losses, refunds, netProfit, totalTrades, consecutiveLosses, rows };
 }
 
-export async function aggregateWeekJournal(userId: string, tradeDate = todayDateString()) {
+export async function aggregateWeekJournal(
+  userId: string,
+  fromDate: string,
+  toDate: string,
+) {
   const admin = riskWriter();
   const client = admin ?? await createClient();
-  const weekStart = weekStartDateString(tradeDate);
-  const start = `${weekStart}T00:00:00.000Z`;
-  const end = `${tradeDate}T23:59:59.999Z`;
+  const range = resolveWeeklyTargetRange(fromDate, toDate);
+  const start = `${range.from}T00:00:00.000Z`;
+  const end = `${range.to}T23:59:59.999Z`;
 
   const { data } = await client
     .from("trade_journal")
@@ -290,7 +311,7 @@ export async function aggregateWeekJournal(userId: string, tradeDate = todayDate
     }
   }
 
-  return { wins, losses, refunds, netProfit, totalTrades, weekStart, rows };
+  return { wins, losses, refunds, netProfit, totalTrades, from: range.from, to: range.to, rows };
 }
 
 /** After the 30-minute cooldown ends, clear live lock so Live mode works again without admin. */
@@ -327,7 +348,11 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
   const tradeDate = todayDateString();
   let daily = await getDailyRiskSummary(userId, tradeDate);
   const agg = await aggregateTodayJournal(userId, tradeDate);
-  const weekAgg = await aggregateWeekJournal(userId, tradeDate);
+  const weekRange = resolveWeeklyTargetRange(
+    profile.weekly_target_from,
+    profile.weekly_target_to,
+  );
+  const weekAgg = await aggregateWeekJournal(userId, weekRange.from, weekRange.to);
 
   if (!daily) {
     const upsert = await upsertDailyRiskSummary(userId, {
@@ -371,6 +396,8 @@ export async function buildRiskStatusPayload(userId: string): Promise<RiskStatus
     cooldownActive: cooldownActiveNow,
     todayNetProfit,
     weekNetProfit,
+    weekTargetFrom: weekAgg.from,
+    weekTargetTo: weekAgg.to,
     consecutiveLosses,
     recovery: computeRecovery(profile.starting_capital, profile.current_capital),
   };

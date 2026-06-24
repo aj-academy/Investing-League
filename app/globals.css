@@ -674,3 +674,12 @@
 .practice-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-size:42px;font-weight:900;color:rgba(240,160,32,.06);pointer-events:none;letter-spacing:8px;white-space:nowrap;z-index:0}
 .sc.practice>*:not(.practice-watermark){position:relative;z-index:1}
 .sb-wide{grid-column:span 2}
+
+.date-picker-wrap{position:relative;width:100%}
+.date-picker-wrap input[type="date"]{width:100%;min-height:34px;padding-right:36px;cursor:pointer;color-scheme:dark}
+.date-picker-wrap input[type="date"]::-webkit-calendar-picker-indicator{opacity:0;width:100%;height:100%;position:absolute;inset:0;cursor:pointer}
+.date-picker-input,.journal-filter-date.date-picker-input{width:100%}
+.date-picker-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:none;background:transparent;cursor:pointer;padding:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%238ba3c7' stroke-width='1.8'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4M3 11h18'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;background-size:16px 16px}
+.date-picker-btn:hover{filter:brightness(1.2)}
+.date-picker-wrap-disabled{opacity:.55;pointer-events:none}
+.cpp-modal .date-picker-wrap input[type="date"]{min-height:38px}

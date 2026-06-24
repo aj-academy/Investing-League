@@ -7,6 +7,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { CapitalProtectionModal } from "@/components/risk/CapitalProtectionCard";
+import { resolveWeeklyTargetRange } from "@/lib/risk/capitalProtection";
 import type { RecoveryMetrics } from "@/lib/risk/types";
 
 export function SettingsForm({
@@ -30,14 +31,22 @@ export function SettingsForm({
   const [cppOpen, setCppOpen] = useState(false);
   const [cppSaving, setCppSaving] = useState(false);
   const [recovery, setRecovery] = useState<RecoveryMetrics | null>(null);
-  const [cppValues, setCppValues] = useState({
-    startingCapital: Number(capitalProfile?.starting_capital) || 0,
-    currentCapital: Number(capitalProfile?.current_capital) || 0,
-    riskPerTradePercent: Number(capitalProfile?.risk_per_trade_percent) || 5,
-    dailyProfitTargetPercent: Number(capitalProfile?.daily_profit_target_percent) || 10,
-    weeklyProfitTargetAmount: Number(capitalProfile?.weekly_profit_target_amount) || 0,
-    dailyLossLimitPercent: Number(capitalProfile?.daily_loss_limit_percent) || 15,
-    maxConsecutiveLosses: Number(capitalProfile?.max_consecutive_losses) || 3,
+  const [cppValues, setCppValues] = useState(() => {
+    const weekRange = resolveWeeklyTargetRange(
+      capitalProfile?.weekly_target_from as string | undefined,
+      capitalProfile?.weekly_target_to as string | undefined,
+    );
+    return {
+      startingCapital: Number(capitalProfile?.starting_capital) || 0,
+      currentCapital: Number(capitalProfile?.current_capital) || 0,
+      riskPerTradePercent: Number(capitalProfile?.risk_per_trade_percent) || 5,
+      dailyProfitTargetPercent: Number(capitalProfile?.daily_profit_target_percent) || 10,
+      weeklyProfitTargetAmount: Number(capitalProfile?.weekly_profit_target_amount) || 0,
+      weeklyTargetFrom: weekRange.from,
+      weeklyTargetTo: weekRange.to,
+      dailyLossLimitPercent: Number(capitalProfile?.daily_loss_limit_percent) || 15,
+      maxConsecutiveLosses: Number(capitalProfile?.max_consecutive_losses) || 3,
+    };
   });
 
   const save = async () => {
@@ -89,6 +98,8 @@ export function SettingsForm({
           riskPerTradePercent: cppValues.riskPerTradePercent,
           dailyProfitTargetPercent: cppValues.dailyProfitTargetPercent,
           weeklyProfitTargetAmount: cppValues.weeklyProfitTargetAmount,
+          weeklyTargetFrom: cppValues.weeklyTargetFrom,
+          weeklyTargetTo: cppValues.weeklyTargetTo,
           dailyLossLimitPercent: cppValues.dailyLossLimitPercent,
           maxConsecutiveLosses: cppValues.maxConsecutiveLosses,
         }),

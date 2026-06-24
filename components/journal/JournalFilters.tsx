@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/ui/DatePickerField";
 import {
   DEFAULT_JOURNAL_FILTERS,
   JOURNAL_PERMISSION_OPTIONS,
@@ -35,20 +36,20 @@ export function JournalFilters({
       <div className="journal-filters-main">
         <div className="f">
           <label>From date</label>
-          <input
-            type="date"
+          <DatePickerField
             className="journal-filter-date"
             value={filters.from}
-            onChange={(e) => set({ from: e.target.value })}
+            max={filters.to || undefined}
+            onChange={(from) => set({ from })}
           />
         </div>
         <div className="f">
           <label>To date</label>
-          <input
-            type="date"
+          <DatePickerField
             className="journal-filter-date"
             value={filters.to}
-            onChange={(e) => set({ to: e.target.value })}
+            min={filters.from || undefined}
+            onChange={(to) => set({ to })}
           />
         </div>
         <div className="f">

@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePickerField } from "@/components/ui/DatePickerField";
 import { formatAppDateTime } from "@/lib/datetime";
 import type { PlanName } from "@/lib/billing/planLimits";
 import { useEffect, useState } from "react";
@@ -662,22 +663,20 @@ export function AdminView() {
             <div className="ctrl-row">
               <div className="f">
                 <label>From</label>
-                <input
-                  type="date"
+                <DatePickerField
+                  className="date-picker-input"
                   value={overviewFilter.from}
-                  onChange={(e) =>
-                    setOverviewFilter((s) => ({ ...s, from: e.target.value }))
-                  }
+                  max={overviewFilter.to || undefined}
+                  onChange={(from) => setOverviewFilter((s) => ({ ...s, from }))}
                 />
               </div>
               <div className="f">
                 <label>To</label>
-                <input
-                  type="date"
+                <DatePickerField
+                  className="date-picker-input"
                   value={overviewFilter.to}
-                  onChange={(e) =>
-                    setOverviewFilter((s) => ({ ...s, to: e.target.value }))
-                  }
+                  min={overviewFilter.from || undefined}
+                  onChange={(to) => setOverviewFilter((s) => ({ ...s, to }))}
                 />
               </div>
               <div className="f" style={{ alignSelf: "end" }}>
@@ -1577,22 +1576,20 @@ export function AdminView() {
             </div>
             <div className="f">
               <label>From</label>
-              <input
-                type="date"
+              <DatePickerField
+                className="date-picker-input"
                 value={reportFilter.from}
-                onChange={(e) =>
-                  setReportFilter((s) => ({ ...s, from: e.target.value }))
-                }
+                max={reportFilter.to || undefined}
+                onChange={(from) => setReportFilter((s) => ({ ...s, from }))}
               />
             </div>
             <div className="f">
               <label>To</label>
-              <input
-                type="date"
+              <DatePickerField
+                className="date-picker-input"
                 value={reportFilter.to}
-                onChange={(e) =>
-                  setReportFilter((s) => ({ ...s, to: e.target.value }))
-                }
+                min={reportFilter.from || undefined}
+                onChange={(to) => setReportFilter((s) => ({ ...s, to }))}
               />
             </div>
             <div className="f">
@@ -1805,18 +1802,20 @@ export function AdminView() {
           <div className="ctrl-row">
             <div className="f">
               <label>From</label>
-              <input
-                type="date"
+              <DatePickerField
+                className="date-picker-input"
                 value={apiFilter.from}
-                onChange={(e) => setApiFilter((s) => ({ ...s, from: e.target.value }))}
+                max={apiFilter.to || undefined}
+                onChange={(from) => setApiFilter((s) => ({ ...s, from }))}
               />
             </div>
             <div className="f">
               <label>To</label>
-              <input
-                type="date"
+              <DatePickerField
+                className="date-picker-input"
                 value={apiFilter.to}
-                onChange={(e) => setApiFilter((s) => ({ ...s, to: e.target.value }))}
+                min={apiFilter.from || undefined}
+                onChange={(to) => setApiFilter((s) => ({ ...s, to }))}
               />
             </div>
             <div className="f">

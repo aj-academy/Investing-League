@@ -6,7 +6,7 @@ import {
   upsertDailyRiskSummary,
 } from "@/lib/risk/dailyRiskSummary";
 import { persistCapitalProfile } from "@/lib/risk/persistCapitalProfile";
-import { computeRecovery, num, todayDateString } from "@/lib/risk/capitalProtection";
+import { computeRecovery, num, resolveWeeklyTargetRange, todayDateString } from "@/lib/risk/capitalProtection";
 import {
   PLATFORM_CAPITAL_UNAVAILABLE,
   PLATFORM_WEEKLY_TARGET_AMOUNT_PENDING,
@@ -45,6 +45,8 @@ export async function GET() {
       cooldownActive: false,
       todayNetProfit: 0,
       weekNetProfit: 0,
+      weekTargetFrom: resolveWeeklyTargetRange(null, null).from,
+      weekTargetTo: resolveWeeklyTargetRange(null, null).to,
       consecutiveLosses: 0,
       profile: probe,
       recovery: computeRecovery(probe.starting_capital, probe.current_capital),
@@ -83,18 +85,22 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Current capital cannot be negative." }, { status: 400 });
   }
 
+  const weekRange = resolveWeeklyTargetRange(body.weeklyTargetFrom, body.weeklyTargetTo);
+
   const patch = {
     starting_capital: startingCapital,
     current_capital: currentCapital,
     risk_per_trade_percent: num(body.riskPerTradePercent, 5),
     daily_profit_target_percent: num(body.dailyProfitTargetPercent, 10),
     weekly_profit_target_amount: Math.max(0, num(body.weeklyProfitTargetAmount)),
+    weekly_target_from: weekRange.from,
+    weekly_target_to: weekRange.to,
     daily_loss_limit_percent: num(body.dailyLossLimitPercent, 15),
     max_consecutive_losses: Math.max(1, Math.round(num(body.maxConsecutiveLosses, 3))),
     updated_at: new Date().toISOString(),
   };
 
-  const { profile: savedProfile, error: persistError, weeklyTargetAmountSaved } =
+  const { profile: savedProfile, error: persistError, weeklyTargetExtrasSaved } =
     await persistCapitalProfile(userId, email, patch);
 
   if (persistError || !savedProfile) {
@@ -124,8 +130,8 @@ export async function PATCH(request: Request) {
     columnsReady: true,
     profile: savedProfile,
     recovery,
-    weeklyTargetAmountSaved,
-    warning: weeklyTargetAmountSaved ? undefined : PLATFORM_WEEKLY_TARGET_AMOUNT_PENDING,
+    weeklyTargetExtrasSaved,
+    warning: weeklyTargetExtrasSaved ? undefined : PLATFORM_WEEKLY_TARGET_AMOUNT_PENDING,
     dailySummarySaved: !summaryResult.error,
     dailySummaryWarning: summaryResult.error,
   });
