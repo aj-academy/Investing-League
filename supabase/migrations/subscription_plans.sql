@@ -15,6 +15,10 @@ as $$
   );
 $$;
 
+-- Older projects may have profiles without plan — add before constraint
+alter table public.profiles add column if not exists plan text not null default 'free';
+alter table public.profiles add column if not exists role text not null default 'user';
+
 alter table public.profiles drop constraint if exists profiles_plan_check;
 alter table public.profiles
   add constraint profiles_plan_check check (plan in ('free','starter','pro','admin'));
