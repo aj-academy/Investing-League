@@ -42,42 +42,46 @@ export function SignalCard({
   const sup1 = sig.nearSup ? sig.nearSup.toFixed(dp) : "—";
   const piv = sig.pivs.P.toFixed(dp);
   const permission = resolvePermission(sig);
+  const v10Layer = sig.v10Layer;
   const v9Layer = sig.v9Layer;
-  const isV9Live = v9Layer === "LIVE";
-  const isV9Practice = v9Layer === "PRACTICE";
-  const allowed = isV9Live || (v9Layer == null && permission === "TRADE ALLOWED");
-  const blocked = v9Layer === "REJECTED" || permission === "DO NOT TRADE";
-  const decClass = isV9Live
+  const isV10Live = v10Layer === "LIVE";
+  const isV10Pending = v10Layer === "PENDING_ORDER_ELIGIBLE";
+  const isV9Practice = v10Layer === "PRACTICE" || (v10Layer == null && v9Layer === "PRACTICE");
+  const blocked = v10Layer === "REJECTED" || permission === "DO NOT TRADE";
+  const decClass = isV10Live
     ? "allowed"
-    : isV9Practice
-      ? "observe"
-      : blocked
-        ? "no"
-        : "observe";
-  const permColor = isV9Live
+    : isV10Pending
+      ? "allowed"
+      : isV9Practice
+        ? "observe"
+        : blocked
+          ? "no"
+          : "observe";
+  const permColor = isV10Live
     ? "var(--bull)"
-    : isV9Practice
-      ? "var(--gold2)"
-      : blocked
-        ? "var(--bear)"
-        : "var(--gold)";
-  const permLabel = isV9Live
+    : isV10Pending
+      ? "var(--blue2)"
+      : isV9Practice
+        ? "var(--gold2)"
+        : blocked
+          ? "var(--bear)"
+          : "var(--gold)";
+  const permLabel = isV10Live
     ? "✅ LIVE TRADE PERMISSION"
-    : isV9Practice
-      ? "🧪 PRACTICE ONLY"
-      : blocked
-        ? "⛔ RISK REJECTED"
-        : v9Layer === "RADAR"
-          ? "📡 SETUP FORMING"
-          : allowed
-            ? "✅ TRADE ALLOWED"
-            : blocked
-              ? "⛔ DO NOT TRADE"
-              : "⚠️ OBSERVE ONLY";
+    : isV10Pending
+      ? "📋 PENDING ORDER ELIGIBLE"
+      : isV9Practice
+        ? "🧪 PRACTICE ONLY"
+        : blocked
+          ? "⛔ RISK REJECTED"
+          : v10Layer === "RADAR" || v9Layer === "RADAR"
+            ? "📡 SETUP FORMING"
+            : "⚠️ OBSERVE ONLY";
+  const setupQuality = sig.setupQuality ?? sig.conf;
 
   return (
     <div
-      className={`sc ${dc}${isV9Practice ? " practice" : ""}${isV9Live ? " v9-live" : ""}`}
+      className={`sc ${dc}${isV9Practice ? " practice" : ""}${isV10Live ? " v9-live" : ""}${isV10Pending ? " v10-pending" : ""}`}
       style={{ animationDelay: `${delay}ms` }}
     >
       {isV9Practice ? <div className="practice-watermark">PRACTICE ONLY</div> : null}
@@ -89,11 +93,15 @@ export function SignalCard({
           <div className="small">
             {isV9Practice
               ? "Practice Signal — Demo / observation only. Not live trade permission."
-              : `${sig.signalType} · ${sig.grade} grade · gap ${sig.scoreGap}`}
+              : isV10Pending
+                ? `${sig.v10TimingStatus || "PENDING ORDER ELIGIBLE"} · Place pending order for planned entry time`
+                : isV10Live
+                  ? `${sig.v10TimingStatus || "ENTRY WINDOW OPEN"} · Valid ${sig.validUntilSec ?? "—"}s · ${sig.signalType} · gap ${sig.scoreGap}`
+                  : `${sig.signalType} · ${sig.grade} grade · gap ${sig.scoreGap}`}
           </div>
         </div>
         <div className="mono" style={{ color: permColor, fontFamily: "var(--mono)" }}>
-          {sig.conf}%
+          {setupQuality}%
         </div>
       </div>
       <div className="ch">
@@ -132,9 +140,9 @@ export function SignalCard({
       </div>
       <div className="score-section">
         <div className="score-header">
-          <span className="score-label">V9 Confluence Confidence</span>
+          <span className="score-label">Setup Quality</span>
           <span className="score-val" style={{ color: confColor }}>
-            {sig.conf}% — {sig.tier}
+            {setupQuality}% — {sig.tier}
           </span>
         </div>
         <div className="score-track">
@@ -142,7 +150,7 @@ export function SignalCard({
         </div>
       </div>
       <div className="conf-row">
-        <ConfRing pct={sig.conf} color={confColor} />
+        <ConfRing pct={setupQuality} color={confColor} />
         <div className="conf-info">
           <div className="conf-tier" style={{ color: confColor }}>
             {sig.tier}
@@ -220,6 +228,22 @@ export function SignalCard({
             ))
           : <span className="pt">No Pattern</span>}
       </div>
+      {(sig.v10TimingStatus || sig.v10StrategyType || sig.htfBiasStatus) && (
+        <div className="v10-meta-box">
+          <div className="sec-title">V10 Permission</div>
+          <div className="v10-meta-grid">
+            <span>Entry: {sig.entryMethod === "manual" ? "Manual" : "Pending Order"}</span>
+            <span>Timing: {sig.v10TimingStatus || "—"}</span>
+            <span>Strategy: {sig.v10StrategyType || "—"}</span>
+            <span>HTF: {sig.htfBiasStatus || "—"}</span>
+            <span>Gap: {sig.scoreGap}</span>
+            <span>ADX: {sig.adx}</span>
+          </div>
+          {sig.v10Blockers?.length ? (
+            <div className="v10-blocker">Blocker: {sig.v10Blockers[0]}</div>
+          ) : null}
+        </div>
+      )}
       <div className="entry-box">
         <div className="entry-col">
           <div className="el">Enter At</div>

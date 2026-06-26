@@ -6,12 +6,29 @@ import { applyV8HistoryAndMode, type ScanJournalRow } from "./v8/historyMode";
 import { applyV8NewsBlock, isNewsBlocked } from "./v8/news";
 import { rankV8Signals } from "./v8/rank";
 import { applyV9Layers } from "./v9/classify";
-import { buildV9ScanMeta } from "./v9/scanMeta";
+import { buildV10ScanMeta } from "./v10/scanMeta";
+import {
+  applyV10Layers,
+  filterByShowSignalsV10,
+  isV10LiveDisplay,
+  isV10PendingDisplay,
+  shouldJournalV10Signal,
+} from "./v10/validate";
+import type { EntryMethod } from "./v10/types";
 
 export * from "./types";
 export * from "./v9/types";
 export { applyV9Layers, filterByShowSignals, isV9LiveDisplay, shouldJournalV9Signal } from "./v9/classify";
 export { buildV9ScanMeta } from "./v9/scanMeta";
+export {
+  applyV10Layers,
+  filterByShowSignalsV10,
+  isV10LiveDisplay,
+  isV10PendingDisplay,
+  shouldJournalV10Signal,
+} from "./v10/validate";
+export { buildV10ScanMeta } from "./v10/scanMeta";
+export type { EntryMethod } from "./v10/types";
 export * from "./session";
 export { gradeAllowed, type MinGradeFilter } from "./permission";
 export { isNewsBlocked } from "./v8/news";

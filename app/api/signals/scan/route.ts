@@ -19,13 +19,16 @@ import {
 import { buildTickerForPairs } from "@/lib/market/tickerService";
 import {
   applyV9Layers,
-  buildV9ScanMeta,
+  applyV10Layers,
+  buildV10ScanMeta,
   computeV9Signal,
   filterSignals,
   finalizeScanSignals,
-  shouldJournalV9Signal,
+  shouldJournalV10Signal,
   type ScanJournalRow,
 } from "@/lib/signal-engine";
+import type { EntryMethod } from "@/lib/signal-engine/v10/types";
+import type { OHLC } from "@/lib/signal-engine/types";
 import { PLATFORM_SAVE_FAILED } from "@/lib/platform/userCopy";
 import { sanitizeUserFacingErrors } from "@/lib/platform/sanitizeUserFacingError";
 import { upsertTradeJournalRow } from "@/lib/journal/upsertJournal";
@@ -145,6 +148,9 @@ export async function POST(request: Request) {
     const dailyTradeLimit = Number(body.dailyTradeLimit ?? 5);
     const sessionFilter = String(body.sessionFilter || "any");
     const timeZone = resolveTimeZone(body.timezone);
+    const entryMethod: EntryMethod =
+      body.entryMethod === "manual" ? "manual" : "pending_order";
+    const allowEurGbp5Min = process.env.ALLOW_EUR_GBP_5MIN_STRICT === "true";
 
     try {
       const supabase = await createClient();
@@ -234,6 +240,7 @@ export async function POST(request: Request) {
     let cacheHits = 0;
     const rawSignals: ComputedSignal[] = [];
     const marketErrors: string[] = [];
+    const candlesByKey = new Map<string, OHLC[]>();
 
     for (const pair of pairs) {
       for (const tf of timeframes) {
@@ -241,6 +248,7 @@ export async function POST(request: Request) {
           const candleResult = await getCandlesCached(pair, tf, 150);
           if (candleResult.providerCall) providerCalls++;
           if (candleResult.cacheHit) cacheHits++;
+          candlesByKey.set(`${pair}:${tf}`, candleResult.candles);
           const sig = computeV9Signal(candleResult.candles, pair, tf, mode, timeZone);
           if (sig) rawSignals.push(sig);
         } catch (e) {
@@ -251,7 +259,27 @@ export async function POST(request: Request) {
       }
     }
 
-    const finalized = applyV9Layers(
+    const htfCandlesByPair = new Map<string, OHLC[]>();
+    const needsHtf = timeframes.includes("5min");
+    if (needsHtf) {
+      for (const pair of pairs) {
+        const cached15 = candlesByKey.get(`${pair}:15min`);
+        if (cached15?.length) {
+          htfCandlesByPair.set(pair, cached15);
+          continue;
+        }
+        try {
+          const htfResult = await getCandlesCached(pair, "15min", 150);
+          if (htfResult.providerCall) providerCalls++;
+          if (htfResult.cacheHit) cacheHits++;
+          htfCandlesByPair.set(pair, htfResult.candles);
+        } catch {
+          /* HTF optional — V10 will block 5min without bias */
+        }
+      }
+    }
+
+    const v9Layered = applyV9Layers(
       finalizeScanSignals(rawSignals, {
         mode,
         journal: scanJournal,
@@ -259,6 +287,14 @@ export async function POST(request: Request) {
         timeZone,
       }),
     );
+
+    const finalized = applyV10Layers(v9Layered, {
+      entryMethod,
+      htfCandlesByPair,
+      now: new Date(),
+      sessionFilter,
+      allowEurGbp5Min,
+    });
 
     const filteredSignals = filterSignals(finalized, {
       pairs,
@@ -269,7 +305,7 @@ export async function POST(request: Request) {
       sessionFilter,
     });
 
-    const v9Meta = buildV9ScanMeta(finalized, {
+    const v9Meta = buildV10ScanMeta(finalized, {
       apiCalls: providerCalls,
       marketErrors,
     });
@@ -293,7 +329,7 @@ export async function POST(request: Request) {
       : null;
     const writer = admin ?? supabase;
     const signalsToSave = toDisplay.length > 0 ? toDisplay : toPersist;
-    const journalToSave = signalsToSave.filter(shouldJournalV9Signal);
+    const journalToSave = signalsToSave.filter(shouldJournalV10Signal);
     let journalSaved = 0;
     let signalsSaved = 0;
     const persistErrors: string[] = [];
@@ -383,7 +419,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      engine: "v9",
+      engine: "v10",
+      entryMethod,
       auto: isAuto,
       scanSessionId: scanSession.id,
       signals,

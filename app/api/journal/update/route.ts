@@ -4,6 +4,7 @@ import { calculateEntryDrift } from "@/lib/journal/entryDrift";
 import { fetchJournalRowForUser, saveJournalRowForUser } from "@/lib/journal/journalAccess";
 import { calculateResult } from "@/lib/journal/resultCalculator";
 import { isEligibleType } from "@/lib/journal/journalDisplay";
+import { computePendingDriftPips } from "@/lib/journal/upsertJournal";
 import { applyJournalCapitalUpdate } from "@/lib/risk/journalCapital";
 import { getProfileCapitalFields, refreshDailySummaryFromJournal } from "@/lib/risk/dailyRiskSummary";
 import { num } from "@/lib/risk/capitalProtection";
@@ -85,7 +86,16 @@ export async function PATCH(request: Request) {
     );
 
     const v9Layer = (row as { v9_layer?: string | null }).v9_layer ?? null;
-    const eligibleForWr = isEligibleType(row.signal_type, row.grade, v9Layer);
+    const v10Layer = (row as { v10_layer?: string | null }).v10_layer ?? null;
+    const entryMethod = (row as { entry_method?: string | null }).entry_method ?? null;
+    const eligibleForWr = isEligibleType(row.signal_type, row.grade, v9Layer, v10Layer);
+
+    const pendingDrift =
+      opening != null &&
+      row.signal_entry_price != null &&
+      (entryMethod === "pending_order" || v10Layer === "PENDING_ORDER_ELIGIBLE")
+        ? computePendingDriftPips(Number(row.signal_entry_price), opening, row.pair)
+        : null;
 
     const prevResult = row.result as string;
     let result = prevResult;
@@ -161,6 +171,12 @@ export async function PATCH(request: Request) {
         olymp_trade_id: tradeId,
         loss_reason: body.lossReason ?? row.loss_reason,
         entry_drift: drift,
+        pending_drift: pendingDrift,
+        actual_entry_time: openTime,
+        pending_order_placed_time:
+          body.pendingOrderPlacedTime != null && body.pendingOrderPlacedTime !== ""
+            ? String(body.pendingOrderPlacedTime)
+            : undefined,
         entry_status: status,
         result,
         result_source: resultSource,

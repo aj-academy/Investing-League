@@ -1,9 +1,9 @@
 import type { V9RadarItem } from "@/lib/signal-engine/v9/types";
 
 function layerLabel(layer: string) {
+  if (layer === "PENDING_ORDER_ELIGIBLE") return "Pending Order Eligible";
   if (layer === "LIVE") return "Live Trade Permission";
   if (layer === "PRACTICE") return "Practice Only — Demo / Observation";
-  if (layer === "REJECTED") return "Risk Rejected";
   return "Setup Forming";
 }
 

@@ -15,6 +15,9 @@ export type V9ScanMeta = {
   weekendBlocked: boolean;
   radarTop: V9RadarItem[];
   whyNoSignal: V9WhyItem[];
+  pendingCount?: number;
+  v10LiveCount?: number;
+  entryMethod?: string;
 };
 
 export type V9RadarItem = {

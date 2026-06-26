@@ -1,8 +1,10 @@
 import type { V9Layer } from "./v9/types";
+import type { EntryMethod, V10Layer, V10StrategyType, V10TimingStatus } from "./v10/types";
 
 export type Direction = "CALL" | "PUT";
 export type TradingMode = "practice" | "live";
 export type { V9Layer };
+export type { EntryMethod, V10Layer, V10StrategyType, V10TimingStatus } from "./v10/types";
 export type SignalType =
   | "STRONG FINAL"
   | "FINAL TRADE"
@@ -130,6 +132,16 @@ export interface ComputedSignal {
   v9Readiness?: number;
   v9Blocker?: string;
   v9NextCondition?: string;
+  entryMethod?: EntryMethod;
+  v10Layer?: V10Layer;
+  v10Readiness?: number;
+  v10TimingStatus?: V10TimingStatus;
+  v10StrategyType?: V10StrategyType;
+  v10Blockers?: string[];
+  htfBiasStatus?: string;
+  setupQuality?: number;
+  validUntilSec?: number;
+  signalDetectedAt?: string;
 }
 
 export interface JournalHistoryRow {

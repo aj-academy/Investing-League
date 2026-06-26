@@ -1,5 +1,10 @@
 import { bestByKey } from "./pairStats";
-import { calculateRealWinRate, isRealTradeSignal } from "./winRate";
+import {
+  calculateManualEntryWinRate,
+  calculatePendingOrderWinRate,
+  calculateRealWinRate,
+  isRealTradeSignal,
+} from "./winRate";
 
 export interface JournalRow {
   id: string;
@@ -15,13 +20,16 @@ export interface JournalRow {
   entry_drift: number | null;
   trade_eligible?: boolean | null;
   v9_layer?: string | null;
+  v10_layer?: string | null;
+  entry_method?: string | null;
+  pending_drift?: number | null;
   created_at: string;
 }
 
 export function buildAnalyticsSummary(rows: JournalRow[]) {
   const totalSignals = rows.length;
   const tradeEligible = rows.filter((r) =>
-    r.signal_type && isRealTradeSignal(r.signal_type, r.grade, r.v9_layer),
+    r.signal_type && isRealTradeSignal(r.signal_type, r.grade, r.v9_layer, r.v10_layer),
   );
   const completed = rows.filter((r) => ["Win", "Loss", "Refund"].includes(r.result || ""));
   const wins = rows.filter((r) => r.result === "Win").length;
@@ -29,6 +37,8 @@ export function buildAnalyticsSummary(rows: JournalRow[]) {
   const refunds = rows.filter((r) => r.result === "Refund").length;
   const pending = rows.filter((r) => r.result === "Pending" || !r.result).length;
   const realWr = calculateRealWinRate(rows);
+  const pendingWr = calculatePendingOrderWinRate(rows);
+  const manualWr = calculateManualEntryWinRate(rows);
   const observation = rows.filter((r) => r.result === "Win" || r.result === "Loss");
   const obsWins = observation.filter((r) => r.result === "Win").length;
   const observationAccuracy = observation.length
@@ -65,6 +75,10 @@ export function buildAnalyticsSummary(rows: JournalRow[]) {
     realTradeWins: realWr.wins,
     realTradeLosses: realWr.losses,
     realTradeTotal: realWr.total,
+    pendingOrderWinRate: pendingWr.rate,
+    pendingOrderTotal: pendingWr.total,
+    manualEntryWinRate: manualWr.rate,
+    manualEntryTotal: manualWr.total,
     observationAccuracy,
     invalidEntries,
     bestPair: bestByKey(rows, "pair"),

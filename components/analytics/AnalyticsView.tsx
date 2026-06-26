@@ -157,6 +157,18 @@ export function AnalyticsView({
             <span className="lbl">Real Trades (WR basis)</span>
             <span className="val">{summary.realTradeTotal}</span>
           </div>
+          <div className="analytics-health-stat">
+            <span className="lbl">Pending Order WR</span>
+            <span className="val">
+              {summary.pendingOrderTotal ? `${summary.pendingOrderWinRate}%` : "—"}
+            </span>
+          </div>
+          <div className="analytics-health-stat">
+            <span className="lbl">Manual Entry WR</span>
+            <span className="val">
+              {summary.manualEntryTotal ? `${summary.manualEntryWinRate}%` : "—"}
+            </span>
+          </div>
         </div>
         <div className="analytics-health-warn">
           <strong>Main warning:</strong> {narrative.mainWarning}

@@ -150,6 +150,19 @@ export function ScannerControls({
           </select>
         </div>
         <div className="scanner-field">
+          <label>Entry method</label>
+          <select
+            value={settings.entryMethod}
+            disabled={lockFilters}
+            onChange={(e) =>
+              onChange({ entryMethod: e.target.value as ScanSettings["entryMethod"] })
+            }
+          >
+            <option value="pending_order">Pending Order</option>
+            <option value="manual">Manual Entry</option>
+          </select>
+        </div>
+        <div className="scanner-field">
           <label>Show signals</label>
           <select
             value={settings.showSignals}

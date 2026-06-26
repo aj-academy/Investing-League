@@ -632,6 +632,10 @@
 
 /* V9 opportunity radar + practice distinction */
 .v9-summary{grid-column:1/-1;background:linear-gradient(135deg,rgba(0,170,255,.08),rgba(240,160,32,.06));border:1px solid rgba(0,170,255,.24);border-radius:14px;padding:14px;margin-bottom:12px}
+.v10-meta-box{margin:10px 14px;padding:10px 12px;border-radius:8px;border:1px solid var(--bd2);background:var(--p2)}
+.v10-meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;font-size:10px;color:var(--m3)}
+.v10-blocker{margin-top:8px;font-size:10px;color:var(--gold2)}
+.sc.v10-pending{border-color:rgba(0,170,255,.35)}
 .v9-kicker{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:6px}
 .v9-title{font-family:var(--mono);font-size:17px;letter-spacing:1px;color:var(--txt2);margin-bottom:6px}
 .v9-sub{font-size:12px;line-height:1.7;color:var(--txt)}

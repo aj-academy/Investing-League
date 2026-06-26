@@ -5,6 +5,7 @@ import {
 } from "@/lib/billing/planLimits";
 import type { MinGradeFilter } from "@/lib/signal-engine/permission";
 import type { ShowSignalsFilter } from "@/lib/signal-engine/v9/types";
+import type { EntryMethod } from "@/lib/signal-engine/v10/types";
 import type { ScanSettings } from "@/components/dashboard/DashboardClient";
 
 const SETTINGS_KEY = "til_scanner_settings_v1";
@@ -15,6 +16,7 @@ const MODES = new Set(["practice", "live"]);
 const GRADES = new Set<MinGradeFilter>(["B", "A", "A+"]);
 const TRADE_LIMITS = new Set([3, 5, 8, 999]);
 const SHOW_SIGNALS = new Set<ShowSignalsFilter>(["all", "live", "practice_live"]);
+const ENTRY_METHODS = new Set<EntryMethod>(["manual", "pending_order"]);
 
 function sanitizeStored(
   raw: Partial<ScanSettings>,
@@ -42,6 +44,10 @@ function sanitizeStored(
     plan,
   );
 
+  const entryMethod = ENTRY_METHODS.has(raw.entryMethod as EntryMethod)
+    ? (raw.entryMethod as EntryMethod)
+    : defaults.entryMethod;
+
   return {
     ...defaults,
     mode,
@@ -52,6 +58,7 @@ function sanitizeStored(
     dailyTradeLimit,
     autoRefresh,
     showSignals,
+    entryMethod,
   };
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComputedSignal } from "@/lib/signal-engine/types";
-import { isV9LiveDisplay } from "@/lib/signal-engine/v9/classify";
+import { isV10LiveDisplay, isV10PendingDisplay } from "@/lib/signal-engine/v10/validate";
 import { readTilStorageItem, writeTilStorageItem } from "@/lib/storage/tilStorageKeys";
 
 let audioCtx: AudioContext | null = null;
@@ -49,7 +49,7 @@ export function playTestAlert(volume = 0.3) {
   beep(620, 0.18, 0.42, volume);
 }
 
-function playSignalAlert(sig: ComputedSignal, volume: number) {
+function playLiveAlert(sig: ComputedSignal, volume: number) {
   if (sig.signalType === "STRONG FINAL") {
     if (sig.direction === "CALL") {
       beep(720, 0.14, 0, volume);
@@ -68,6 +68,16 @@ function playSignalAlert(sig: ComputedSignal, volume: number) {
       beep(900, 0.18, 0, volume);
       beep(620, 0.2, 0.22, volume);
     }
+  }
+}
+
+function playPendingAlert(sig: ComputedSignal, volume: number) {
+  beep(520, 0.12, 0, volume * 0.9, "triangle");
+  beep(680, 0.16, 0.14, volume * 0.85, "triangle");
+  if (sig.direction === "CALL") {
+    beep(780, 0.2, 0.32, volume * 0.8, "triangle");
+  } else {
+    beep(420, 0.2, 0.32, volume * 0.8, "triangle");
   }
 }
 
@@ -90,18 +100,19 @@ function saveAlertStore(store: { date: string; ids: string[] }) {
   writeTilStorageItem("alertedDaily", JSON.stringify(store));
 }
 
-/** Play at most one new LIVE (V9) alert per scan. */
+/** Play at most one new V10 LIVE or Pending Order alert per scan. */
 export function playScanAlerts(signals: ComputedSignal[], volume = 0.3) {
   if (!soundEnabled) return;
   const store = loadAlertStore();
   const allowed = signals.filter(
     (s) =>
-      isV9LiveDisplay(s) &&
+      (isV10LiveDisplay(s) || isV10PendingDisplay(s)) &&
       (s.signalType === "FINAL TRADE" || s.signalType === "STRONG FINAL"),
   );
   for (const s of allowed) {
     if (!store.ids.includes(s.signalUid)) {
-      playSignalAlert(s, volume);
+      if (isV10PendingDisplay(s)) playPendingAlert(s, volume);
+      else playLiveAlert(s, volume);
       store.ids.push(s.signalUid);
       saveAlertStore(store);
       break;

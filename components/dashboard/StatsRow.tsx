@@ -14,11 +14,13 @@ export function StatsRow({
 }) {
   if (!visible) return null;
 
-  const live = v9Meta?.liveCount ?? signals.filter((s) => s.v9Layer === "LIVE").length;
+  const live = v9Meta?.v10LiveCount ?? v9Meta?.liveCount ?? signals.filter((s) => s.v10Layer === "LIVE").length;
+  const pending =
+    v9Meta?.pendingCount ?? signals.filter((s) => s.v10Layer === "PENDING_ORDER_ELIGIBLE").length;
   const practice =
-    v9Meta?.practiceCount ?? signals.filter((s) => s.v9Layer === "PRACTICE").length;
+    v9Meta?.practiceCount ?? signals.filter((s) => s.v10Layer === "PRACTICE").length;
   const protectedCount = v9Meta?.protectedRiskyCount ?? 0;
-  const radar = v9Meta?.radarCount ?? signals.filter((s) => s.v9Layer === "RADAR").length;
+  const radar = v9Meta?.radarCount ?? signals.filter((s) => s.v10Layer === "RADAR").length;
   const top = signals[0];
 
   return (
@@ -36,16 +38,16 @@ export function StatsRow({
         <div className="sbl">Live Trades</div>
       </div>
       <div className="sb">
+        <div className="sbv" style={{ color: "var(--blue2)" }}>
+          {pending}
+        </div>
+        <div className="sbl">Pending Order</div>
+      </div>
+      <div className="sb">
         <div className="sbv" style={{ color: "var(--gold2)" }}>
           {practice}
         </div>
         <div className="sbl">Practice / Watch</div>
-      </div>
-      <div className="sb">
-        <div className="sbv" style={{ color: "var(--bear)" }}>
-          {protectedCount}
-        </div>
-        <div className="sbl">Protected</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ fontSize: 12, color: "var(--txt)" }}>
@@ -59,7 +61,7 @@ export function StatsRow({
         </div>
         <div className="sbl">API Calls</div>
       </div>
-      {radar > 0 && live === 0 ? (
+      {radar > 0 && live === 0 && pending === 0 ? (
         <div className="sb sb-wide">
           <div className="sbv" style={{ fontSize: 10, color: "var(--m3)", lineHeight: 1.4 }}>
             Protected Risky Setups: {protectedCount}

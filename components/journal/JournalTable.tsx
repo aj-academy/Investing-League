@@ -48,6 +48,8 @@ export interface JournalRow {
   capital_after?: number | null;
   risk_status?: string | null;
   v9_layer?: string | null;
+  v10_layer?: string | null;
+  entry_method?: string | null;
   v9_readiness?: number | null;
 }
 
@@ -456,7 +458,7 @@ export function JournalTable({
             r.entry_status,
             r.entry_drift,
           );
-          const counted = isCountedInWr(r.signal_type, r.grade, r.result, r.v9_layer);
+          const counted = isCountedInWr(r.signal_type, r.grade, r.result, r.v9_layer, r.v10_layer);
           const status = rowStatus[r.id] ?? "idle";
           const quoteStep = decimalsForPair(r.pair) === 3 ? "0.001" : "0.00001";
 

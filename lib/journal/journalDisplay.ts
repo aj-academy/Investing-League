@@ -20,9 +20,11 @@ export function isEligibleType(
   signalType?: string | null,
   grade?: string | null,
   v9Layer?: string | null,
+  v10Layer?: string | null,
 ) {
-  if (v9Layer && v9Layer !== "LIVE") return false;
-  return isRealTradeSignal(signalType, grade, v9Layer);
+  if (v10Layer && v10Layer !== "LIVE") return false;
+  if (!v10Layer && v9Layer && v9Layer !== "LIVE") return false;
+  return isRealTradeSignal(signalType, grade, v9Layer, v10Layer);
 }
 
 export function isCountedInWr(
@@ -30,8 +32,12 @@ export function isCountedInWr(
   grade?: string | null,
   result?: string | null,
   v9Layer?: string | null,
+  v10Layer?: string | null,
 ) {
-  return isEligibleType(signalType, grade, v9Layer) && (result === "Win" || result === "Loss");
+  return (
+    isEligibleType(signalType, grade, v9Layer, v10Layer) &&
+    (result === "Win" || result === "Loss" || result === "Refund")
+  );
 }
 
 export function signalTypeClass(type: string) {

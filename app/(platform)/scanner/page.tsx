@@ -16,8 +16,8 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "V9 Market Scanner",
-  description: "FX setup scanner — V9 Live · Practice · Radar layers",
+  title: "V10 Market Scanner",
+  description: "FX setup scanner — V10 Live · Pending Order · Practice · Radar",
 };
 
 export default async function ScannerPage() {
@@ -52,6 +52,7 @@ export default async function ScannerPage() {
     ),
     mode: (settings?.default_mode as "practice" | "live") || "practice",
     showSignals: "all",
+    entryMethod: "pending_order",
   };
 
   return (
