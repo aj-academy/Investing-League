@@ -833,8 +833,7 @@ export function DashboardClient({
         <div className="main-grid">
           <div className="signals-col">
             <V9ScanSummary meta={v9Meta} />
-            {(v9Meta?.v10LiveCount ?? v9Meta?.liveCount ?? 0) === 0 &&
-            (v9Meta as { pendingCount?: number } | null)?.pendingCount === 0 ? (
+            {(v9Meta?.liveCount ?? 0) === 0 ? (
               <OpportunityRadar items={v9Meta?.radarTop ?? []} />
             ) : null}
             {!scanning && !autoScanning && !displaySignals.length && !v9Meta ? (
@@ -858,11 +857,7 @@ export function DashboardClient({
             )}
             <WhyNoSignalPanel
               items={v9Meta?.whyNoSignal ?? []}
-              visible={
-                (v9Meta?.v10LiveCount ?? v9Meta?.liveCount ?? 0) === 0 &&
-                ((v9Meta as { pendingCount?: number } | null)?.pendingCount ?? 0) === 0 &&
-                Boolean(v9Meta)
-              }
+              visible={(v9Meta?.liveCount ?? 0) === 0 && Boolean(v9Meta)}
             />
           </div>
           <SupportPanel signals={displaySignals} errors={marketErrors} v9Meta={v9Meta} />

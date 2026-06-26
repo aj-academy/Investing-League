@@ -46,38 +46,37 @@ export function SignalCard({
   const v9Layer = sig.v9Layer;
   const isV10Live = v10Layer === "LIVE";
   const isV10Pending = v10Layer === "PENDING_ORDER_ELIGIBLE";
+  const isV10LivePermission = isV10Live || isV10Pending;
   const isV9Practice = v10Layer === "PRACTICE" || (v10Layer == null && v9Layer === "PRACTICE");
   const blocked = v10Layer === "REJECTED" || permission === "DO NOT TRADE";
-  const decClass = isV10Live
+  const decClass = isV10LivePermission
     ? "allowed"
-    : isV10Pending
-      ? "allowed"
-      : isV9Practice
-        ? "observe"
-        : blocked
-          ? "no"
-          : "observe";
-  const permColor = isV10Live
+    : isV9Practice
+      ? "observe"
+      : blocked
+        ? "no"
+        : "observe";
+  const permColor = isV10LivePermission
     ? "var(--bull)"
-    : isV10Pending
-      ? "var(--blue2)"
-      : isV9Practice
-        ? "var(--gold2)"
-        : blocked
-          ? "var(--bear)"
-          : "var(--gold)";
-  const permLabel = isV10Live
+    : isV9Practice
+      ? "var(--gold2)"
+      : blocked
+        ? "var(--bear)"
+        : "var(--gold)";
+  const permLabel = isV10LivePermission
     ? "✅ LIVE TRADE PERMISSION"
-    : isV10Pending
-      ? "📋 PENDING ORDER ELIGIBLE"
-      : isV9Practice
-        ? "🧪 PRACTICE ONLY"
-        : blocked
-          ? "⛔ RISK REJECTED"
-          : v10Layer === "RADAR" || v9Layer === "RADAR"
-            ? "📡 SETUP FORMING"
-            : "⚠️ OBSERVE ONLY";
+    : isV9Practice
+      ? "🧪 PRACTICE ONLY"
+      : blocked
+        ? "⛔ RISK REJECTED"
+        : v10Layer === "RADAR" || v9Layer === "RADAR"
+          ? "📡 SETUP FORMING"
+          : "⚠️ OBSERVE ONLY";
   const setupQuality = sig.setupQuality ?? sig.conf;
+  const timingLabel =
+    isV10Pending && sig.v10TimingStatus === "PENDING ORDER ELIGIBLE"
+      ? "LIVE TRADE PERMISSION"
+      : sig.v10TimingStatus || "LIVE TRADE PERMISSION";
 
   return (
     <div
@@ -93,11 +92,9 @@ export function SignalCard({
           <div className="small">
             {isV9Practice
               ? "Practice Signal — Demo / observation only. Not live trade permission."
-              : isV10Pending
-                ? `${sig.v10TimingStatus || "PENDING ORDER ELIGIBLE"} · Place pending order for planned entry time`
-                : isV10Live
-                  ? `${sig.v10TimingStatus || "ENTRY WINDOW OPEN"} · Valid ${sig.validUntilSec ?? "—"}s · ${sig.signalType} · gap ${sig.scoreGap}`
-                  : `${sig.signalType} · ${sig.grade} grade · gap ${sig.scoreGap}`}
+              : isV10LivePermission
+                ? `${timingLabel} · Valid ${sig.validUntilSec ?? "—"}s · ${sig.signalType} · gap ${sig.scoreGap}`
+                : `${sig.signalType} · ${sig.grade} grade · gap ${sig.scoreGap}`}
           </div>
         </div>
         <div className="mono" style={{ color: permColor, fontFamily: "var(--mono)" }}>

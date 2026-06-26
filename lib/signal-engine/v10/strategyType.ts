@@ -26,6 +26,13 @@ export function classifyStrategyType(sig: ComputedSignal): V10StrategyType {
   }
 
   if (
+    (sig.direction === "CALL" && sig.emaBullTrend && sig.wmaBullTrend) ||
+    (sig.direction === "PUT" && sig.emaBearTrend && sig.wmaBearTrend)
+  ) {
+    return "TREND_PULLBACK";
+  }
+
+  if (
     sig.candleStrengthText === "STRONG" &&
     Number(sig.adx) >= 22 &&
     !sig.bigCandle &&

@@ -14,9 +14,11 @@ export function StatsRow({
 }) {
   if (!visible) return null;
 
-  const live = v9Meta?.v10LiveCount ?? v9Meta?.liveCount ?? signals.filter((s) => s.v10Layer === "LIVE").length;
-  const pending =
-    v9Meta?.pendingCount ?? signals.filter((s) => s.v10Layer === "PENDING_ORDER_ELIGIBLE").length;
+  const livePermission =
+    v9Meta?.liveCount ??
+    signals.filter(
+      (s) => s.v10Layer === "LIVE" || s.v10Layer === "PENDING_ORDER_ELIGIBLE",
+    ).length;
   const practice =
     v9Meta?.practiceCount ?? signals.filter((s) => s.v10Layer === "PRACTICE").length;
   const protectedCount = v9Meta?.protectedRiskyCount ?? 0;
@@ -33,15 +35,9 @@ export function StatsRow({
       </div>
       <div className="sb">
         <div className="sbv" style={{ color: "var(--bull)" }}>
-          {live}
+          {livePermission}
         </div>
-        <div className="sbl">Live Trades</div>
-      </div>
-      <div className="sb">
-        <div className="sbv" style={{ color: "var(--blue2)" }}>
-          {pending}
-        </div>
-        <div className="sbl">Pending Order</div>
+        <div className="sbl">Live Permission</div>
       </div>
       <div className="sb">
         <div className="sbv" style={{ color: "var(--gold2)" }}>
@@ -61,7 +57,7 @@ export function StatsRow({
         </div>
         <div className="sbl">API Calls</div>
       </div>
-      {radar > 0 && live === 0 && pending === 0 ? (
+      {radar > 0 && livePermission === 0 ? (
         <div className="sb sb-wide">
           <div className="sbv" style={{ fontSize: 10, color: "var(--m3)", lineHeight: 1.4 }}>
             Protected Risky Setups: {protectedCount}

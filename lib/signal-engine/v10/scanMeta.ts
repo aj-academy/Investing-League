@@ -55,13 +55,9 @@ export function buildV10ScanMeta(
     status = "DATA";
   } else if (!signals.length) {
     status = "EMPTY";
-  } else if (v10LiveCount > 0) {
-    headline = `${v10LiveCount} Live Trade Permission${v10LiveCount > 1 ? "s" : ""}`;
+  } else if (liveCount > 0) {
+    headline = `${liveCount} Live Trade Permission${liveCount > 1 ? "s" : ""}`;
     subline = `Best setup: ${best?.pair} ${best?.direction}. Enter only inside valid window.`;
-    status = "LIVE";
-  } else if (pendingCount > 0) {
-    headline = `${pendingCount} Pending Order Eligible`;
-    subline = `Place pending order before entry time — ${best?.pair} ${best?.direction}.`;
     status = "LIVE";
   } else if (practiceCount > 0) {
     headline = `No Trade Allowed Yet · ${practiceCount} Practice Setup${practiceCount > 1 ? "s" : ""}`;

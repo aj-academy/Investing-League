@@ -72,8 +72,11 @@ export function isPendingEligibleWindow(
   sig: { entryAtIso?: string; tf: string },
   now: Date,
 ): boolean {
-  const status = evaluatePendingTiming(tf, sig, now);
-  return status === "PENDING ORDER ELIGIBLE" || status === "FINAL VALIDATION REQUIRED";
+  const toEntry = secondsToEntry(sig, now);
+  if (toEntry <= 0) return false;
+  const cfg = V10_CONFIG.pending[tfKey(tf)];
+  // ~1 min before entry through final validation (matches pending-order workflow)
+  return toEntry >= cfg.finalValidationEndSec && toEntry <= cfg.setupWindowStartSec;
 }
 
 export function evaluateTiming(
@@ -87,10 +90,16 @@ export function evaluateTiming(
     : evaluateManualTiming(tf, sig, now);
 }
 
-export function isSessionAllowedForV10(tf: string, now: Date): boolean {
+export function isSessionAllowedForV10(
+  tf: string,
+  now: Date,
+  sessionFilter = "any",
+): boolean {
   const h = now.getUTCHours() + now.getUTCMinutes() / 60;
-  const key = tfKey(tf);
-  const cfg = V10_CONFIG.session[key];
+  if (sessionFilter === "london") return h >= 8 && h < 17;
+  if (sessionFilter === "newyork") return h >= 13 && h < 22;
+  if (sessionFilter === "overlap") return h >= 12 && h < 17;
+  const cfg = V10_CONFIG.session[tfKey(tf)];
   return h >= cfg.startUtcHour && h < cfg.endUtcHour;
 }
 

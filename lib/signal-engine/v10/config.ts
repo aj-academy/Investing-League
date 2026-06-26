@@ -47,7 +47,8 @@ export const V10_CONFIG = {
     },
   },
   session: {
-    "5min": { startUtcHour: 12, endUtcHour: 17 },
+    /** Liquid London → NY hours (was 12–17 UTC only — blocked most 5m scans). */
+    "5min": { startUtcHour: 8, endUtcHour: 22 },
     "15min": { startUtcHour: 8, endUtcHour: 22, bestStartUtcHour: 12, bestEndUtcHour: 17 },
   },
   practiceMinQuality: 65,

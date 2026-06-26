@@ -104,10 +104,11 @@ function runStrictChecks(
   }
 
   if (isWeekendMarket(opts.now)) blockers.push("Weekend / thin market");
-  if (!isSessionAllowedForV10(sig.tf, opts.now || new Date())) {
+  if (!isSessionAllowedForV10(sig.tf, opts.now || new Date(), opts.sessionFilter)) {
     blockers.push("Outside strict session window");
   }
-  if (isNewsBlocked()) blockers.push("News-risk window active");
+  const news = isNewsBlocked();
+  if (news) blockers.push(`News-risk window active: ${news.name}`);
   if (sig.sidewaysMarket) blockers.push("Ranging/choppy market");
 
   return blockers;

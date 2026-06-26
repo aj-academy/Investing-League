@@ -19,11 +19,7 @@ export function V9ScanSummary({ meta }: { meta: V9ScanMeta | null }) {
       <div className="v9-metrics">
         <div className="v9-metric">
           <b style={{ color: "var(--bull)" }}>{meta.liveCount}</b>
-          <span>Live</span>
-        </div>
-        <div className="v9-metric">
-          <b style={{ color: "var(--blue2)" }}>{meta.pendingCount ?? 0}</b>
-          <span>Pending</span>
+          <span>Live Permission</span>
         </div>
         <div className="v9-metric">
           <b style={{ color: "var(--gold2)" }}>{meta.practiceCount}</b>
