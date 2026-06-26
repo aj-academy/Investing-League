@@ -3,7 +3,11 @@ export function isRealTradeSignal(
   grade?: string | null,
   v9Layer?: string | null,
   v10Layer?: string | null,
+  v10Permission?: string | null,
 ) {
+  if (v10Permission) {
+    return v10Permission === "TRADE_ALLOWED";
+  }
   if (v10Layer) {
     if (v10Layer !== "LIVE") return false;
   } else if (v9Layer && v9Layer !== "LIVE") {
@@ -17,19 +21,37 @@ export function isRealTradeSignal(
     "LATE ENTRY",
     "CORRELATION RISK",
     "LIVE SELECTOR WATCH",
+    "V10 CAUTION SIGNAL",
+    "V10 AVOID TRADE",
   ];
   if (signalType && excluded.includes(signalType)) return false;
-  return signalType === "STRONG FINAL" || signalType === "FINAL TRADE";
+  return (
+    signalType === "STRONG FINAL" ||
+    signalType === "FINAL TRADE" ||
+    signalType === "V10 TRADE ALLOWED"
+  );
 }
 
 export function isPendingOrderTradeSignal(
   signalType?: string | null,
   grade?: string | null,
   v10Layer?: string | null,
+  v10Permission?: string | null,
 ) {
+  if (v10Permission) {
+    return v10Permission === "PENDING_ORDER_SIGNAL";
+  }
   if (v10Layer !== "PENDING_ORDER_ELIGIBLE") return false;
   if (grade === "B") return false;
-  return signalType === "STRONG FINAL" || signalType === "FINAL TRADE";
+  return (
+    signalType === "STRONG FINAL" ||
+    signalType === "FINAL TRADE" ||
+    signalType === "V10 PENDING SIGNAL"
+  );
+}
+
+export function isCautionOrAvoid(v10Permission?: string | null): boolean {
+  return v10Permission === "CAUTION_SIGNAL" || v10Permission === "AVOID_TRADE";
 }
 
 export function calculateRealWinRate(
@@ -39,12 +61,20 @@ export function calculateRealWinRate(
     result?: string | null;
     v9_layer?: string | null;
     v10_layer?: string | null;
+    v10_permission?: string | null;
     entry_method?: string | null;
   }[],
 ) {
   const eligible = rows.filter(
     (r) =>
-      isRealTradeSignal(r.signal_type, r.grade, r.v9_layer, r.v10_layer) &&
+      isRealTradeSignal(
+        r.signal_type,
+        r.grade,
+        r.v9_layer,
+        r.v10_layer,
+        r.v10_permission,
+      ) &&
+      !isCautionOrAvoid(r.v10_permission) &&
       (r.result === "Win" || r.result === "Loss" || r.result === "Refund"),
   );
   const wins = eligible.filter((r) => r.result === "Win").length;
@@ -63,13 +93,21 @@ export function calculatePendingOrderWinRate(
     grade?: string | null;
     result?: string | null;
     v10_layer?: string | null;
+    v10_permission?: string | null;
     entry_method?: string | null;
   }[],
 ) {
   const eligible = rows.filter(
     (r) =>
-      isPendingOrderTradeSignal(r.signal_type, r.grade, r.v10_layer) &&
-      (r.entry_method === "pending_order" || r.v10_layer === "PENDING_ORDER_ELIGIBLE") &&
+      isPendingOrderTradeSignal(
+        r.signal_type,
+        r.grade,
+        r.v10_layer,
+        r.v10_permission,
+      ) &&
+      (r.entry_method === "pending_order" ||
+        r.v10_permission === "PENDING_ORDER_SIGNAL" ||
+        r.v10_layer === "PENDING_ORDER_ELIGIBLE") &&
       (r.result === "Win" || r.result === "Loss" || r.result === "Refund"),
   );
   const wins = eligible.filter((r) => r.result === "Win").length;
@@ -88,13 +126,16 @@ export function calculateManualEntryWinRate(
     grade?: string | null;
     result?: string | null;
     v10_layer?: string | null;
+    v10_permission?: string | null;
     entry_method?: string | null;
   }[],
 ) {
   const eligible = rows.filter(
     (r) =>
-      isRealTradeSignal(r.signal_type, r.grade, null, r.v10_layer) &&
-      (r.entry_method === "manual" || (!r.entry_method && r.v10_layer === "LIVE")) &&
+      isRealTradeSignal(r.signal_type, r.grade, null, r.v10_layer, r.v10_permission) &&
+      (r.entry_method === "manual" ||
+        (!r.entry_method && r.v10_permission === "TRADE_ALLOWED") ||
+        r.v10_layer === "LIVE") &&
       (r.result === "Win" || r.result === "Loss" || r.result === "Refund"),
   );
   const wins = eligible.filter((r) => r.result === "Win").length;

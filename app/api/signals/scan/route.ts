@@ -296,7 +296,12 @@ export async function POST(request: Request) {
       allowEurGbp5Min,
     });
 
-    const filteredSignals = filterSignals(finalized, {
+    const v9Meta = buildV10ScanMeta(finalized, {
+      apiCalls: providerCalls,
+      marketErrors,
+    });
+
+    const gradeFiltered = filterSignals(finalized, {
       pairs,
       timeframes,
       mode,
@@ -305,24 +310,8 @@ export async function POST(request: Request) {
       sessionFilter,
     });
 
-    const v9Meta = buildV10ScanMeta(finalized, {
-      apiCalls: providerCalls,
-      marketErrors,
-    });
-
-    const toPersist =
-      filteredSignals.length > 0
-        ? filteredSignals
-        : mode === "practice" && finalized.length > 0
-          ? finalized
-          : [];
-
-    const toDisplay =
-      filteredSignals.length > 0
-        ? filteredSignals
-        : finalized.length > 0
-          ? finalized
-          : [];
+    const toDisplay = finalized.length > 0 ? finalized : gradeFiltered;
+    const toPersist = toDisplay;
 
     const admin = process.env.SUPABASE_SERVICE_ROLE_KEY
       ? createAdminClient()
@@ -383,7 +372,7 @@ export async function POST(request: Request) {
     await supabase
       .from("scan_sessions")
       .update({
-        total_signals: filteredSignals.length || rawSignals.length,
+        total_signals: toDisplay.length || rawSignals.length,
         provider_calls: providerCalls,
         cache_hits: cacheHits,
         status: "completed",
@@ -401,7 +390,7 @@ export async function POST(request: Request) {
       metadata: {
         pairs,
         timeframes,
-        signalCount: filteredSignals.length,
+        signalCount: toDisplay.length,
         rawSignalCount: rawSignals.length,
         journalSaved,
         signalsSaved,
@@ -440,7 +429,7 @@ export async function POST(request: Request) {
       planLimits,
       lockedPairs: getLockedPairs(plan),
       rawSignalCount: rawSignals.length,
-      filteredSignalCount: filteredSignals.length,
+      filteredSignalCount: toDisplay.length,
       journalSaved,
       signalsSaved,
       persistErrors: clientPersistErrors,

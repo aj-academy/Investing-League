@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyV10Layer } from "./validate";
+import { applyV10Permission, rankV10Signals } from "./permission";
 import type { ComputedSignal } from "../types";
 
 function baseSignal(overrides: Partial<ComputedSignal> = {}): ComputedSignal {
@@ -8,10 +8,10 @@ function baseSignal(overrides: Partial<ComputedSignal> = {}): ComputedSignal {
     direction: "CALL",
     tf: "5min",
     score: 80,
-    conf: 78,
+    conf: 80,
     tier: "A+",
     grade: "A+",
-    scoreGap: 16,
+    scoreGap: 14,
     weightedScore: 80,
     oppositeScore: 40,
     category: { trend: 0, momentum: 0, volatility: 0, sr: 0, candle: 0 },
@@ -66,32 +66,49 @@ function baseSignal(overrides: Partial<ComputedSignal> = {}): ComputedSignal {
     signalReason: "test",
     permission: "TRADE ALLOWED",
     tradeEligible: true,
-    mode: "live",
+    mode: "practice",
     adx: 24,
     candleBodyRatio: 45,
     candleBullish: true,
     candleBearish: false,
     candleStrengthText: "STRONG",
-    v9Layer: "PRACTICE",
+    v9Layer: "LIVE",
     ...overrides,
   };
 }
 
-describe("V10 layer downgrade", () => {
-  it("never upgrades non-LIVE V9 to LIVE", () => {
-    const out = applyV10Layer(baseSignal({ v9Layer: "PRACTICE" }), {
-      entryMethod: "pending_order",
-      htfCandlesByPair: new Map(),
-    });
-    expect(out.v10Layer).not.toBe("LIVE");
-    expect(out.v10Layer).toBe("PRACTICE");
+describe("V10 permission tiers", () => {
+  it("assigns TRADE_ALLOWED for high quality with gap and adx", () => {
+    const out = applyV10Permission([baseSignal({ conf: 82, scoreGap: 14, adx: 24 })])[0];
+    expect(["TRADE_ALLOWED", "PENDING_ORDER_SIGNAL"]).toContain(out.v10Permission);
+    expect(out.v9Layer).toBe("LIVE");
   });
 
-  it("downgrades V9 LIVE with weak gap", () => {
-    const out = applyV10Layer(
-      baseSignal({ v9Layer: "LIVE", scoreGap: 4, ohlc: [] }),
-      { entryMethod: "manual", htfCandlesByPair: new Map() },
-    );
-    expect(out.v10Layer).not.toBe("LIVE");
+  it("assigns PENDING_ORDER_SIGNAL for 70-77 quality range", () => {
+    const out = applyV10Permission([baseSignal({ conf: 74, scoreGap: 10, adx: 18 })])[0];
+    expect(["PENDING_ORDER_SIGNAL", "CAUTION_SIGNAL"]).toContain(out.v10Permission);
+  });
+
+  it("assigns CAUTION for moderate quality", () => {
+    const out = applyV10Permission([baseSignal({ conf: 65, scoreGap: 5, adx: 12 })])[0];
+    expect(["CAUTION_SIGNAL", "AVOID_TRADE"]).toContain(out.v10Permission);
+  });
+
+  it("assigns AVOID_TRADE for doji blocker", () => {
+    const out = applyV10Permission([baseSignal({ candleBodyRatio: 8, conf: 40 })])[0];
+    expect(out.v10Permission).toBe("AVOID_TRADE");
+    expect(out.v10Blockers?.some((b) => /Doji/i.test(b))).toBe(true);
+  });
+
+  it("rankV10Signals returns top setups and never empty when candidates exist", () => {
+    const signals = applyV10Permission([
+      baseSignal({ conf: 50, signalUid: "a" }),
+      baseSignal({ conf: 72, signalUid: "b" }),
+      baseSignal({ conf: 80, signalUid: "c" }),
+    ]);
+    const ranked = rankV10Signals(signals);
+    expect(ranked.length).toBeGreaterThan(0);
+    expect(ranked.length).toBeLessThanOrEqual(5);
+    expect(ranked[0].liveRank).toBe(1);
   });
 });

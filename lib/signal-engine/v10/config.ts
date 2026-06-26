@@ -1,66 +1,45 @@
-/** V10 strict binary permission thresholds — never loosens V9 LIVE rules. */
+/** V10 permission thresholds — visibility + honest trade labels (24/5 scans). */
 export const V10_CONFIG = {
-  manual: {
-    "5min": {
-      scoreGap: 12,
-      setupQuality: 72,
-      adx: 22,
-      candleBodyRatio: 40,
-      entryOpenSec: 5,
-      entryCloseSec: 25,
-      cautionCloseSec: 45,
-    },
-    "15min": {
-      scoreGap: 8,
-      setupQuality: 72,
-      adx: 22,
-      candleBodyRatio: 35,
-      entryOpenSec: 10,
-      entryCloseSec: 120,
-      cautionCloseSec: 150,
-    },
-  },
-  pending: {
-    "5min": {
-      scoreGap: 14,
-      setupQuality: 76,
-      adx: 22,
-      candleBodyRatio: 40,
-      setupWindowStartSec: 90,
-      setupWindowEndSec: 20,
-      bestStartSec: 60,
-      bestEndSec: 20,
-      finalValidationStartSec: 20,
-      finalValidationEndSec: 5,
-    },
-    "15min": {
-      scoreGap: 10,
-      setupQuality: 76,
-      adx: 22,
-      candleBodyRatio: 35,
-      setupWindowStartSec: 180,
-      setupWindowEndSec: 30,
-      bestStartSec: 120,
-      bestEndSec: 30,
-      finalValidationStartSec: 30,
-      finalValidationEndSec: 10,
-    },
-  },
-  session: {
-    /** Liquid London → NY hours (was 12–17 UTC only — blocked most 5m scans). */
-    "5min": { startUtcHour: 8, endUtcHour: 22 },
-    "15min": { startUtcHour: 8, endUtcHour: 22, bestStartUtcHour: 12, bestEndUtcHour: 17 },
-  },
-  practiceMinQuality: 65,
-  radarMinQuality: 50,
+  tradeAllowedQuality: 78,
+  pendingSignalQuality: 70,
+  cautionSignalQuality: 62,
+
+  tradeGap5: 12,
+  tradeGap15: 8,
+
+  pendingGap5: 9,
+  pendingGap15: 6,
+
+  minAdxTrade: 20,
+  minAdxPending: 16,
+
+  candleBodyTrade5: 35,
+  candleBodyTrade15: 30,
+
+  candleBodyPending5: 25,
+  candleBodyPending15: 22,
+
+  bbCallExtreme: 0.97,
+  bbPutExtreme: 0.03,
   bbCallBlock: 0.95,
   bbPutBlock: 0.05,
-  rsiCallMin: 52,
+
+  maxSignalsToShow: 5,
+
+  /** RSI bands for momentum confirmation (Step 5). */
+  rsiCallMin: 50,
   rsiCallMax: 72,
-  rsiPutMax: 48,
+  rsiCallHardBlock: 78,
+  rsiPutMax: 50,
   rsiPutMin: 28,
+  rsiPutHardBlock: 22,
+
   stochCallBlock: 85,
   stochPutBlock: 15,
+
   macdFlatNonJpy: 0.000001,
   macdFlatJpy: 0.0001,
+
+  practiceMinQuality: 65,
+  radarMinQuality: 50,
 } as const;

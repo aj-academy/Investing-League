@@ -17,6 +17,11 @@ export type V9ScanMeta = {
   whyNoSignal: V9WhyItem[];
   pendingCount?: number;
   v10LiveCount?: number;
+  tradeAllowedCount?: number;
+  pendingOrderCount?: number;
+  cautionCount?: number;
+  avoidCount?: number;
+  avgSetupQuality?: number;
   entryMethod?: string;
 };
 

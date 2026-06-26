@@ -36,6 +36,7 @@ import { SessionPills } from "./SessionPills";
 import { SignalCard } from "./SignalCard";
 import { StatsRow } from "./StatsRow";
 import { SupportPanel } from "./SupportPanel";
+import { BestSignalsNow } from "./BestSignalsNow";
 import { V9ScanSummary } from "./V9ScanSummary";
 import { OpportunityRadar } from "./OpportunityRadar";
 import { WhyNoSignalPanel } from "./WhyNoSignalPanel";
@@ -833,7 +834,9 @@ export function DashboardClient({
         <div className="main-grid">
           <div className="signals-col">
             <V9ScanSummary meta={v9Meta} />
-            {(v9Meta?.liveCount ?? 0) === 0 ? (
+            <BestSignalsNow signals={displaySignals} />
+            {(v9Meta?.tradeAllowedCount ?? v9Meta?.v10LiveCount ?? 0) === 0 &&
+            (v9Meta?.pendingOrderCount ?? v9Meta?.pendingCount ?? 0) === 0 ? (
               <OpportunityRadar items={v9Meta?.radarTop ?? []} />
             ) : null}
             {!scanning && !autoScanning && !displaySignals.length && !v9Meta ? (
@@ -857,7 +860,11 @@ export function DashboardClient({
             )}
             <WhyNoSignalPanel
               items={v9Meta?.whyNoSignal ?? []}
-              visible={(v9Meta?.liveCount ?? 0) === 0 && Boolean(v9Meta)}
+              visible={
+                (v9Meta?.tradeAllowedCount ?? v9Meta?.v10LiveCount ?? 0) === 0 &&
+                (v9Meta?.pendingOrderCount ?? v9Meta?.pendingCount ?? 0) === 0 &&
+                Boolean(v9Meta)
+              }
             />
           </div>
           <SupportPanel signals={displaySignals} errors={marketErrors} v9Meta={v9Meta} />

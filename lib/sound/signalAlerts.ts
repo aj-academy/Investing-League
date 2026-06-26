@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComputedSignal } from "@/lib/signal-engine/types";
-import { isV10LiveDisplay, isV10PendingDisplay } from "@/lib/signal-engine/v10/validate";
+import { isV10LiveDisplay, isV10PendingDisplay, isV10TradeTier } from "@/lib/signal-engine/v10/validate";
 import { readTilStorageItem, writeTilStorageItem } from "@/lib/storage/tilStorageKeys";
 
 let audioCtx: AudioContext | null = null;
@@ -106,8 +106,11 @@ export function playScanAlerts(signals: ComputedSignal[], volume = 0.3) {
   const store = loadAlertStore();
   const allowed = signals.filter(
     (s) =>
-      (isV10LiveDisplay(s) || isV10PendingDisplay(s)) &&
-      (s.signalType === "FINAL TRADE" || s.signalType === "STRONG FINAL"),
+      isV10TradeTier(s) &&
+      (s.v10Permission === "TRADE_ALLOWED" ||
+        s.v10Permission === "PENDING_ORDER_SIGNAL" ||
+        s.signalType === "FINAL TRADE" ||
+        s.signalType === "STRONG FINAL"),
   );
   for (const s of allowed) {
     if (!store.ids.includes(s.signalUid)) {

@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 
 @import "tailwindcss";
 @source "../components";
@@ -645,6 +645,21 @@
 .v9-metric b{display:block;font-family:var(--mono);font-size:16px;margin-bottom:3px}
 .v9-metric span{font-size:9px;color:var(--m3);letter-spacing:1px;text-transform:uppercase}
 .radar-wrap{grid-column:1/-1;background:var(--p1);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.best-signals-wrap{grid-column:1/-1;background:var(--p1);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.best-signals-empty{grid-column:1/-1;background:var(--p1);border:1px dashed var(--bd2);border-radius:14px;padding:14px;margin-bottom:12px}
+.best-signals-title{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:2px;margin:0 0 10px}
+.best-signals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:9px}
+.best-signal-card{background:var(--p2);border:1px solid var(--bd2);border-radius:12px;padding:11px}
+.best-signal-card.call{border-left:3px solid var(--bull)}
+.best-signal-card.put{border-left:3px solid var(--bear)}
+.best-signal-head{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.best-signal-pair{font-family:var(--mono);font-size:12px;color:var(--txt2)}
+.best-signal-tf{font-size:10px;color:var(--m3)}
+.best-signal-badge{font-size:10px;font-weight:700;padding:6px 8px;border-radius:8px;margin-bottom:8px;line-height:1.35}
+.best-signal-metrics{display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--m2);margin-bottom:6px}
+.best-signal-reason,.best-signal-action,.best-signal-warn,.best-signal-block{font-size:11px;line-height:1.4;margin:4px 0}
+.best-signal-warn{color:var(--gold2)}
+.best-signal-block{color:var(--bear)}
 .radar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .radar-head h3{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:2px;margin:0}
 .radar-note{font-size:11px;color:var(--m3);margin:0}

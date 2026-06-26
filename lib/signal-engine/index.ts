@@ -22,13 +22,17 @@ export { applyV9Layers, filterByShowSignals, isV9LiveDisplay, shouldJournalV9Sig
 export { buildV9ScanMeta } from "./v9/scanMeta";
 export {
   applyV10Layers,
+  applyV10Permission,
+  rankV10Signals,
   filterByShowSignalsV10,
   isV10LiveDisplay,
   isV10PendingDisplay,
+  isV10TradeTier,
   shouldJournalV10Signal,
+  countByV10Permission,
 } from "./v10/validate";
 export { buildV10ScanMeta } from "./v10/scanMeta";
-export type { EntryMethod } from "./v10/types";
+export type { EntryMethod, V10Permission } from "./v10/types";
 export * from "./session";
 export { gradeAllowed, type MinGradeFilter } from "./permission";
 export { isNewsBlocked } from "./v8/news";
@@ -85,8 +89,6 @@ export function filterSignals(
   signals: ComputedSignal[],
   options: ScanOptions
 ): ComputedSignal[] {
-  if (!isWeekendMarket() && !sessionOk(options.sessionFilter)) return [];
-
   const minGrade = options.minGrade ?? (options.showBSignals ? "B" : "A");
 
   return signals

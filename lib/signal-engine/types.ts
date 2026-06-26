@@ -4,7 +4,7 @@ import type { EntryMethod, V10Layer, V10StrategyType, V10TimingStatus } from "./
 export type Direction = "CALL" | "PUT";
 export type TradingMode = "practice" | "live";
 export type { V9Layer };
-export type { EntryMethod, V10Layer, V10StrategyType, V10TimingStatus } from "./v10/types";
+export type { EntryMethod, V10Layer, V10Permission, V10StrategyType, V10TimingStatus } from "./v10/types";
 export type SignalType =
   | "STRONG FINAL"
   | "FINAL TRADE"
@@ -133,6 +133,11 @@ export interface ComputedSignal {
   v9Blocker?: string;
   v9NextCondition?: string;
   entryMethod?: EntryMethod;
+  v10Permission?: import("./v10/types").V10Permission;
+  v10Label?: string;
+  v10Action?: string;
+  v10Quality?: number;
+  v10Warnings?: string[];
   v10Layer?: V10Layer;
   v10Readiness?: number;
   v10TimingStatus?: V10TimingStatus;

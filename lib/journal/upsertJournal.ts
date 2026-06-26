@@ -57,9 +57,12 @@ export function buildJournalRow(
     planned_entry_time: sig.entryTime,
     signal_price: parseFloat(sig.price),
     v10_layer: sig.v10Layer ?? null,
+    v10_permission: sig.v10Permission ?? null,
     v10_timing_status: sig.v10TimingStatus ?? null,
     v10_strategy_type: sig.v10StrategyType ?? null,
     v10_blockers: sig.v10Blockers?.join(" · ") || null,
+    v10_warnings: sig.v10Warnings?.join(" · ") || null,
+    v10_quality: sig.v10Quality ?? sig.conf ?? null,
   };
 }
 

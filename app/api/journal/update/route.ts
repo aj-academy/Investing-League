@@ -88,12 +88,21 @@ export async function PATCH(request: Request) {
     const v9Layer = (row as { v9_layer?: string | null }).v9_layer ?? null;
     const v10Layer = (row as { v10_layer?: string | null }).v10_layer ?? null;
     const entryMethod = (row as { entry_method?: string | null }).entry_method ?? null;
-    const eligibleForWr = isEligibleType(row.signal_type, row.grade, v9Layer, v10Layer);
+    const v10Permission = (row as { v10_permission?: string | null }).v10_permission ?? null;
+    const eligibleForWr = isEligibleType(
+      row.signal_type,
+      row.grade,
+      v9Layer,
+      v10Layer,
+      v10Permission,
+    );
 
     const pendingDrift =
       opening != null &&
       row.signal_entry_price != null &&
-      (entryMethod === "pending_order" || v10Layer === "PENDING_ORDER_ELIGIBLE")
+      (entryMethod === "pending_order" ||
+        v10Permission === "PENDING_ORDER_SIGNAL" ||
+        v10Layer === "PENDING_ORDER_ELIGIBLE")
         ? computePendingDriftPips(Number(row.signal_entry_price), opening, row.pair)
         : null;
 

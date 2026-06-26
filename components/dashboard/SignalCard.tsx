@@ -2,6 +2,7 @@
 
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import { resolvePermission } from "@/lib/signal-engine/permission";
+import type { V10Permission } from "@/lib/signal-engine/v10/types";
 import { decimalsForPair, isJpyPair } from "@/lib/utils";
 import { displayEntryTime, displayExpTime } from "./signalTime";
 import { ConfRing, MiniChart } from "./MiniChart";
@@ -20,6 +21,37 @@ function indClass(v: string, kind: "r" | "s" | "b" | "m" | "c") {
   if (kind === "b") return n < 20 ? "bc" : n > 80 ? "rc" : "wc";
   if (kind === "m") return n > 0 ? "bc" : "rc";
   return n < -100 ? "bc" : n > 100 ? "rc" : "wc";
+}
+
+function v10Badge(permission?: V10Permission) {
+  switch (permission) {
+    case "TRADE_ALLOWED":
+      return {
+        label: "✅ TRADE ALLOWED — Strongest setup now",
+        color: "var(--bull)",
+        decClass: "allowed",
+      };
+    case "PENDING_ORDER_SIGNAL":
+      return {
+        label: "📋 PENDING ORDER SIGNAL — Final validation required",
+        color: "var(--blue2)",
+        decClass: "allowed",
+      };
+    case "CAUTION_SIGNAL":
+      return {
+        label: "⚠️ CAUTION SIGNAL — Practice / observe only",
+        color: "var(--gold2)",
+        decClass: "observe",
+      };
+    case "AVOID_TRADE":
+      return {
+        label: "⛔ AVOID TRADE — Weak market condition",
+        color: "var(--m3)",
+        decClass: "no",
+      };
+    default:
+      return null;
+  }
 }
 
 export function SignalCard({
@@ -42,45 +74,33 @@ export function SignalCard({
   const sup1 = sig.nearSup ? sig.nearSup.toFixed(dp) : "—";
   const piv = sig.pivs.P.toFixed(dp);
   const permission = resolvePermission(sig);
-  const v10Layer = sig.v10Layer;
+  const v10Permission = sig.v10Permission;
+  const badge = v10Badge(v10Permission);
   const v9Layer = sig.v9Layer;
-  const isV10Live = v10Layer === "LIVE";
-  const isV10Pending = v10Layer === "PENDING_ORDER_ELIGIBLE";
-  const isV10LivePermission = isV10Live || isV10Pending;
-  const isV9Practice = v10Layer === "PRACTICE" || (v10Layer == null && v9Layer === "PRACTICE");
-  const blocked = v10Layer === "REJECTED" || permission === "DO NOT TRADE";
-  const decClass = isV10LivePermission
-    ? "allowed"
-    : isV9Practice
-      ? "observe"
-      : blocked
-        ? "no"
-        : "observe";
-  const permColor = isV10LivePermission
-    ? "var(--bull)"
-    : isV9Practice
-      ? "var(--gold2)"
-      : blocked
-        ? "var(--bear)"
-        : "var(--gold)";
-  const permLabel = isV10LivePermission
-    ? "✅ LIVE TRADE PERMISSION"
-    : isV9Practice
+  const isV9Practice =
+    v10Permission === "CAUTION_SIGNAL" ||
+    sig.v10Layer === "PRACTICE" ||
+    (v10Permission == null && v9Layer === "PRACTICE");
+  const blocked =
+    v10Permission === "AVOID_TRADE" ||
+    sig.v10Layer === "REJECTED" ||
+    permission === "DO NOT TRADE";
+  const decClass = badge?.decClass ?? (blocked ? "no" : "observe");
+  const permColor = badge?.color ?? "var(--gold)";
+  const permLabel =
+    badge?.label ??
+    (isV9Practice
       ? "🧪 PRACTICE ONLY"
       : blocked
         ? "⛔ RISK REJECTED"
-        : v10Layer === "RADAR" || v9Layer === "RADAR"
+        : sig.v10Layer === "RADAR" || v9Layer === "RADAR"
           ? "📡 SETUP FORMING"
-          : "⚠️ OBSERVE ONLY";
-  const setupQuality = sig.setupQuality ?? sig.conf;
-  const timingLabel =
-    isV10Pending && sig.v10TimingStatus === "PENDING ORDER ELIGIBLE"
-      ? "LIVE TRADE PERMISSION"
-      : sig.v10TimingStatus || "LIVE TRADE PERMISSION";
+          : "⚠️ OBSERVE ONLY");
+  const setupQuality = sig.v10Quality ?? sig.setupQuality ?? sig.conf;
 
   return (
     <div
-      className={`sc ${dc}${isV9Practice ? " practice" : ""}${isV10Live ? " v9-live" : ""}${isV10Pending ? " v10-pending" : ""}`}
+      className={`sc ${dc}${isV9Practice ? " practice" : ""}${v10Permission === "TRADE_ALLOWED" ? " v9-live" : ""}${v10Permission === "PENDING_ORDER_SIGNAL" ? " v10-pending" : ""}`}
       style={{ animationDelay: `${delay}ms` }}
     >
       {isV9Practice ? <div className="practice-watermark">PRACTICE ONLY</div> : null}
@@ -92,8 +112,8 @@ export function SignalCard({
           <div className="small">
             {isV9Practice
               ? "Practice Signal — Demo / observation only. Not live trade permission."
-              : isV10LivePermission
-                ? `${timingLabel} · Valid ${sig.validUntilSec ?? "—"}s · ${sig.signalType} · gap ${sig.scoreGap}`
+              : v10Permission
+                ? `${sig.v10Label || permLabel} · ${sig.signalType} · gap ${sig.scoreGap} · ADX ${sig.adx}`
                 : `${sig.signalType} · ${sig.grade} grade · gap ${sig.scoreGap}`}
           </div>
         </div>
@@ -225,17 +245,21 @@ export function SignalCard({
             ))
           : <span className="pt">No Pattern</span>}
       </div>
-      {(sig.v10TimingStatus || sig.v10StrategyType || sig.htfBiasStatus) && (
+      {(sig.v10StrategyType || sig.v10Warnings?.length || sig.htfBiasStatus) && (
         <div className="v10-meta-box">
           <div className="sec-title">V10 Permission</div>
           <div className="v10-meta-grid">
             <span>Entry: {sig.entryMethod === "manual" ? "Manual" : "Pending Order"}</span>
-            <span>Timing: {sig.v10TimingStatus || "—"}</span>
             <span>Strategy: {sig.v10StrategyType || "—"}</span>
             <span>HTF: {sig.htfBiasStatus || "—"}</span>
             <span>Gap: {sig.scoreGap}</span>
             <span>ADX: {sig.adx}</span>
+            <span>Quality: {setupQuality}%</span>
           </div>
+          {sig.v10Action ? <div className="v10-blocker">Action: {sig.v10Action}</div> : null}
+          {sig.v10Warnings?.length ? (
+            <div className="v10-blocker">Warning: {sig.v10Warnings.join(" · ")}</div>
+          ) : null}
           {sig.v10Blockers?.length ? (
             <div className="v10-blocker">Blocker: {sig.v10Blockers[0]}</div>
           ) : null}

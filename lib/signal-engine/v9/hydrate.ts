@@ -17,7 +17,7 @@ export function hydrateV9ScanResult(
 ): { signals: ComputedSignal[]; v9: V9ScanMeta } {
   const entryMethod = options?.entryMethod ?? "pending_order";
   let layered = signals.some((s) => s.v9Layer) ? signals : applyV9Layers(signals);
-  layered = layered.some((s) => s.v10Layer)
+  layered = layered.some((s) => s.v10Permission)
     ? layered
     : applyV10Layers(layered, {
         entryMethod,

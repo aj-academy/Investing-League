@@ -1,5 +1,11 @@
 export type EntryMethod = "manual" | "pending_order";
 
+export type V10Permission =
+  | "TRADE_ALLOWED"
+  | "PENDING_ORDER_SIGNAL"
+  | "CAUTION_SIGNAL"
+  | "AVOID_TRADE";
+
 export type V10Layer =
   | "LIVE"
   | "PENDING_ORDER_ELIGIBLE"
