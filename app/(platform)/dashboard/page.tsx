@@ -46,7 +46,6 @@ export default async function DashboardPage() {
     ),
     mode: (settings?.default_mode as "practice" | "live") || "practice",
     showSignals: "all",
-    entryMethod: "pending_order",
   };
 
   return (

@@ -89,6 +89,8 @@ export function filterSignals(
   signals: ComputedSignal[],
   options: ScanOptions
 ): ComputedSignal[] {
+  if (!isWeekendMarket() && !sessionOk(options.sessionFilter)) return [];
+
   const minGrade = options.minGrade ?? (options.showBSignals ? "B" : "A");
 
   return signals

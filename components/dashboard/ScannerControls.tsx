@@ -149,17 +149,10 @@ export function ScannerControls({
             <option value="overlap">NY overlap</option>
           </select>
         </div>
-        <div className="scanner-field">
+        <div className="scanner-field" hidden>
           <label>Entry method</label>
-          <select
-            value={settings.entryMethod}
-            disabled={lockFilters}
-            onChange={(e) =>
-              onChange({ entryMethod: e.target.value as ScanSettings["entryMethod"] })
-            }
-          >
+          <select value="pending_order" disabled>
             <option value="pending_order">Pending Order</option>
-            <option value="manual">Manual Entry</option>
           </select>
         </div>
         <div className="scanner-field">

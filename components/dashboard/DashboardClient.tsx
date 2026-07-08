@@ -14,8 +14,7 @@ import {
 import type { MinGradeFilter } from "@/lib/signal-engine/permission";
 import type { ComputedSignal } from "@/lib/signal-engine/types";
 import type { V9ScanMeta } from "@/lib/signal-engine/v9/types";
-import { filterByShowSignalsV10 } from "@/lib/signal-engine/v10/validate";
-import type { EntryMethod } from "@/lib/signal-engine/v10/types";
+import { filterByShowSignals } from "@/lib/signal-engine/v9/classify";
 import { hydrateV9ScanResult } from "@/lib/signal-engine/v9/hydrate";
 import { playScanAlerts } from "@/lib/sound/signalAlerts";
 import { toast } from "sonner";
@@ -36,7 +35,6 @@ import { SessionPills } from "./SessionPills";
 import { SignalCard } from "./SignalCard";
 import { StatsRow } from "./StatsRow";
 import { SupportPanel } from "./SupportPanel";
-import { BestSignalsNow } from "./BestSignalsNow";
 import { V9ScanSummary } from "./V9ScanSummary";
 import { OpportunityRadar } from "./OpportunityRadar";
 import { WhyNoSignalPanel } from "./WhyNoSignalPanel";
@@ -64,7 +62,6 @@ export interface ScanSettings {
   autoRefresh: AutoRefreshOption;
   mode: "practice" | "live";
   showSignals: ShowSignalsFilter;
-  entryMethod: EntryMethod;
 }
 
 export interface PlanInfo {
@@ -108,7 +105,7 @@ export function DashboardClient({
   const [v9Meta, setV9Meta] = useState<V9ScanMeta | null>(null);
 
   const displaySignals = useMemo(
-    () => filterByShowSignalsV10(signals, settings.showSignals),
+    () => filterByShowSignals(signals, settings.showSignals),
     [signals, settings.showSignals],
   );
 
@@ -224,7 +221,6 @@ export function DashboardClient({
         v9: options?.v9,
         apiCalls: options?.apiCalls,
         marketErrors: options?.marketErrors,
-        entryMethod: settingsRef.current.entryMethod,
       });
       setSignals(layered);
       setV9Meta(v9);
@@ -614,7 +610,6 @@ export function DashboardClient({
           showBSignals: activeSettings.minGrade === "B",
           dailyTradeLimit: activeSettings.dailyTradeLimit,
           sessionFilter: activeSettings.session,
-          entryMethod: activeSettings.entryMethod,
           auto: isAuto,
           timezone: timeZone,
         }),
@@ -725,7 +720,7 @@ export function DashboardClient({
         <section className="scanner-section" aria-label="Market scanner">
           <header className="scanner-section-head">
             <div className="scanner-section-intro">
-              <span className="scanner-section-kicker">V10 Decision Engine</span>
+              <span className="scanner-section-kicker">V9 Decision Engine</span>
               <h2 className="scanner-section-title">Market Scanner</h2>
               <p className="scanner-section-sub">
                 Live permission · Practice signals · Opportunity Radar · Why-no-signal — powered by
@@ -834,9 +829,7 @@ export function DashboardClient({
         <div className="main-grid">
           <div className="signals-col">
             <V9ScanSummary meta={v9Meta} />
-            <BestSignalsNow signals={displaySignals} />
-            {(v9Meta?.tradeAllowedCount ?? v9Meta?.v10LiveCount ?? 0) === 0 &&
-            (v9Meta?.pendingOrderCount ?? v9Meta?.pendingCount ?? 0) === 0 ? (
+            {(v9Meta?.liveCount ?? 0) === 0 ? (
               <OpportunityRadar items={v9Meta?.radarTop ?? []} />
             ) : null}
             {!scanning && !autoScanning && !displaySignals.length && !v9Meta ? (
@@ -860,11 +853,7 @@ export function DashboardClient({
             )}
             <WhyNoSignalPanel
               items={v9Meta?.whyNoSignal ?? []}
-              visible={
-                (v9Meta?.tradeAllowedCount ?? v9Meta?.v10LiveCount ?? 0) === 0 &&
-                (v9Meta?.pendingOrderCount ?? v9Meta?.pendingCount ?? 0) === 0 &&
-                Boolean(v9Meta)
-              }
+              visible={(v9Meta?.liveCount ?? 0) === 0 && Boolean(v9Meta)}
             />
           </div>
           <SupportPanel signals={displaySignals} errors={marketErrors} v9Meta={v9Meta} />

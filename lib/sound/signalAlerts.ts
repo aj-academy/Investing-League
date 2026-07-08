@@ -1,7 +1,5 @@
-"use client";
-
 import type { ComputedSignal } from "@/lib/signal-engine/types";
-import { isV10LiveDisplay, isV10PendingDisplay, isV10TradeTier } from "@/lib/signal-engine/v10/validate";
+import { isV9LiveDisplay } from "@/lib/signal-engine/v9/classify";
 import { readTilStorageItem, writeTilStorageItem } from "@/lib/storage/tilStorageKeys";
 
 let audioCtx: AudioContext | null = null;
@@ -71,16 +69,6 @@ function playLiveAlert(sig: ComputedSignal, volume: number) {
   }
 }
 
-function playPendingAlert(sig: ComputedSignal, volume: number) {
-  beep(520, 0.12, 0, volume * 0.9, "triangle");
-  beep(680, 0.16, 0.14, volume * 0.85, "triangle");
-  if (sig.direction === "CALL") {
-    beep(780, 0.2, 0.32, volume * 0.8, "triangle");
-  } else {
-    beep(420, 0.2, 0.32, volume * 0.8, "triangle");
-  }
-}
-
 function loadAlertStore() {
   if (typeof window === "undefined") return { date: "", ids: [] as string[] };
   const today = new Date().toISOString().slice(0, 10);
@@ -100,22 +88,18 @@ function saveAlertStore(store: { date: string; ids: string[] }) {
   writeTilStorageItem("alertedDaily", JSON.stringify(store));
 }
 
-/** Play at most one new V10 LIVE or Pending Order alert per scan. */
+/** Play at most one new V9 LIVE alert per scan. */
 export function playScanAlerts(signals: ComputedSignal[], volume = 0.3) {
   if (!soundEnabled) return;
   const store = loadAlertStore();
   const allowed = signals.filter(
     (s) =>
-      isV10TradeTier(s) &&
-      (s.v10Permission === "TRADE_ALLOWED" ||
-        s.v10Permission === "PENDING_ORDER_SIGNAL" ||
-        s.signalType === "FINAL TRADE" ||
-        s.signalType === "STRONG FINAL"),
+      isV9LiveDisplay(s) &&
+      (s.signalType === "FINAL TRADE" || s.signalType === "STRONG FINAL"),
   );
   for (const s of allowed) {
     if (!store.ids.includes(s.signalUid)) {
-      if (isV10PendingDisplay(s)) playPendingAlert(s, volume);
-      else playLiveAlert(s, volume);
+      playLiveAlert(s, volume);
       store.ids.push(s.signalUid);
       saveAlertStore(store);
       break;

@@ -21,14 +21,10 @@ export function isEligibleType(
   grade?: string | null,
   v9Layer?: string | null,
   v10Layer?: string | null,
-  v10Permission?: string | null,
 ) {
-  if (v10Permission) {
-    return v10Permission === "TRADE_ALLOWED" || v10Permission === "PENDING_ORDER_SIGNAL";
-  }
-  if (v10Layer && v10Layer !== "LIVE" && v10Layer !== "PENDING_ORDER_ELIGIBLE") return false;
+  if (v10Layer && v10Layer !== "LIVE") return false;
   if (!v10Layer && v9Layer && v9Layer !== "LIVE") return false;
-  return isRealTradeSignal(signalType, grade, v9Layer, v10Layer, v10Permission);
+  return isRealTradeSignal(signalType, grade, v9Layer, v10Layer);
 }
 
 export function isCountedInWr(
