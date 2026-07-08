@@ -1,5 +1,8 @@
+"use client";
+
 import type { buildAnalyticsSummary } from "@/lib/analytics/summary";
 import type { JournalRow } from "@/lib/analytics/summary";
+import { useMemo, useState } from "react";
 import {
   buildHealthNarrative,
   buildRecommendations,
@@ -33,6 +36,70 @@ function statusClass(status: string) {
   return "health-risk";
 }
 
+type ProfitRange = "7d" | "30d" | "week" | "month" | "all";
+type ProfitGroup = "day" | "week";
+
+type ProfitPoint = {
+  key: string;
+  label: string;
+  profit: number;
+  wins: number;
+  losses: number;
+  trades: number;
+};
+
+function toNumber(value: unknown) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function startOfWeek(d: Date) {
+  const base = startOfDay(d);
+  const day = base.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Monday-start week
+  base.setDate(base.getDate() + diff);
+  return base;
+}
+
+function weekLabel(d: Date) {
+  const end = new Date(d);
+  end.setDate(end.getDate() + 6);
+  return `${d.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+}
+
+function includeByRange(date: Date, range: ProfitRange, now: Date) {
+  const rowDay = startOfDay(date);
+  const today = startOfDay(now);
+  if (range === "all") return true;
+  if (range === "7d") {
+    const from = new Date(today);
+    from.setDate(from.getDate() - 6);
+    return rowDay >= from;
+  }
+  if (range === "30d") {
+    const from = new Date(today);
+    from.setDate(from.getDate() - 29);
+    return rowDay >= from;
+  }
+  if (range === "week") {
+    return rowDay >= startOfWeek(today);
+  }
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  return rowDay >= monthStart;
+}
+
+function rangeLabel(range: ProfitRange) {
+  if (range === "7d") return "Last 7 days";
+  if (range === "30d") return "Last 30 days";
+  if (range === "week") return "This week";
+  if (range === "month") return "This month";
+  return "All time";
+}
+
 export function AnalyticsView({
   summary,
   rows = [],
@@ -43,6 +110,8 @@ export function AnalyticsView({
   scanUsage?: AnalyticsScanUsage;
 }) {
   const journalRows = rows as JournalRow[];
+  const [profitRange, setProfitRange] = useState<ProfitRange>("7d");
+  const [profitGroup, setProfitGroup] = useState<ProfitGroup>("day");
   const permissionCounts = permissionCountsFromRows(journalRows);
   const healthStatus = deriveHealthStatus(
     summary.finalTradeWinRate,
@@ -66,6 +135,44 @@ export function AnalyticsView({
   const lossBuckets = normalizedLossBreakdown(journalRows);
   const maxLoss = Math.max(1, ...lossBuckets.map((l) => l.count));
   const recommendations = buildRecommendations(summary, journalRows, permissionCounts);
+  const profitRows = journalRows as Array<
+    JournalRow & {
+      net_profit?: number | null;
+      trade_amount?: number | null;
+      return_amount?: number | null;
+      marked_time?: string | null;
+      updated_at?: string | null;
+    }
+  >;
+
+  const profitSeries = useMemo(() => {
+    const now = new Date();
+    const bucket = new Map<string, ProfitPoint>();
+    for (const row of profitRows) {
+      const settledAt = row.marked_time || row.updated_at || row.created_at;
+      if (!settledAt) continue;
+      const dt = new Date(settledAt);
+      if (Number.isNaN(dt.getTime())) continue;
+      if (!includeByRange(dt, profitRange, now)) continue;
+
+      const keyDate = profitGroup === "week" ? startOfWeek(dt) : startOfDay(dt);
+      const key = keyDate.toISOString().slice(0, 10);
+      const label = profitGroup === "week" ? weekLabel(keyDate) : keyDate.toLocaleDateString();
+      const current = bucket.get(key) ?? { key, label, profit: 0, wins: 0, losses: 0, trades: 0 };
+      const rawProfit =
+        row.net_profit != null ? toNumber(row.net_profit) : toNumber(row.return_amount) - toNumber(row.trade_amount);
+
+      current.profit += rawProfit;
+      if (row.result === "Win") current.wins += 1;
+      if (row.result === "Loss") current.losses += 1;
+      if (row.result === "Win" || row.result === "Loss" || row.result === "Refund") current.trades += 1;
+      bucket.set(key, current);
+    }
+    return [...bucket.values()].sort((a, b) => a.key.localeCompare(b.key));
+  }, [profitRows, profitRange, profitGroup]);
+
+  const profitPeak = Math.max(1, ...profitSeries.map((p) => Math.abs(p.profit)));
+  const periodProfit = profitSeries.reduce((acc, p) => acc + p.profit, 0);
 
   const distributionSegments = [
     { label: "Wins", value: summary.wins, color: "var(--bull)" },
@@ -264,6 +371,57 @@ export function AnalyticsView({
             <h3>Most Frequent Signal Type</h3>
             <p>{summary.mostFrequentSignalType}</p>
           </div>
+        </div>
+      </div>
+
+      <div className="analytics-section">
+        <div className="analytics-section-head">Profit filter (day / week)</div>
+        <div className="ctrl analytics-chart-card">
+          <div className="analytics-profit-filters">
+            <div className="f">
+              <label>Range</label>
+              <select
+                value={profitRange}
+                onChange={(e) => setProfitRange(e.target.value as ProfitRange)}
+              >
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+                <option value="all">All time</option>
+              </select>
+            </div>
+            <div className="f">
+              <label>Group by</label>
+              <select
+                value={profitGroup}
+                onChange={(e) => setProfitGroup(e.target.value as ProfitGroup)}
+              >
+                <option value="day">Day-wise</option>
+                <option value="week">Week-wise</option>
+              </select>
+            </div>
+            <div className="analytics-profit-total">
+              <small>{rangeLabel(profitRange)} net profit</small>
+              <strong className={periodProfit >= 0 ? "stat-bull" : "stat-bear"}>
+                {periodProfit.toFixed(2)}
+              </strong>
+            </div>
+          </div>
+          {profitSeries.length === 0 ? (
+            <p className="analytics-empty">No profit data available for this filter</p>
+          ) : (
+            profitSeries.map((row) => (
+              <AnalyticsBarRow
+                key={row.key}
+                label={`${row.label} (W:${row.wins} L:${row.losses})`}
+                value={Math.round(Math.abs(row.profit) * 100) / 100}
+                max={profitPeak}
+                suffix={` (${row.profit >= 0 ? "+" : "-"}${Math.abs(row.profit).toFixed(2)})`}
+                tone={row.profit >= 0 ? "bull" : "bear"}
+              />
+            ))
+          )}
         </div>
       </div>
 

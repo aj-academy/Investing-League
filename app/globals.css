@@ -415,6 +415,10 @@
 .analytics-rec-list{margin:0;padding-left:20px;color:var(--txt);font-size:12px;line-height:1.75}
 .analytics-rec-list li{margin-bottom:6px}
 .analytics-disclaimer{margin-top:8px;line-height:1.65}
+.analytics-profit-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end;margin-bottom:12px}
+.analytics-profit-total{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:9px 11px;border-radius:8px;border:1px solid var(--bd2);background:var(--p2);min-height:66px}
+.analytics-profit-total small{font-size:9px;color:var(--m3);text-transform:uppercase;letter-spacing:1px}
+.analytics-profit-total strong{font-family:var(--mono);font-size:18px;line-height:1.1}
 .stat-cyan{color:var(--cyan)!important}
 .stat-warn{color:var(--warn)!important}
 @media(max-width:700px){
@@ -424,6 +428,7 @@
 .analytics-health-status{font-size:15px}
 .analytics-bar-row{grid-template-columns:1fr;gap:4px}
 .analytics-bar-val{text-align:left}
+.analytics-profit-total strong{font-size:16px}
 }
 
 .admin-journal-table th,
