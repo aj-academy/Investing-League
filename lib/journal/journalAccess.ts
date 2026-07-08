@@ -7,6 +7,8 @@ const UUID_RE =
 
 type JournalClient = Awaited<ReturnType<typeof createClient>>;
 
+const MISSING_COLUMN_RE = /Could not find the '([^']+)' column of 'trade_journal' in the schema cache/i;
+
 async function tryFetch(
   client: JournalClient,
   userId: string,
@@ -58,15 +60,30 @@ export async function saveJournalRowForUser(
     ? createAdminClient()
     : await createClient();
 
-  const { data: updated, error } = await writer
-    .from("trade_journal")
-    .update(patch)
-    .eq("id", rowId)
-    .eq("user_id", userId)
-    .select()
-    .maybeSingle();
+  // Some deployments may lag optional migrations; retry without missing columns.
+  const mutablePatch: Record<string, unknown> = { ...patch };
 
-  if (error) return { row: null, error: error.message };
-  if (!updated) return { row: null, error: "Journal record not found" as const };
-  return { row: updated as JournalRow, error: null };
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data: updated, error } = await writer
+      .from("trade_journal")
+      .update(mutablePatch)
+      .eq("id", rowId)
+      .eq("user_id", userId)
+      .select()
+      .maybeSingle();
+
+    if (!error) {
+      if (!updated) return { row: null, error: "Journal record not found" as const };
+      return { row: updated as JournalRow, error: null };
+    }
+
+    const msg = error.message ?? "";
+    const missing = msg.match(MISSING_COLUMN_RE)?.[1];
+    if (!missing || !(missing in mutablePatch)) {
+      return { row: null, error: msg };
+    }
+    delete mutablePatch[missing];
+  }
+
+  return { row: null, error: "Update failed after retrying missing columns" };
 }
