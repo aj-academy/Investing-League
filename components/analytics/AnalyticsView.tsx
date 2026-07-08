@@ -100,6 +100,13 @@ function rangeLabel(range: ProfitRange) {
   return "All time";
 }
 
+function toIsoDate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function AnalyticsView({
   summary,
   rows = [],
@@ -112,6 +119,8 @@ export function AnalyticsView({
   const journalRows = rows as JournalRow[];
   const [profitRange, setProfitRange] = useState<ProfitRange>("7d");
   const [profitGroup, setProfitGroup] = useState<ProfitGroup>("day");
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
   const permissionCounts = permissionCountsFromRows(journalRows);
   const healthStatus = deriveHealthStatus(
     summary.finalTradeWinRate,
@@ -153,11 +162,18 @@ export function AnalyticsView({
       if (!settledAt) continue;
       const dt = new Date(settledAt);
       if (Number.isNaN(dt.getTime())) continue;
-      if (!includeByRange(dt, profitRange, now)) continue;
+      const dayKey = toIsoDate(dt);
+      const inCustomRange =
+        (!customFrom || dayKey >= customFrom) && (!customTo || dayKey <= customTo);
+      if (profitRange === "all" && (customFrom || customTo) && !inCustomRange) continue;
+      if (profitRange !== "all" && !includeByRange(dt, profitRange, now)) continue;
 
       const keyDate = profitGroup === "week" ? startOfWeek(dt) : startOfDay(dt);
       const key = keyDate.toISOString().slice(0, 10);
-      const label = profitGroup === "week" ? weekLabel(keyDate) : keyDate.toLocaleDateString();
+      const label =
+        profitGroup === "week"
+          ? weekLabel(keyDate)
+          : `${keyDate.toLocaleDateString(undefined, { weekday: "short" })}, ${keyDate.toLocaleDateString()}`;
       const current = bucket.get(key) ?? { key, label, profit: 0, wins: 0, losses: 0, trades: 0 };
       const rawProfit =
         row.net_profit != null ? toNumber(row.net_profit) : toNumber(row.return_amount) - toNumber(row.trade_amount);
@@ -169,7 +185,7 @@ export function AnalyticsView({
       bucket.set(key, current);
     }
     return [...bucket.values()].sort((a, b) => a.key.localeCompare(b.key));
-  }, [profitRows, profitRange, profitGroup]);
+  }, [profitRows, profitRange, profitGroup, customFrom, customTo]);
 
   const profitPeak = Math.max(1, ...profitSeries.map((p) => Math.abs(p.profit)));
   const periodProfit = profitSeries.reduce((acc, p) => acc + p.profit, 0);
@@ -382,7 +398,14 @@ export function AnalyticsView({
               <label>Range</label>
               <select
                 value={profitRange}
-                onChange={(e) => setProfitRange(e.target.value as ProfitRange)}
+                onChange={(e) => {
+                  const next = e.target.value as ProfitRange;
+                  setProfitRange(next);
+                  if (next !== "all") {
+                    setCustomFrom("");
+                    setCustomTo("");
+                  }
+                }}
               >
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
@@ -401,8 +424,34 @@ export function AnalyticsView({
                 <option value="week">Week-wise</option>
               </select>
             </div>
+            <div className="f">
+              <label>From</label>
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => {
+                  setProfitRange("all");
+                  setCustomFrom(e.target.value);
+                }}
+              />
+            </div>
+            <div className="f">
+              <label>To</label>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => {
+                  setProfitRange("all");
+                  setCustomTo(e.target.value);
+                }}
+              />
+            </div>
             <div className="analytics-profit-total">
-              <small>{rangeLabel(profitRange)} net profit</small>
+              <small>
+                {(customFrom || customTo)
+                  ? `Custom: ${customFrom || "start"} to ${customTo || "today"}`
+                  : `${rangeLabel(profitRange)} net profit`}
+              </small>
               <strong className={periodProfit >= 0 ? "stat-bull" : "stat-bear"}>
                 {periodProfit.toFixed(2)}
               </strong>
