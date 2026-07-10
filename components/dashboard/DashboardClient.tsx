@@ -123,6 +123,7 @@ export function DashboardClient({
   const [autoScanning, setAutoScanning] = useState(false);
   const [apiCalls, setApiCalls] = useState<number | undefined>();
   const [marketErrors, setMarketErrors] = useState<string[]>([]);
+  const [lastScannedPairs, setLastScannedPairs] = useState<string[]>([]);
   const [termsState, setTermsState] = useState<{
     loading: boolean;
     required: boolean;
@@ -570,6 +571,7 @@ export function DashboardClient({
       setAutoScanning(true);
       setLoaderText("AUTO REFRESH");
       setLoaderSub("Updating live market setups...");
+      setMarketErrors([]);
     } else {
       setScanning(true);
       setProgress(0);
@@ -649,6 +651,7 @@ export function DashboardClient({
       setMarketLive(Boolean(json.ticker?.length));
       setApiCalls(json.usage?.providerCalls);
       setMarketErrors(json.marketErrors || []);
+      setLastScannedPairs(Array.isArray(json.scannedPairs) ? json.scannedPairs : pairs);
       if (json.usage) {
         setScanUsage((prev) => ({
           plan: json.usage.plan,
@@ -856,7 +859,12 @@ export function DashboardClient({
               visible={(v9Meta?.liveCount ?? 0) === 0 && Boolean(v9Meta)}
             />
           </div>
-          <SupportPanel signals={displaySignals} errors={marketErrors} v9Meta={v9Meta} />
+          <SupportPanel
+            signals={displaySignals}
+            errors={marketErrors}
+            scannedPairs={lastScannedPairs}
+            v9Meta={v9Meta}
+          />
         </div>
       </div>
       {rulesModalOpen && rulesState.active && !termsState.required && (

@@ -6,10 +6,12 @@ import type { V9ScanMeta } from "@/lib/signal-engine/v9/types";
 export function SupportPanel({
   signals,
   errors = [],
+  scannedPairs = [],
   v9Meta,
 }: {
   signals: ComputedSignal[];
   errors?: string[];
+  scannedPairs?: string[];
   v9Meta?: V9ScanMeta | null;
 }) {
   if (!signals.length && !errors.length && !v9Meta) {
@@ -65,6 +67,11 @@ export function SupportPanel({
             <div className="panel-title" style={{ color: "var(--bear)" }}>
               Data Errors
             </div>
+            {scannedPairs && scannedPairs.length > 0 ? (
+              <div className="panel-sub" style={{ marginBottom: 6 }}>
+                Scanned {scannedPairs.length} pair(s): {scannedPairs.join(", ")}
+              </div>
+            ) : null}
             <div className="panel-sub">{errors.slice(0, 5).join(" · ")}</div>
           </div>
         )}

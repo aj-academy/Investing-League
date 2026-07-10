@@ -1,4 +1,5 @@
 import type { OHLC } from "@/lib/signal-engine/types";
+import { parseProviderJson } from "@/lib/market/parseProviderJson";
 
 export async function fetchTwelveDataCandles(
   pair: string,
@@ -10,7 +11,7 @@ export async function fetchTwelveDataCandles(
 
   const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=${interval}&outputsize=${outputsize}&apikey=${apiKey}&format=JSON`;
   const res = await fetch(url, { cache: "no-store" });
-  const json = await res.json();
+  const json = parseProviderJson(await res.text(), res.status);
 
   if (json.status === "error") {
     const msg = String(json.message || "Market data error");
@@ -21,11 +22,11 @@ export async function fetchTwelveDataCandles(
     }
     throw new Error(msg);
   }
-  if (!json.values?.length) {
+  if (!json.values || !Array.isArray(json.values) || !json.values.length) {
     throw new Error("No candle data returned");
   }
 
-  return json.values
+  return (json.values as Array<{ datetime: string; open: string; high: string; low: string; close: string }>)
     .reverse()
     .map((v: { datetime: string; open: string; high: string; low: string; close: string }) => ({
       date: v.datetime,
@@ -42,7 +43,7 @@ export async function fetchTwelveDataPrice(pair: string): Promise<{ price: numbe
 
   const url = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(pair)}&apikey=${apiKey}&format=JSON`;
   const res = await fetch(url, { cache: "no-store" });
-  const json = await res.json();
+  const json = parseProviderJson(await res.text(), res.status);
 
   if (json.status === "error") {
     const msg = String(json.message || "Market data error");
@@ -54,7 +55,7 @@ export async function fetchTwelveDataPrice(pair: string): Promise<{ price: numbe
     throw new Error(msg);
   }
 
-  const price = parseFloat(json.price);
+  const price = parseFloat(String(json.price ?? ""));
   if (!Number.isFinite(price)) throw new Error("No price returned");
-  return { price, datetime: json.datetime };
+  return { price, datetime: json.datetime as string | undefined };
 }

@@ -386,6 +386,7 @@ export async function POST(request: Request) {
       engine: "v9",
       auto: isAuto,
       scanSessionId: scanSession.id,
+      scannedPairs: pairs,
       signals,
       v9: v9Meta,
       allSignals: finalized,
