@@ -69,7 +69,7 @@ export function classifyV9Layer(sig: ComputedSignal, weekend = isWeekendMarket()
   } else if (isHardRejected(sig, blockers)) {
     v9Layer = "REJECTED";
     readiness = computeReadiness(sig, blockers);
-  } else if (sig.conf >= 68 && sig.grade !== "C") {
+  } else if (sig.conf >= 70 && sig.grade !== "C") {
     v9Layer = "PRACTICE";
     readiness = Math.min(88, computeReadiness(sig, blockers));
   } else {

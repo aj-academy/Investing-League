@@ -101,24 +101,54 @@ export function applyV8HistoryAndMode(
   }
 
   if (mode === "live") {
-    const allowed = signals.filter((s) => s.permission === "TRADE ALLOWED");
-    allowed.sort(rankV8Signals);
-    if (allowed.length) {
-      const best = allowed[0];
+    const allowed = signals
+      .filter(
+        (s) =>
+          s.permission === "TRADE ALLOWED" &&
+          s.conf >= V8_CONFIG.liveConfMin &&
+          (s.signalType === "STRONG FINAL" || s.signalType === "FINAL TRADE"),
+      )
+      .sort(rankV8Signals);
+
+    // Quality-first: keep only the strongest few, one pair each.
+    const selected = new Set<ComputedSignal>();
+    const selectedPairs = new Set<string>();
+    for (const s of allowed) {
+      if (selected.size >= V8_CONFIG.maxLiveSignals) break;
+      if (selectedPairs.has(s.pair)) continue;
+      selected.add(s);
+      selectedPairs.add(s.pair);
+    }
+
+    if (selected.size) {
       for (const s of signals) {
-        if (s === best) {
+        if (selected.has(s)) {
+          const rank = [...selected].indexOf(s) + 1;
+          s.liveRank = rank;
           s.signalReason =
-            "LIVE MODE SELECTED: best ranked signal in this scan. " + (s.signalReason || "");
+            `LIVE MODE HIGH-PROBABILITY #${rank}/${selected.size}. ` + (s.signalReason || "");
           continue;
         }
         if (s.permission === "TRADE ALLOWED") {
+          const correlated = [...selected].some(
+            (best) => USD_LINKED.has(s.pair) && USD_LINKED.has(best.pair),
+          );
           s.permission = "OBSERVE ONLY";
-          s.signalType =
-            USD_LINKED.has(s.pair) && USD_LINKED.has(best.pair)
-              ? "CORRELATION RISK"
-              : "WATCH ONLY";
+          s.signalType = correlated ? "CORRELATION RISK" : "WATCH ONLY";
+          s.signalReason = correlated
+            ? "LIVE MODE: USD-linked pair already has a stronger selected setup — skip for win-rate protection."
+            : "LIVE MODE: not among the top high-probability setups this scan.";
+          s.tradeEligible = false;
+        }
+      }
+    } else {
+      // No setup cleared liveConfMin — demote all TRADE ALLOWED to observe.
+      for (const s of signals) {
+        if (s.permission === "TRADE ALLOWED") {
+          s.permission = "OBSERVE ONLY";
+          s.signalType = "WATCH ONLY";
           s.signalReason =
-            "LIVE MODE: not the top-ranked setup in this scan. Observation only.";
+            "LIVE MODE: setup did not clear high-probability confidence floor. Observation only.";
           s.tradeEligible = false;
         }
       }

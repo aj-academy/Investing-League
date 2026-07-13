@@ -183,18 +183,29 @@ describe("V8 history and mode", () => {
     expect(out[0].permission).toBe("DO NOT TRADE");
   });
 
-  it("live mode keeps only top TRADE ALLOWED setup", () => {
-    const a = baseSignal({ pair: "EUR/USD", conf: 80, signalType: "STRONG FINAL" });
+  it("live mode keeps only top high-probability TRADE ALLOWED setups", () => {
+    const a = baseSignal({
+      pair: "EUR/USD",
+      conf: 80,
+      signalType: "STRONG FINAL",
+    });
     const b = baseSignal({
       pair: "GBP/USD",
-      conf: 70,
+      conf: 76,
       signalType: "FINAL TRADE",
       entryAtIso: new Date(FIXTURE_AS_OF.getTime() + 60_000).toISOString(),
     });
-    const out = applyV8HistoryAndMode([a, b], "live", [], { dailyLimit: 999 });
+    const c = baseSignal({
+      pair: "USD/JPY",
+      conf: 70,
+      signalType: "FINAL TRADE",
+      entryAtIso: new Date(FIXTURE_AS_OF.getTime() + 120_000).toISOString(),
+    });
+    const out = applyV8HistoryAndMode([a, b, c], "live", [], { dailyLimit: 999 });
     const allowed = out.filter((s) => s.permission === "TRADE ALLOWED");
-    expect(allowed).toHaveLength(1);
-    expect(allowed[0].pair).toBe("EUR/USD");
+    expect(allowed.length).toBeLessThanOrEqual(2);
+    expect(allowed.every((s) => s.conf >= 74)).toBe(true);
+    expect(allowed.map((s) => s.pair)).toContain("EUR/USD");
   });
 });
 

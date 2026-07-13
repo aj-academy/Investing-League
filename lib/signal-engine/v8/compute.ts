@@ -167,8 +167,8 @@ export function computeV8Raw(
   const spread = jpy ? V8_CONFIG.spreadJPY : V8_CONFIG.spreadNonJPY;
   const atrOk = Boolean(atrV && atrV >= atrMin);
   const spreadOk = Boolean(atrV && atrV > spread * 2.2);
-  const adxOk = adxV >= (is5 ? 16 : 18);
-  const adxStrong = adxV >= 22;
+  const adxOk = adxV >= (is5 ? V8_CONFIG.adxMin5 : V8_CONFIG.adxMin15);
+  const adxStrong = adxV >= 24;
 
   const overExtendedBull = price > e21[i]! + atrV * 1.15;
   const overExtendedBear = price < e21[i]! - atrV * 1.15;
@@ -233,14 +233,27 @@ export function computeV8Raw(
   conf = Math.max(30, Math.min(95, conf));
 
   const grade =
-    conf >= 78 && score >= 72 ? "A+" : conf >= 66 && score >= 62 ? "A" : conf >= 55 ? "B" : "C";
+    conf >= 80 && score >= 74
+      ? "A+"
+      : conf >= V8_CONFIG.gradeAConfMin && score >= V8_CONFIG.gradeAScoreMin
+        ? "A"
+        : conf >= 55
+          ? "B"
+          : "C";
 
   const requiredGap = is5 ? V8_CONFIG.scoreGap5 : V8_CONFIG.scoreGap15;
   const blockers: string[] = [];
+  const inPullback =
+    direction === "CALL" ? pullbackBull || atSup : pullbackBear || atRes;
+  const candleAligned =
+    (direction === "CALL" && cs.bull && cs.bodyRatio >= 28) ||
+    (direction === "PUT" && cs.bear && cs.bodyRatio >= 28);
 
   if (gap < requiredGap) blockers.push(`Score gap weak (${gap})`);
   if (deadMarket) blockers.push("Low volatility / weak ADX");
   if (movingConflict) blockers.push("EMA/WMA conflict");
+  if (!inPullback) blockers.push("No pullback / support-resistance entry zone");
+  if (!candleAligned) blockers.push("Candle not aligned with direction");
   if ((direction === "CALL" && overExtendedBull) || (direction === "PUT" && overExtendedBear))
     blockers.push("Late entry / overextended");
   if (bigCandle) blockers.push("Candle already too large");
@@ -249,25 +262,27 @@ export function computeV8Raw(
   if (direction === "PUT" && !cs.bear && cs.bodyRatio > 35)
     blockers.push("Candle direction against PUT");
   if (
-    (direction === "CALL" && bbPB > 0.92 && adxV > 25) ||
-    (direction === "PUT" && bbPB < 0.08 && adxV > 25)
+    (direction === "CALL" && bbPB > 0.9 && adxV > 22) ||
+    (direction === "PUT" && bbPB < 0.1 && adxV > 22)
   )
     blockers.push("Bollinger trend ride risk");
 
   let permission: TradePermission = "OBSERVE ONLY";
   let type: SignalType = "WATCH ONLY";
-  let reason = "Observation setup. Conditions not enough for trade permission.";
+  let reason = "Observation setup. Conditions not enough for high-probability trade permission.";
 
   const finalBase =
     grade !== "C" &&
     grade !== "B" &&
-    conf >= 66 &&
-    score >= 62 &&
+    conf >= V8_CONFIG.finalConfMin &&
+    score >= V8_CONFIG.finalScoreMin &&
     gap >= requiredGap &&
     adxOk &&
     atrOk &&
     spreadOk &&
-    !movingConflict;
+    !movingConflict &&
+    inPullback &&
+    candleAligned;
 
   const entryOk =
     blockers.length === 0 ||
@@ -277,23 +292,26 @@ export function computeV8Raw(
     permission = "TRADE ALLOWED";
     type =
       grade === "A+" &&
-      conf >= 76 &&
-      score >= 72 &&
+      conf >= 78 &&
+      score >= 74 &&
       adxStrong &&
-      cs.bodyRatio >= 30 &&
-      cs.bodyRatio <= 78
+      gap >= requiredGap + 2 &&
+      cs.bodyRatio >= 32 &&
+      cs.bodyRatio <= 75
         ? "STRONG FINAL"
         : "FINAL TRADE";
     reason =
-      "Fresh setup: grade, confidence, score gap, EMA/WMA, ADX, ATR and candle direction are acceptable. Enter only near candle open and verify platform quote.";
-  } else if (blockers.some((b) => /Late|large|against|Low volatility|conflict/.test(b))) {
+      type === "STRONG FINAL"
+        ? "High-probability STRONG FINAL: trend, pullback, candle, gap and ADX all aligned. Enter near candle open only."
+        : "Quality FINAL TRADE: grade, confidence, pullback zone, score gap, EMA/WMA, ADX and candle direction aligned. Enter near candle open and verify platform quote.";
+  } else if (blockers.some((b) => /Late|large|against|Low volatility|conflict|pullback|aligned/i.test(b))) {
     permission = "DO NOT TRADE";
     type = blockers.some((b) => /Late|large/.test(b)) ? "LATE ENTRY" : "WATCH ONLY";
     reason = blockers.join(" · ");
   } else if (grade === "B") {
     permission = "OBSERVE ONLY";
     type = "WATCH ONLY";
-    reason = "B-grade setup. Use only for data collection.";
+    reason = "B-grade setup. Observation only — not high-probability enough to trade.";
   }
 
   const entry = nextCandleTime(tf, asOf?.getTime() ?? Date.now());
