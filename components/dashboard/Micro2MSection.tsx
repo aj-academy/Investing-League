@@ -195,6 +195,14 @@ export function Micro2MSection({
                 ) : null}
                 <div className={badgeClass(item.microPermission, livePresentation)}>{label}</div>
 
+                <div className="micro2m-entry-banner">
+                  <div className="micro2m-entry-label">2M ENTRY TIME</div>
+                  <div className="micro2m-entry-value">{item.entryTime || "—"}</div>
+                  <div className="micro2m-entry-sub">
+                    Expiry at {item.expTime || "Entry + 2 min"} · Platform expiry = 2 minutes
+                  </div>
+                </div>
+
                 <div className="micro2m-times">
                   <div>
                     <span>Entry</span>

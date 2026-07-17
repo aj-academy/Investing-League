@@ -1,13 +1,73 @@
+import { formatAppTime, resolveTimeZone } from "@/lib/datetime";
 import type { ComputedSignal, OHLC } from "../types";
 import { classify2MMicroSignal } from "./classify";
 import { MICRO_2M_CONFIG } from "./config";
 import { rank2MMicroSignals } from "./rank";
 import type { Micro2MSignal } from "./types";
 
+/** Next 2-minute candle open + expiry (+2 min) for platform entry. */
+export function compute2MEntryWindow(timeZone?: string, asOf = Date.now()) {
+  const tz = resolveTimeZone(timeZone);
+  const bucketMs = 2 * 60_000;
+  const entry = new Date(Math.ceil(asOf / bucketMs) * bucketMs);
+  const expiry = new Date(entry.getTime() + bucketMs);
+  return {
+    entryTime: formatAppTime(entry, tz),
+    expTime: formatAppTime(expiry, tz),
+    entryAtIso: entry.toISOString(),
+    expAtIso: expiry.toISOString(),
+  };
+}
+
+function toMicroCard(
+  sig: ComputedSignal,
+  micro: ReturnType<typeof classify2MMicroSignal>,
+  opts: {
+    id: string;
+    isBest?: boolean;
+    forceAvoid?: boolean;
+    timeZone?: string;
+  },
+): Micro2MSignal {
+  const window = compute2MEntryWindow(opts.timeZone);
+  return {
+    id: opts.id,
+    pair: sig.pair,
+    direction: sig.direction,
+    sourceTf: sig.tf,
+    sourceLayer: sig.v9Layer ?? null,
+    grade: sig.grade,
+    conf: sig.conf,
+    score: sig.score,
+    scoreGap: sig.scoreGap,
+    microReadiness: micro.microReadiness,
+    microPermission: opts.forceAvoid ? "2M_AVOID" : micro.microPermission,
+    microLabel: opts.forceAvoid ? "2M AVOID" : micro.microLabel,
+    microReason: micro.microReason,
+    microAction: micro.microAction,
+    candleAligned: micro.candleAligned,
+    candleBodyRatio: micro.candleBodyRatio,
+    isDoji: micro.isDoji,
+    oneMinuteStatus: micro.oneMinuteStatus,
+    oneMinuteNote: micro.oneMinuteNote,
+    expiryLabel: MICRO_2M_CONFIG.expiryLabel,
+    // Always 2-minute platform clock — not the 5/15 chart entry
+    entryTime: window.entryTime,
+    expTime: window.expTime,
+    price: sig.price ?? null,
+    strategyType: "2M_MICRO",
+    entryMethod: "manual_2m",
+    isBest: Boolean(opts.isBest),
+    warnings: micro.warnings,
+    sourceSignalUid: sig.signalUid,
+  };
+}
+
 /** Build ranked 2M Micro cards from existing V9-classified signals. */
 export function build2MMicroSignals(
   signals: ComputedSignal[],
   oneMinByPair?: Map<string, OHLC[]> | Record<string, OHLC[]>,
+  options?: { timeZone?: string },
 ): Micro2MSignal[] {
   if (!MICRO_2M_CONFIG.enabled || !signals.length) return [];
 
@@ -30,72 +90,26 @@ export function build2MMicroSignals(
   for (const sig of byPair.values()) {
     if (MICRO_2M_CONFIG.avoidPairs.includes(sig.pair)) continue;
     const micro = classify2MMicroSignal(sig, getOneMin(sig.pair));
-    classified.push({
-      id: `2m_${sig.signalUid}`,
-      pair: sig.pair,
-      direction: sig.direction,
-      sourceTf: sig.tf,
-      sourceLayer: sig.v9Layer ?? null,
-      grade: sig.grade,
-      conf: sig.conf,
-      score: sig.score,
-      scoreGap: sig.scoreGap,
-      microReadiness: micro.microReadiness,
-      microPermission: micro.microPermission,
-      microLabel: micro.microLabel,
-      microReason: micro.microReason,
-      microAction: micro.microAction,
-      candleAligned: micro.candleAligned,
-      candleBodyRatio: micro.candleBodyRatio,
-      isDoji: micro.isDoji,
-      oneMinuteStatus: micro.oneMinuteStatus,
-      oneMinuteNote: micro.oneMinuteNote,
-      expiryLabel: MICRO_2M_CONFIG.expiryLabel,
-      entryTime: sig.entryTime ?? null,
-      expTime: sig.expTime ?? null,
-      price: sig.price ?? null,
-      strategyType: "2M_MICRO",
-      entryMethod: "manual_2m",
-      isBest: false,
-      warnings: micro.warnings,
-      sourceSignalUid: sig.signalUid,
-    });
+    classified.push(
+      toMicroCard(sig, micro, {
+        id: `2m_${sig.signalUid}`,
+        timeZone: options?.timeZone,
+      }),
+    );
   }
 
   // Ensure section never blank after scan when any V9 candidates existed
   if (!classified.length && signals[0]) {
     const sig = signals[0];
     const micro = classify2MMicroSignal(sig, getOneMin(sig.pair));
-    classified.push({
-      id: `2m_fallback_${sig.signalUid}`,
-      pair: sig.pair,
-      direction: sig.direction,
-      sourceTf: sig.tf,
-      sourceLayer: sig.v9Layer ?? null,
-      grade: sig.grade,
-      conf: sig.conf,
-      score: sig.score,
-      scoreGap: sig.scoreGap,
-      microReadiness: micro.microReadiness,
-      microPermission: "2M_AVOID",
-      microLabel: "2M AVOID",
-      microReason: micro.microReason,
-      microAction: micro.microAction,
-      candleAligned: micro.candleAligned,
-      candleBodyRatio: micro.candleBodyRatio,
-      isDoji: micro.isDoji,
-      oneMinuteStatus: micro.oneMinuteStatus,
-      oneMinuteNote: micro.oneMinuteNote,
-      expiryLabel: MICRO_2M_CONFIG.expiryLabel,
-      entryTime: sig.entryTime ?? null,
-      expTime: sig.expTime ?? null,
-      price: sig.price ?? null,
-      strategyType: "2M_MICRO",
-      entryMethod: "manual_2m",
-      isBest: true,
-      warnings: micro.warnings,
-      sourceSignalUid: sig.signalUid,
-    });
+    classified.push(
+      toMicroCard(sig, micro, {
+        id: `2m_fallback_${sig.signalUid}`,
+        isBest: true,
+        forceAvoid: true,
+        timeZone: options?.timeZone,
+      }),
+    );
   }
 
   return rank2MMicroSignals(classified);

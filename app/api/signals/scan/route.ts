@@ -312,7 +312,7 @@ export async function POST(request: Request) {
           }
         }
       }
-      micro2m = build2MMicroSignals(finalized, oneMinByPair);
+      micro2m = build2MMicroSignals(finalized, oneMinByPair, { timeZone });
       microRiskWarning = build2MRiskWarning(
         (journalRows || []).map((r) => ({
           result: r.result,

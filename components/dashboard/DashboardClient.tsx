@@ -119,8 +119,11 @@ export function DashboardClient({
     settings.timeframe === "2min" ||
     (settings.tradeMode === "v9_live" && settings.timeframe === "2min");
   const live2mPresentation =
-    settings.timeframe === "2min" &&
-    (settings.mode === "live" || settings.tradeMode === "v9_live");
+    settings.mode === "live" &&
+    (settings.timeframe === "2min" ||
+      settings.tradeMode === "micro_2m" ||
+      settings.tradeMode === "both" ||
+      settings.tradeMode === "v9_live");
 
   const displaySignals = useMemo(
     () => (showV9 ? filterByShowSignals(signals, settings.showSignals) : []),

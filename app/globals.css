@@ -721,6 +721,10 @@
 .micro2m-card.takeable{border-color:rgba(34,197,94,.55);box-shadow:0 0 0 1px rgba(34,197,94,.2)}
 .micro2m-live-ok{font-size:11px;color:#4ade80;margin:0 0 8px;font-weight:600}
 .micro2m-allowed{font-family:var(--mono);font-size:12px;letter-spacing:1px;color:#4ade80;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);border-radius:8px;padding:8px 10px;margin:0 0 8px;text-align:center}
+.micro2m-entry-banner{margin:0 0 10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(79,209,197,.45);background:rgba(79,209,197,.1);text-align:center}
+.micro2m-entry-label{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:#4fd1c5;margin-bottom:4px}
+.micro2m-entry-value{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--txt2);letter-spacing:1px}
+.micro2m-entry-sub{font-size:10px;color:var(--m3);margin-top:4px;line-height:1.4}
 .micro2m-times{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 8px}
 .micro2m-times div{background:rgba(2,6,14,.55);border:1px solid var(--bd2);border-radius:8px;padding:7px 6px;text-align:center}
 .micro2m-times span{display:block;font-size:9px;color:var(--m3);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}

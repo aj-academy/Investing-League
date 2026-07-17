@@ -8,7 +8,7 @@ export {
   getOneMinuteMicroConfirmation,
   is2MCandleAligned,
 } from "./classify";
-export { build2MMicroSignals, build2MRiskWarning } from "./build";
+export { build2MMicroSignals, build2MRiskWarning, compute2MEntryWindow } from "./build";
 export { rank2MMicroSignals } from "./rank";
 export {
   isTakeable2MPermission,
