@@ -28,8 +28,18 @@ export interface JournalRow {
 
 export function buildAnalyticsSummary(rows: JournalRow[]) {
   const totalSignals = rows.length;
-  const tradeEligible = rows.filter((r) =>
-    r.signal_type && isRealTradeSignal(r.signal_type, r.grade, r.v9_layer, r.v10_layer),
+  const tradeEligible = rows.filter(
+    (r) =>
+      r.signal_type &&
+      isRealTradeSignal(
+        r.signal_type,
+        r.grade,
+        r.v9_layer,
+        r.v10_layer,
+        null,
+        r.entry_method,
+        (r as { strategy_type?: string | null }).strategy_type,
+      ),
   );
   const completed = rows.filter((r) => ["Win", "Loss", "Refund"].includes(r.result || ""));
   const wins = rows.filter((r) => r.result === "Win").length;

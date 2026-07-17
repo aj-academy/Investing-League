@@ -156,6 +156,20 @@ export function ScannerControls({
           </select>
         </div>
         <div className="scanner-field">
+          <label>Trade mode</label>
+          <select
+            value={settings.tradeMode}
+            disabled={lockFilters}
+            onChange={(e) =>
+              onChange({ tradeMode: e.target.value as ScanSettings["tradeMode"] })
+            }
+          >
+            <option value="both">BOTH · V9 + 2M Micro</option>
+            <option value="v9_live">V9 LIVE MODE</option>
+            <option value="micro_2m">2M MICRO MODE</option>
+          </select>
+        </div>
+        <div className="scanner-field">
           <label>Show signals</label>
           <select
             value={settings.showSignals}

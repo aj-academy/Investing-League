@@ -4,7 +4,11 @@ export function isRealTradeSignal(
   v9Layer?: string | null,
   v10Layer?: string | null,
   v10Permission?: string | null,
+  entryMethod?: string | null,
+  strategyType?: string | null,
 ) {
+  // 2M Micro trades are never counted in V9 LIVE win rate
+  if (strategyType === "2M_MICRO" || entryMethod === "manual_2m") return false;
   if (v10Permission) {
     return v10Permission === "TRADE_ALLOWED";
   }
@@ -23,6 +27,10 @@ export function isRealTradeSignal(
     "LIVE SELECTOR WATCH",
     "V10 CAUTION SIGNAL",
     "V10 AVOID TRADE",
+    "2M MICRO TRADE",
+    "STRONG 2M MICRO TRADE",
+    "2M WATCH",
+    "2M AVOID",
   ];
   if (signalType && excluded.includes(signalType)) return false;
   return (
@@ -63,6 +71,7 @@ export function calculateRealWinRate(
     v10_layer?: string | null;
     v10_permission?: string | null;
     entry_method?: string | null;
+    strategy_type?: string | null;
   }[],
 ) {
   const eligible = rows.filter(
@@ -73,6 +82,8 @@ export function calculateRealWinRate(
         r.v9_layer,
         r.v10_layer,
         r.v10_permission,
+        r.entry_method,
+        r.strategy_type,
       ) &&
       !isCautionOrAvoid(r.v10_permission) &&
       (r.result === "Win" || r.result === "Loss" || r.result === "Refund"),

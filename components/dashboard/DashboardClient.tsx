@@ -52,6 +52,8 @@ function clientTimeZone() {
 }
 
 import type { ShowSignalsFilter } from "@/lib/signal-engine/v9/types";
+import type { Micro2MSignal, TradeModeOption } from "@/lib/signal-engine/micro2m/types";
+import { Micro2MSection } from "./Micro2MSection";
 
 export interface ScanSettings {
   timeframe: string;
@@ -62,6 +64,7 @@ export interface ScanSettings {
   autoRefresh: AutoRefreshOption;
   mode: "practice" | "live";
   showSignals: ShowSignalsFilter;
+  tradeMode: TradeModeOption;
 }
 
 export interface PlanInfo {
@@ -103,10 +106,16 @@ export function DashboardClient({
   const [selectedPairs, setSelectedPairs] = useState<string[]>([]);
   const [signals, setSignals] = useState<ComputedSignal[]>([]);
   const [v9Meta, setV9Meta] = useState<V9ScanMeta | null>(null);
+  const [micro2m, setMicro2m] = useState<Micro2MSignal[]>([]);
+  const [microRiskWarning, setMicroRiskWarning] = useState<string | null>(null);
+  const [scanCompleted, setScanCompleted] = useState(false);
+
+  const showV9 = settings.tradeMode === "v9_live" || settings.tradeMode === "both";
+  const showMicro = settings.tradeMode === "micro_2m" || settings.tradeMode === "both";
 
   const displaySignals = useMemo(
-    () => filterByShowSignals(signals, settings.showSignals),
-    [signals, settings.showSignals],
+    () => (showV9 ? filterByShowSignals(signals, settings.showSignals) : []),
+    [signals, settings.showSignals, showV9],
   );
 
   const [ticker, setTicker] = useState<TickerItem[]>([]);
@@ -577,6 +586,9 @@ export function DashboardClient({
       setProgress(0);
       setSignals([]);
       setV9Meta(null);
+      setMicro2m([]);
+      setMicroRiskWarning(null);
+      setScanCompleted(false);
       setRestoreMessage(null);
       setMarketErrors([]);
       setLoaderText("V9 SCANNING");
@@ -612,6 +624,7 @@ export function DashboardClient({
           showBSignals: activeSettings.minGrade === "B",
           dailyTradeLimit: activeSettings.dailyTradeLimit,
           sessionFilter: activeSettings.session,
+          tradeMode: activeSettings.tradeMode,
           auto: isAuto,
           timezone: timeZone,
         }),
@@ -652,6 +665,9 @@ export function DashboardClient({
       setApiCalls(json.usage?.providerCalls);
       setMarketErrors(json.marketErrors || []);
       setLastScannedPairs(Array.isArray(json.scannedPairs) ? json.scannedPairs : pairs);
+      setMicro2m(Array.isArray(json.micro2m) ? json.micro2m : []);
+      setMicroRiskWarning(json.microRiskWarning || null);
+      setScanCompleted(true);
       if (json.usage) {
         setScanUsage((prev) => ({
           plan: json.usage.plan,
@@ -831,11 +847,16 @@ export function DashboardClient({
         />
         <div className="main-grid">
           <div className="signals-col">
-            <V9ScanSummary meta={v9Meta} />
-            {(v9Meta?.liveCount ?? 0) === 0 ? (
+            {showV9 ? <V9ScanSummary meta={v9Meta} /> : null}
+            {showV9 && (v9Meta?.liveCount ?? 0) === 0 ? (
               <OpportunityRadar items={v9Meta?.radarTop ?? []} />
             ) : null}
-            {!scanning && !autoScanning && !displaySignals.length && !v9Meta ? (
+            <Micro2MSection
+              items={micro2m}
+              riskWarning={microRiskWarning}
+              visible={showMicro && !scanning && !autoScanning && scanCompleted}
+            />
+            {showV9 && !scanning && !autoScanning && !displaySignals.length && !v9Meta && !micro2m.length ? (
               <div className="empty">
                 <div className="empty-icon">📡</div>
                 <div className="empty-txt">
@@ -845,19 +866,22 @@ export function DashboardClient({
                   <br />
                   <br />
                   <span style={{ color: "var(--m2)" }}>
-                    V9: Live permission · Practice signals · Opportunity Radar · Why-no-signal
+                    V9 LIVE · 2M Micro · Practice · Opportunity Radar · Why-no-signal
                   </span>
                 </div>
               </div>
-            ) : (
-              displaySignals.map((sig, idx) => (
-                <SignalCard key={sig.signalUid} sig={sig} delay={idx * 60} timeZone={timeZone} />
-              ))
-            )}
-            <WhyNoSignalPanel
-              items={v9Meta?.whyNoSignal ?? []}
-              visible={(v9Meta?.liveCount ?? 0) === 0 && Boolean(v9Meta)}
-            />
+            ) : null}
+            {showV9
+              ? displaySignals.map((sig, idx) => (
+                  <SignalCard key={sig.signalUid} sig={sig} delay={idx * 60} timeZone={timeZone} />
+                ))
+              : null}
+            {showV9 ? (
+              <WhyNoSignalPanel
+                items={v9Meta?.whyNoSignal ?? []}
+                visible={(v9Meta?.liveCount ?? 0) === 0 && Boolean(v9Meta)}
+              />
+            ) : null}
           </div>
           <SupportPanel
             signals={displaySignals}

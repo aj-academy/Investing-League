@@ -1,4 +1,4 @@
-export type EntryMethod = "manual" | "pending_order";
+export type EntryMethod = "manual" | "pending_order" | "manual_2m";
 
 export type V10Permission =
   | "TRADE_ALLOWED"

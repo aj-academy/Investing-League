@@ -52,6 +52,7 @@ export default async function ScannerPage() {
     ),
     mode: (settings?.default_mode as "practice" | "live") || "practice",
     showSignals: "all",
+    tradeMode: "both",
   };
 
   return (

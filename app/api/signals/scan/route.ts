@@ -24,20 +24,28 @@ import {
   filterSignals,
   finalizeScanSignals,
   shouldJournalV9Signal,
+  build2MMicroSignals,
+  build2MRiskWarning,
+  MICRO_2M_CONFIG,
   type ScanJournalRow,
+  type TradeModeOption,
 } from "@/lib/signal-engine";
 import { PLATFORM_SAVE_FAILED } from "@/lib/platform/userCopy";
 import { sanitizeUserFacingErrors } from "@/lib/platform/sanitizeUserFacingError";
 import { upsertTradeJournalRow } from "@/lib/journal/upsertJournal";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { ComputedSignal } from "@/lib/signal-engine/types";
+import type { ComputedSignal, OHLC } from "@/lib/signal-engine/types";
 import { hasAcceptedLatestTerms } from "@/lib/terms/terms";
 import { isLiveModeBlocked } from "@/lib/risk/dailyRiskSummary";
 import { formatAppDateSlash, formatAppTime, resolveTimeZone } from "@/lib/datetime";
 import { PAIRS } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
+function resolveTradeMode(raw: unknown): TradeModeOption {
+  if (raw === "v9_live" || raw === "micro_2m" || raw === "both") return raw;
+  return "both";
+}
 function signalRow(userId: string, scanSessionId: string, sig: ComputedSignal) {
   return {
     user_id: userId,
@@ -145,6 +153,7 @@ export async function POST(request: Request) {
     const dailyTradeLimit = Number(body.dailyTradeLimit ?? 5);
     const sessionFilter = String(body.sessionFilter || "any");
     const timeZone = resolveTimeZone(body.timezone);
+    const tradeMode = resolveTradeMode(body.tradeMode);
 
     try {
       const supabase = await createClient();
@@ -202,7 +211,7 @@ export async function POST(request: Request) {
     const { data: journalRows } = await supabase
       .from("trade_journal")
       .select(
-        "pair,timeframe,direction,signal_type,signal_entry_time,trade_eligible,result,created_at,v9_layer"
+        "pair,timeframe,direction,signal_type,signal_entry_time,trade_eligible,result,created_at,v9_layer,entry_method"
       )
       .eq("user_id", auth!.user.id)
       .order("created_at", { ascending: false })
@@ -274,6 +283,38 @@ export async function POST(request: Request) {
       marketErrors,
     });
 
+    // 2M Micro layer — separate from V9 LIVE; optional 1m confirmation only when enabled.
+    let micro2m: ReturnType<typeof build2MMicroSignals> = [];
+    let microRiskWarning: string | null = null;
+    const wantMicro = tradeMode === "micro_2m" || tradeMode === "both";
+    if (wantMicro && MICRO_2M_CONFIG.enabled && finalized.length > 0) {
+      const oneMinByPair = new Map<string, OHLC[]>();
+      if (MICRO_2M_CONFIG.useOneMinuteConfirmation) {
+        for (const pair of pairs) {
+          try {
+            const oneMin = await getCandlesCached(
+              pair,
+              "1min",
+              MICRO_2M_CONFIG.oneMinuteLookbackCandles,
+            );
+            if (oneMin.providerCall) providerCalls++;
+            if (oneMin.cacheHit) cacheHits++;
+            oneMinByPair.set(pair, oneMin.candles);
+          } catch {
+            /* optional confirmation — do not fail scan */
+          }
+        }
+      }
+      micro2m = build2MMicroSignals(finalized, oneMinByPair);
+      microRiskWarning = build2MRiskWarning(
+        (journalRows || []).map((r) => ({
+          result: r.result,
+          strategy_type: null,
+          entry_method: (r as { entry_method?: string | null }).entry_method ?? null,
+        })),
+      );
+    }
+
     const toPersist =
       filteredSignals.length > 0
         ? filteredSignals
@@ -292,8 +333,9 @@ export async function POST(request: Request) {
       ? createAdminClient()
       : null;
     const writer = admin ?? supabase;
-    const signalsToSave = toDisplay.length > 0 ? toDisplay : toPersist;
-    const journalToSave = signalsToSave.filter(shouldJournalV9Signal);
+    const signalsToSave = tradeMode === "micro_2m" ? [] : toDisplay.length > 0 ? toDisplay : toPersist;
+    const journalToSave =
+      tradeMode === "micro_2m" ? [] : signalsToSave.filter(shouldJournalV9Signal);
     let journalSaved = 0;
     let signalsSaved = 0;
     const persistErrors: string[] = [];
@@ -384,12 +426,15 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       engine: "v9",
+      tradeMode,
       auto: isAuto,
       scanSessionId: scanSession.id,
       scannedPairs: pairs,
-      signals,
-      v9: v9Meta,
-      allSignals: finalized,
+      signals: tradeMode === "micro_2m" ? [] : signals,
+      v9: tradeMode === "micro_2m" ? null : v9Meta,
+      allSignals: tradeMode === "micro_2m" ? [] : finalized,
+      micro2m,
+      microRiskWarning,
       ticker: tickerResult.items,
       connected: !!process.env.TWELVE_DATA_API_KEY,
       usage: {
@@ -412,6 +457,8 @@ export async function POST(request: Request) {
       message:
         journalSaved > 0
           ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
+          : micro2m.length > 0 && tradeMode !== "v9_live"
+            ? `Scan complete — ${micro2m.length} 2M Micro candidate(s). Separate from V9 LIVE permission.`
           : signals.length > 0 && clientPersistErrors.length > 0
             ? `Scan complete — ${signals.length} setup(s) on screen but journal save failed: ${clientPersistErrors[0]}`
             : signals.length > 0 && journalToSave.length === 0

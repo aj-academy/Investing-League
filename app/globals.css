@@ -684,6 +684,38 @@
 .layer-chip.practice{color:var(--gold);border-color:rgba(240,160,32,.4);background:rgba(240,160,32,.08)}
 .layer-chip.radar{color:var(--blue2);border-color:rgba(0,170,255,.35);background:rgba(0,170,255,.08)}
 .layer-chip.rejected{color:var(--bear);border-color:rgba(255,51,85,.35);background:rgba(255,51,85,.08)}
+.micro2m-wrap{grid-column:1/-1;background:linear-gradient(160deg,rgba(0,180,200,.07),rgba(8,13,24,.9));border:1px solid rgba(0,200,220,.28);border-radius:14px;padding:14px;margin-bottom:12px}
+.micro2m-head{margin-bottom:10px}
+.micro2m-head h3{font-family:var(--mono);font-size:12px;color:#4fd1c5;letter-spacing:2px;margin:0 0 6px}
+.micro2m-sub{font-size:11px;color:var(--m3);margin:0;line-height:1.55}
+.micro2m-risk{margin:8px 0 10px;padding:9px 11px;border-radius:10px;border:1px solid rgba(240,160,32,.45);background:rgba(240,160,32,.1);color:var(--gold2);font-size:11px;line-height:1.5}
+.micro2m-empty{font-size:12px;color:var(--m3);margin:8px 0}
+.micro2m-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.micro2m-card{background:rgba(2,6,14,.72);border:1px solid var(--bd2);border-radius:12px;padding:12px;position:relative}
+.micro2m-card.best{border-color:rgba(79,209,197,.55);box-shadow:0 0 0 1px rgba(79,209,197,.2)}
+.micro2m-card.perm-strong{border-top:3px solid #22c55e}
+.micro2m-card.perm-trade{border-top:3px solid #22d3ee}
+.micro2m-card.perm-watch{border-top:3px solid #f59e0b}
+.micro2m-card.perm-avoid{border-top:3px solid #94a3b8}
+.micro2m-best{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:#4fd1c5;margin-bottom:8px}
+.micro2m-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.micro2m-pair{font-family:var(--mono);font-size:13px;color:var(--txt2);letter-spacing:1px}
+.micro2m-meta{font-size:10px;color:var(--m3);margin-top:3px}
+.micro2m-ready{font-family:var(--mono);font-size:16px;font-weight:700;color:#4fd1c5}
+.micro2m-badge{display:inline-block;margin:0 0 8px;padding:3px 8px;border-radius:6px;font-family:var(--mono);font-size:9px;letter-spacing:1px;border:1px solid var(--bd2)}
+.micro2m-badge.strong{color:#22c55e;border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.1)}
+.micro2m-badge.trade{color:#22d3ee;border-color:rgba(34,211,238,.45);background:rgba(34,211,238,.1)}
+.micro2m-badge.watch{color:#f59e0b;border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.1)}
+.micro2m-badge.avoid{color:#94a3b8;border-color:rgba(148,163,184,.4);background:rgba(148,163,184,.08)}
+.micro2m-line{font-size:10px;color:var(--txt);margin:0 0 6px;line-height:1.45}
+.micro2m-reason{font-size:11px;color:var(--txt);line-height:1.55;margin:0 0 6px}
+.micro2m-action{font-size:11px;color:var(--m3);line-height:1.5;margin:0 0 8px}
+.micro2m-expiry{font-family:var(--mono);font-size:10px;color:#4fd1c5;margin-bottom:4px}
+.micro2m-warn{font-size:10px;color:var(--gold2);margin-bottom:8px}
+.micro2m-journal{display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)}
+.micro2m-journal input,.micro2m-journal select{width:100%;min-height:30px;font-size:11px}
+.micro2m-journal button{min-height:32px;font-size:11px}
+.micro2m-footer{margin:12px 0 0;font-size:11px;color:var(--m3);line-height:1.6}
 .why-panel{grid-column:1/-1;margin-top:4px;margin-bottom:12px}
 .why-panel-title{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:2px;margin:0 0 6px}
 .why-panel-sub{font-size:11px;color:var(--m3);margin:0 0 10px;line-height:1.5}

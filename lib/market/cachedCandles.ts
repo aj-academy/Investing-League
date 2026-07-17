@@ -13,6 +13,7 @@ export type CandleCacheResult = {
 };
 
 function candleTtlMs(interval: string): number {
+  if (interval === "1min") return 45_000;
   if (interval === "15min") return 180_000;
   return 75_000;
 }

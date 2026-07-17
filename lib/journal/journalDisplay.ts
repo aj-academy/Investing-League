@@ -21,10 +21,13 @@ export function isEligibleType(
   grade?: string | null,
   v9Layer?: string | null,
   v10Layer?: string | null,
+  entryMethod?: string | null,
+  strategyType?: string | null,
 ) {
+  if (strategyType === "2M_MICRO" || entryMethod === "manual_2m") return false;
   if (v10Layer && v10Layer !== "LIVE") return false;
   if (!v10Layer && v9Layer && v9Layer !== "LIVE") return false;
-  return isRealTradeSignal(signalType, grade, v9Layer, v10Layer);
+  return isRealTradeSignal(signalType, grade, v9Layer, v10Layer, null, entryMethod, strategyType);
 }
 
 export function isCountedInWr(
@@ -172,13 +175,22 @@ export function computeJournalStats(
     result?: string | null;
     pair?: string;
     timeframe?: string;
+    entry_method?: string | null;
+    strategy_type?: string | null;
+    v9_layer?: string | null;
+    v10_layer?: string | null;
   }[]
 ): JournalStatsSummary {
-  const eligible = rows.filter((r) => isEligibleType(r.signal_type, r.grade));
+  const eligible = rows.filter((r) =>
+    isEligibleType(r.signal_type, r.grade, r.v9_layer, r.v10_layer, r.entry_method, r.strategy_type),
+  );
   const eligibleDone = eligible.filter((r) => r.result === "Win" || r.result === "Loss");
   const wins = eligibleDone.filter((r) => r.result === "Win").length;
   const losses = eligibleDone.filter((r) => r.result === "Loss").length;
-  const obs = rows.filter((r) => !isEligibleType(r.signal_type, r.grade)).length;
+  const obs = rows.filter(
+    (r) =>
+      !isEligibleType(r.signal_type, r.grade, r.v9_layer, r.v10_layer, r.entry_method, r.strategy_type),
+  ).length;
   const wr = eligibleDone.length
     ? `${((wins / eligibleDone.length) * 100).toFixed(1)}%`
     : "—";
@@ -200,5 +212,118 @@ export function computeJournalStats(
     observation: obs,
     bestPair: bestByPairOrExpiry(rows, "pair"),
     bestExpiry: bestByPairOrExpiry(rows, "timeframe"),
+  };
+}
+
+export type Micro2MJournalStats = {
+  total: number;
+  wins: number;
+  losses: number;
+  refunds: number;
+  winRate: string;
+  bestPair: string;
+  worstPair: string;
+  bestDirection: string;
+  wr70_74: string;
+  wr75_79: string;
+  wr80plus: string;
+};
+
+function isMicro2MRow(r: {
+  entry_method?: string | null;
+  strategy_type?: string | null;
+  signal_type?: string | null;
+}) {
+  return (
+    r.strategy_type === "2M_MICRO" ||
+    r.entry_method === "manual_2m" ||
+    (r.signal_type || "").includes("2M MICRO") ||
+    (r.signal_type || "").includes("STRONG 2M")
+  );
+}
+
+function bucketWr(
+  rows: { result?: string | null; micro_readiness?: number | null; v9_readiness?: number | null; confidence?: number | null }[],
+  min: number,
+  maxExclusive: number | null,
+) {
+  const done = rows.filter((r) => {
+    const ready = Number(r.micro_readiness ?? r.v9_readiness ?? r.confidence ?? 0);
+    if (ready < min) return false;
+    if (maxExclusive != null && ready >= maxExclusive) return false;
+    return r.result === "Win" || r.result === "Loss";
+  });
+  if (!done.length) return "—";
+  const wins = done.filter((r) => r.result === "Win").length;
+  return `${((wins / done.length) * 100).toFixed(1)}%`;
+}
+
+export function computeMicro2MJournalStats(
+  rows: {
+    result?: string | null;
+    pair?: string;
+    direction?: string;
+    entry_method?: string | null;
+    strategy_type?: string | null;
+    signal_type?: string | null;
+    micro_readiness?: number | null;
+    v9_readiness?: number | null;
+    confidence?: number | null;
+  }[],
+): Micro2MJournalStats {
+  const micro = rows.filter(isMicro2MRow);
+  const wins = micro.filter((r) => r.result === "Win").length;
+  const losses = micro.filter((r) => r.result === "Loss").length;
+  const refunds = micro.filter((r) => r.result === "Refund").length;
+  const done = wins + losses;
+  const winRate = done ? `${((wins / done) * 100).toFixed(1)}%` : "—";
+
+  const pairWr = (pair: string) => {
+    const p = micro.filter((r) => r.pair === pair && (r.result === "Win" || r.result === "Loss"));
+    if (!p.length) return -1;
+    return p.filter((r) => r.result === "Win").length / p.length;
+  };
+  const pairs = [...new Set(micro.map((r) => r.pair).filter(Boolean))] as string[];
+  let bestPair = "—";
+  let worstPair = "—";
+  let best = -1;
+  let worst = 2;
+  for (const p of pairs) {
+    const wr = pairWr(p);
+    if (wr < 0) continue;
+    if (wr > best) {
+      best = wr;
+      bestPair = p;
+    }
+    if (wr < worst) {
+      worst = wr;
+      worstPair = p;
+    }
+  }
+
+  const dirWr = (d: string) => {
+    const p = micro.filter((r) => r.direction === d && (r.result === "Win" || r.result === "Loss"));
+    if (!p.length) return -1;
+    return p.filter((r) => r.result === "Win").length / p.length;
+  };
+  const call = dirWr("CALL");
+  const put = dirWr("PUT");
+  let bestDirection = "—";
+  if (call >= 0 || put >= 0) {
+    bestDirection = call >= put ? "CALL" : "PUT";
+  }
+
+  return {
+    total: micro.length,
+    wins,
+    losses,
+    refunds,
+    winRate,
+    bestPair,
+    worstPair,
+    bestDirection,
+    wr70_74: bucketWr(micro, 70, 75),
+    wr75_79: bucketWr(micro, 75, 80),
+    wr80plus: bucketWr(micro, 80, null),
   };
 }

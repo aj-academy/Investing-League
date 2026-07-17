@@ -36,6 +36,14 @@ export type { EntryMethod, V10Permission } from "./v10/types";
 export * from "./session";
 export { gradeAllowed, type MinGradeFilter } from "./permission";
 export { isNewsBlocked } from "./v8/news";
+export {
+  MICRO_2M_CONFIG,
+  build2MMicroSignals,
+  build2MRiskWarning,
+  classify2MMicroSignal,
+  rank2MMicroSignals,
+} from "./micro2m";
+export type { Micro2MSignal, TradeModeOption } from "./micro2m";
 
 /** Single-pair V9 compute (batch finalize via finalizeScanSignals). */
 export function computeSignal(

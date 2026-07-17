@@ -50,6 +50,10 @@ export interface JournalRow {
   v9_layer?: string | null;
   v10_layer?: string | null;
   entry_method?: string | null;
+  strategy_type?: string | null;
+  micro_permission?: string | null;
+  micro_label?: string | null;
+  micro_readiness?: number | null;
   v9_readiness?: number | null;
 }
 
