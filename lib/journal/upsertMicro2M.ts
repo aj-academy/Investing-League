@@ -47,10 +47,14 @@ export async function upsertMicro2MJournalRow(
     signal_type: label,
     signal_reason: signal.microReason || "2M direction candidate — 2-minute expiry only",
     trade_eligible: false,
-    signal_entry_time: null,
+    signal_entry_time: signal.entryTime ?? null,
     signal_entry_price:
-      input.platformOpenQuote != null ? Number(input.platformOpenQuote) : null,
-    expiry_time: null,
+      input.platformOpenQuote != null
+        ? Number(input.platformOpenQuote)
+        : signal.price != null
+          ? parseFloat(String(signal.price))
+          : null,
+    expiry_time: signal.expTime ?? null,
     expiry_minutes: 2,
     result,
     result_source: result === "Pending" ? "Unverified" : "Manual",

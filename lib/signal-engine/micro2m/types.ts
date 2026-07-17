@@ -35,6 +35,10 @@ export interface Micro2MSignal {
   oneMinuteStatus: OneMinuteConfirmation;
   oneMinuteNote: string;
   expiryLabel: string;
+  /** Planned entry clock time from 2m candle boundary (same style as V9 cards). */
+  entryTime?: string | null;
+  expTime?: string | null;
+  price?: string | null;
   strategyType: "2M_MICRO";
   entryMethod: "manual_2m";
   isBest: boolean;

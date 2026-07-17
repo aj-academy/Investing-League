@@ -57,6 +57,7 @@ function Micro2MJournalForm({
           microPermission: item.microPermission,
           microLabel: liveFacingMicroLabel(item.microPermission, livePresentation),
           microReason: item.microReason,
+          entryTime: item.entryTime,
           platformOpenQuote: openQuote || null,
           platformCloseQuote: closeQuote || null,
           result,
@@ -81,7 +82,7 @@ function Micro2MJournalForm({
   return (
     <div className="micro2m-journal">
       {livePresentation ? (
-        <div className="micro2m-take">TAKE THIS 2M LIVE TRADE · 2-minute expiry on platform</div>
+        <div className="micro2m-take">TAKE NOW · Platform expiry must be 2 minutes</div>
       ) : null}
       <input
         type="text"
@@ -108,7 +109,7 @@ function Micro2MJournalForm({
         onChange={(e) => setNotes(e.target.value)}
       />
       <button type="button" className="btn btn-sm" disabled={saving} onClick={save}>
-        {saving ? "Saving…" : livePresentation ? "Update 2M LIVE journal" : "Journal 2M trade"}
+        {saving ? "Saving…" : livePresentation ? "Update 2M journal" : "Journal 2M trade"}
       </button>
       {msg ? <div className="micro2m-line">{msg}</div> : null}
     </div>
@@ -135,17 +136,22 @@ export function Micro2MSection({
   return (
     <div className={`micro2m-wrap${livePresentation ? " live-mode" : ""}`}>
       <div className="micro2m-head">
-        <h3>{livePresentation ? "2M LIVE TRADE SIGNALS" : "2M MICRO SIGNALS"}</h3>
+        <h3>{livePresentation ? "2M LIVE · TRADE ALLOWED SIGNALS" : "2M MICRO SIGNALS"}</h3>
         <p className="micro2m-sub">
           {livePresentation
-            ? "Real takeable 2-minute live trades from 2-minute candles. Take only green/cyan badges. Separate from 5-min/15-min V9 LIVE win rate."
-            : "Short-term 2-minute direction candidates. When Expiry is 2-min, signals are scored from real 2-minute candles. Separate from V9 LIVE permission."}
+            ? "Takeable 2-minute live trades. Look for TRADE ALLOWED badges, then enter at the shown Entry time with 2-minute expiry on your platform."
+            : "Short-term 2-minute direction candidates from 2-minute candles. Separate from 5-min/15-min V9 LIVE."}
         </p>
       </div>
 
       {livePresentation && takeable.length > 0 ? (
         <div className="micro2m-live-banner">
-          {takeable.length} takeable 2M LIVE signal(s) — place on platform with 2-minute expiry only
+          {takeable.length} TRADE ALLOWED signal(s) — enter at listed Entry time · 2-minute expiry only
+        </div>
+      ) : livePresentation ? (
+        <div className="micro2m-risk">
+          No TRADE ALLOWED cards yet. Readiness must be 70%+ with aligned candle. Current cards are
+          Watch/Avoid only — do not place a real trade.
         </div>
       ) : null}
 
@@ -183,10 +189,33 @@ export function Micro2MSection({
                   </div>
                   <div className="micro2m-ready">{item.microReadiness}%</div>
                 </div>
-                <div className={badgeClass(item.microPermission, livePresentation)}>{label}</div>
+
                 {takeableCard && livePresentation ? (
-                  <div className="micro2m-live-ok">✅ You may take this as a real 2-minute live trade</div>
+                  <div className="micro2m-allowed">✅ 2M TRADE ALLOWED</div>
                 ) : null}
+                <div className={badgeClass(item.microPermission, livePresentation)}>{label}</div>
+
+                <div className="micro2m-times">
+                  <div>
+                    <span>Entry</span>
+                    <b>{item.entryTime || "—"}</b>
+                  </div>
+                  <div>
+                    <span>Expiry</span>
+                    <b>{item.expTime || "2 min"}</b>
+                  </div>
+                  <div>
+                    <span>Price</span>
+                    <b>{item.price || "—"}</b>
+                  </div>
+                </div>
+
+                {takeableCard && livePresentation ? (
+                  <div className="micro2m-live-ok">
+                    Place CALL/PUT on platform at Entry time · set expiry to 2 minutes
+                  </div>
+                ) : null}
+
                 <div className="micro2m-line">
                   Candle: {item.candleAligned ? "Aligned" : "Not aligned"} · body{" "}
                   {Math.round(item.candleBodyRatio)}%
@@ -200,11 +229,11 @@ export function Micro2MSection({
                 <p className="micro2m-action">
                   <strong>Action:</strong> {item.microAction}
                 </p>
-                <div className="micro2m-expiry">Expiry: {item.expiryLabel} only</div>
+                <div className="micro2m-expiry">Platform expiry: 2 minutes only</div>
                 <div className="micro2m-warn">
                   {livePresentation
-                    ? "2M LIVE path — not counted in 5-min/15-min V9 LIVE win rate"
-                    : "Not V9 LIVE trade permission"}
+                    ? "2M TRADE ALLOWED path — not counted in 5-min/15-min V9 LIVE win rate"
+                    : "Not 5-min/15-min V9 LIVE permission"}
                 </div>
                 <Micro2MJournalForm item={item} livePresentation={livePresentation} />
               </div>
@@ -215,8 +244,8 @@ export function Micro2MSection({
 
       <p className="micro2m-footer">
         {livePresentation
-          ? "Take only STRONG 2M LIVE TRADE or 2M LIVE TRADE badges. Use fixed small amount, stop after 2 losses, and update journal after expiry."
-          : "2M Micro is a short-term direction strategy. It is separate from V9 LIVE trade permission. Use fixed small amount, avoid recovery trades, and journal every trade."}
+          ? "Take only cards with ✅ 2M TRADE ALLOWED. Use fixed small amount, stop after 2 losses, journal after expiry."
+          : "2M Micro is separate from V9 LIVE. Use fixed small amount and journal every trade."}
       </p>
     </div>
   );

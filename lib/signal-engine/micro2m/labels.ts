@@ -12,8 +12,8 @@ export function liveFacingMicroLabel(
     return "2M AVOID";
   }
 
-  if (permission === "2M_STRONG_MICRO") return "STRONG 2M LIVE TRADE";
-  if (permission === "2M_MICRO_TRADE") return "2M LIVE TRADE";
+  if (permission === "2M_STRONG_MICRO") return "STRONG 2M TRADE ALLOWED";
+  if (permission === "2M_MICRO_TRADE") return "2M TRADE ALLOWED";
   if (permission === "2M_WATCH") return "2M WATCH";
   return "2M AVOID";
 }
