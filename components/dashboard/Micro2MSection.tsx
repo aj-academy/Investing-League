@@ -119,8 +119,8 @@ export function Micro2MSection({
       <div className="micro2m-head">
         <h3>2M MICRO SIGNALS</h3>
         <p className="micro2m-sub">
-          Short-term 2-minute direction candidates based on radar readiness. Separate from V9 LIVE
-          permission.
+          Short-term 2-minute direction candidates. When Expiry is 2-min, signals are scored from
+          real 2-minute candles (built from 1-minute data). Separate from V9 LIVE permission.
         </p>
       </div>
 

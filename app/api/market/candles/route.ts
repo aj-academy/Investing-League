@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!PAIRS.includes(pair as (typeof PAIRS)[number])) {
       return NextResponse.json({ error: "Invalid pair" }, { status: 400 });
     }
-    if (!["5min", "15min"].includes(interval)) {
+    if (!["2min", "5min", "15min"].includes(interval)) {
       return NextResponse.json({ error: "Invalid interval" }, { status: 400 });
     }
     if (!Number.isFinite(outputsize) || outputsize < 2 || outputsize > 500) {

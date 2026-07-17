@@ -107,7 +107,7 @@ export function computeV8Raw(
   const i = n - 2;
   const price = c[i];
   const prev = c[i - 1];
-  const is5 = tf === "5min";
+  const isFastTf = tf === "5min" || tf === "2min";
   const jpy = pair.includes("JPY");
 
   const e9 = M.ema(c, 9);
@@ -125,7 +125,7 @@ export function computeV8Raw(
   const wmaBearTrend = w5[i]! < w20[i]!;
   const movingConflict = (emaBullTrend && wmaBearTrend) || (emaBearTrend && wmaBullTrend);
 
-  const rsiArr = M.rsi(c, is5 ? 9 : 14);
+  const rsiArr = M.rsi(c, isFastTf ? 9 : 14);
   const rsiV = rsiArr[i] as number;
   const rsiP = rsiArr[i - 1] as number;
 
@@ -137,7 +137,7 @@ export function computeV8Raw(
   const bb = M.bb(c, 20, 2);
   const bbPB = bb.pB[i] as number;
 
-  const st = M.stoch(ohlc, is5 ? 5 : 14, 3);
+  const st = M.stoch(ohlc, isFastTf ? 5 : 14, 3);
   const stK = st.K[i];
   const stD = st.D[i];
 
@@ -167,7 +167,7 @@ export function computeV8Raw(
   const spread = jpy ? V8_CONFIG.spreadJPY : V8_CONFIG.spreadNonJPY;
   const atrOk = Boolean(atrV && atrV >= atrMin);
   const spreadOk = Boolean(atrV && atrV > spread * 2.2);
-  const adxOk = adxV >= (is5 ? V8_CONFIG.adxMin5 : V8_CONFIG.adxMin15);
+  const adxOk = adxV >= (isFastTf ? V8_CONFIG.adxMin5 : V8_CONFIG.adxMin15);
   const adxStrong = adxV >= 24;
 
   const overExtendedBull = price > e21[i]! + atrV * 1.15;
@@ -241,7 +241,7 @@ export function computeV8Raw(
           ? "B"
           : "C";
 
-  const requiredGap = is5 ? V8_CONFIG.scoreGap5 : V8_CONFIG.scoreGap15;
+  const requiredGap = isFastTf ? V8_CONFIG.scoreGap5 : V8_CONFIG.scoreGap15;
   const blockers: string[] = [];
   const inPullback =
     direction === "CALL" ? pullbackBull || atSup : pullbackBear || atRes;

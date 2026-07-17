@@ -10,7 +10,7 @@ import type { ScanSettings } from "@/components/dashboard/DashboardClient";
 
 const SETTINGS_KEY = "til_scanner_settings_v1";
 
-const TIMEFRAMES = new Set(["5min", "15min", "both"]);
+const TIMEFRAMES = new Set(["2min", "5min", "15min", "both"]);
 const SESSIONS = new Set(["any", "london", "newyork", "overlap"]);
 const MODES = new Set(["practice", "live"]);
 const GRADES = new Set<MinGradeFilter>(["B", "A", "A+"]);

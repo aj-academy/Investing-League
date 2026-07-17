@@ -284,9 +284,12 @@ export async function POST(request: Request) {
     });
 
     // 2M Micro layer — separate from V9 LIVE; optional 1m confirmation only when enabled.
+    // Selecting 2min expiry always builds Micro from real 2-minute candles.
+    const is2minScan = timeframes.includes("2min");
     let micro2m: ReturnType<typeof build2MMicroSignals> = [];
     let microRiskWarning: string | null = null;
-    const wantMicro = tradeMode === "micro_2m" || tradeMode === "both";
+    const wantMicro =
+      tradeMode === "micro_2m" || tradeMode === "both" || is2minScan;
     if (wantMicro && MICRO_2M_CONFIG.enabled && finalized.length > 0) {
       const oneMinByPair = new Map<string, OHLC[]>();
       if (MICRO_2M_CONFIG.useOneMinuteConfirmation) {
@@ -333,9 +336,11 @@ export async function POST(request: Request) {
       ? createAdminClient()
       : null;
     const writer = admin ?? supabase;
-    const signalsToSave = tradeMode === "micro_2m" ? [] : toDisplay.length > 0 ? toDisplay : toPersist;
-    const journalToSave =
-      tradeMode === "micro_2m" ? [] : signalsToSave.filter(shouldJournalV9Signal);
+    // 2min charts never save as V9 LIVE journal rows
+    const suppressV9 =
+      tradeMode === "micro_2m" || (is2minScan && timeframes.every((t) => t === "2min"));
+    const signalsToSave = suppressV9 ? [] : toDisplay.length > 0 ? toDisplay : toPersist;
+    const journalToSave = suppressV9 ? [] : signalsToSave.filter(shouldJournalV9Signal);
     let journalSaved = 0;
     let signalsSaved = 0;
     const persistErrors: string[] = [];
@@ -427,12 +432,13 @@ export async function POST(request: Request) {
       ok: true,
       engine: "v9",
       tradeMode,
+      is2minScan,
       auto: isAuto,
       scanSessionId: scanSession.id,
       scannedPairs: pairs,
-      signals: tradeMode === "micro_2m" ? [] : signals,
-      v9: tradeMode === "micro_2m" ? null : v9Meta,
-      allSignals: tradeMode === "micro_2m" ? [] : finalized,
+      signals: suppressV9 ? [] : signals,
+      v9: suppressV9 ? null : v9Meta,
+      allSignals: suppressV9 ? [] : finalized,
       micro2m,
       microRiskWarning,
       ticker: tickerResult.items,
@@ -457,8 +463,8 @@ export async function POST(request: Request) {
       message:
         journalSaved > 0
           ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
-          : micro2m.length > 0 && tradeMode !== "v9_live"
-            ? `Scan complete — ${micro2m.length} 2M Micro candidate(s). Separate from V9 LIVE permission.`
+          : micro2m.length > 0 && (tradeMode !== "v9_live" || is2minScan)
+            ? `Scan complete — ${micro2m.length} 2M Micro candidate(s) from ${is2minScan ? "2-minute" : "radar"} candles. Separate from V9 LIVE permission.`
           : signals.length > 0 && clientPersistErrors.length > 0
             ? `Scan complete — ${signals.length} setup(s) on screen but journal save failed: ${clientPersistErrors[0]}`
             : signals.length > 0 && journalToSave.length === 0

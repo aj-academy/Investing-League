@@ -110,8 +110,13 @@ export function DashboardClient({
   const [microRiskWarning, setMicroRiskWarning] = useState<string | null>(null);
   const [scanCompleted, setScanCompleted] = useState(false);
 
-  const showV9 = settings.tradeMode === "v9_live" || settings.tradeMode === "both";
-  const showMicro = settings.tradeMode === "micro_2m" || settings.tradeMode === "both";
+  const showV9 =
+    (settings.tradeMode === "v9_live" || settings.tradeMode === "both") &&
+    settings.timeframe !== "2min";
+  const showMicro =
+    settings.tradeMode === "micro_2m" ||
+    settings.tradeMode === "both" ||
+    settings.timeframe === "2min";
 
   const displaySignals = useMemo(
     () => (showV9 ? filterByShowSignals(signals, settings.showSignals) : []),

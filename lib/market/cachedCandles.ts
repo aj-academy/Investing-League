@@ -1,5 +1,6 @@
 import type { OHLC } from "@/lib/signal-engine/types";
 import { getCachedCandles, setCachedCandles } from "@/lib/market/candleCache";
+import { aggregateTo2Min } from "@/lib/market/aggregateCandles";
 import { fetchTwelveDataCandles } from "@/lib/market/twelveData";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -13,7 +14,7 @@ export type CandleCacheResult = {
 };
 
 function candleTtlMs(interval: string): number {
-  if (interval === "1min") return 45_000;
+  if (interval === "1min" || interval === "2min") return 45_000;
   if (interval === "15min") return 180_000;
   return 75_000;
 }
@@ -101,6 +102,31 @@ export async function getCandlesCached(
 
   if (!allowProvider) {
     throw new Error("No cached candle data available for this pair.");
+  }
+
+  // Twelve Data has no native 2min — build from 1min.
+  if (interval === "2min") {
+    const oneMinSize = Math.min(500, Math.max(outputsize * 2 + 20, 200));
+    const oneMin = await getCandlesCached(pair, "1min", oneMinSize, options);
+    const aggregated = aggregateTo2Min(oneMin.candles);
+    const candles =
+      aggregated.length > outputsize ? aggregated.slice(-outputsize) : aggregated;
+    if (candles.length < 90) {
+      throw new Error(
+        "Not enough 1-minute data to build 2-minute candles. Try again shortly.",
+      );
+    }
+    const cachedAt = new Date().toISOString();
+    setCachedCandles(pair, interval, outputsize, candles, ttl);
+    await writeDbCache(pair, interval, outputsize, candles);
+    return {
+      candles,
+      source: oneMin.source,
+      providerCall: oneMin.providerCall,
+      cacheHit: oneMin.cacheHit,
+      cachedAt,
+      expiresAt: new Date(now + ttl).toISOString(),
+    };
   }
 
   const candles = await fetchTwelveDataCandles(pair, interval, outputsize);

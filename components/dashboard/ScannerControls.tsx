@@ -115,7 +115,18 @@ export function ScannerControls({
           <select
             value={settings.timeframe}
             disabled={lockFilters}
-            onChange={(e) => onChange({ timeframe: e.target.value })}
+            onChange={(e) => {
+              const timeframe = e.target.value;
+              onChange(
+                timeframe === "2min"
+                  ? {
+                      timeframe,
+                      tradeMode:
+                        settings.tradeMode === "v9_live" ? "micro_2m" : settings.tradeMode,
+                    }
+                  : { timeframe },
+              );
+            }}
           >
             {expiryOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -242,7 +253,9 @@ export function ScannerControls({
           </button>
           <p className="scanner-action-hint">
             {selectedPairCount > 0
-              ? `${selectedPairCount} asset(s) · ${tfLabel} · counts toward daily quota`
+              ? settings.timeframe === "2min"
+                ? `${selectedPairCount} asset(s) · 2-min candles → 2M Micro only (not V9 LIVE) · counts toward daily quota`
+                : `${selectedPairCount} asset(s) · ${tfLabel} · counts toward daily quota`
               : "Select at least one asset above to scan"}
           </p>
         </div>

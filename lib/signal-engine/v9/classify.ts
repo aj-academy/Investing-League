@@ -53,11 +53,38 @@ export function classifyV9Layer(sig: ComputedSignal, weekend = isWeekendMarket()
   const blockers = extractBlockers(sig);
   const permission = resolvePermission(sig);
   const liveEligible =
-    permission === "TRADE ALLOWED" && isRealTradeSignal(sig.signalType, sig.grade);
+    permission === "TRADE ALLOWED" &&
+    isRealTradeSignal(sig.signalType, sig.grade) &&
+    sig.tf !== "2min"; // 2-minute charts never receive V9 LIVE permission
 
   let v9Layer: V9Layer;
   let v9Blocker = blockers[0] || sig.signalReason || "";
   let readiness = 100;
+
+  if (sig.tf === "2min") {
+    // 2min feeds 2M Micro only — map to RADAR/PRACTICE/REJECTED, never LIVE
+    if (isHardRejected(sig, blockers)) {
+      v9Layer = "REJECTED";
+      readiness = computeReadiness(sig, blockers);
+    } else if (sig.conf >= 70 && sig.grade !== "C") {
+      v9Layer = "PRACTICE";
+      readiness = Math.min(88, computeReadiness(sig, blockers));
+      v9Blocker = "2-min chart — use 2M Micro only (not V9 LIVE)";
+    } else {
+      v9Layer = "RADAR";
+      readiness = computeReadiness(sig, blockers);
+      v9Blocker = "2-min chart — use 2M Micro only (not V9 LIVE)";
+    }
+    return {
+      ...sig,
+      blockers,
+      v9Layer,
+      v9Readiness: readiness,
+      v9Blocker: v9Blocker.replace(/\.$/, ""),
+      v9NextCondition: nextCondition(blockers, sig),
+      tradeEligible: false,
+    };
+  }
 
   if (liveEligible && !weekend) {
     v9Layer = "LIVE";
@@ -112,5 +139,6 @@ export function isV9LiveDisplay(sig: ComputedSignal): boolean {
 }
 
 export function shouldJournalV9Signal(sig: ComputedSignal): boolean {
+  if (sig.tf === "2min") return false;
   return sig.v9Layer === "LIVE" || sig.v9Layer === "PRACTICE";
 }

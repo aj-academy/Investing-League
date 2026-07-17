@@ -38,7 +38,13 @@ export default async function ScannerPage() {
   const initialSettings: ScanSettings = {
     timeframe: clampTimeframeToPlan(
       plan,
-      storedTf === "both" ? "both" : storedTf === "15min" ? "15min" : "5min",
+      storedTf === "both"
+        ? "both"
+        : storedTf === "15min"
+          ? "15min"
+          : storedTf === "2min"
+            ? "2min"
+            : "5min",
     ),
     minGrade: settings?.show_b_signals === false ? "A" : "B",
     minScore: settings?.default_min_score || 5,

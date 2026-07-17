@@ -18,7 +18,7 @@ export const PLAN_LIMITS = {
     label: "Free",
     maxPairsPerScan: 2,
     allowedPairs: ["EUR/USD", "GBP/USD"] as PairSymbol[],
-    allowedTimeframes: ["5min"] as const,
+    allowedTimeframes: ["2min", "5min"] as const,
     allowBothTimeframes: false,
     dailyScanLimit: 10,
     liveUpdateMode: "cached_only" as const,
@@ -29,7 +29,7 @@ export const PLAN_LIMITS = {
     label: "Starter",
     maxPairsPerScan: 4,
     allowedPairs: ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD"] as PairSymbol[],
-    allowedTimeframes: ["5min", "15min"] as const,
+    allowedTimeframes: ["2min", "5min", "15min"] as const,
     allowBothTimeframes: false,
     dailyScanLimit: 30,
     liveUpdateMode: "quote_polling" as const,
@@ -40,7 +40,7 @@ export const PLAN_LIMITS = {
     label: "Pro",
     maxPairsPerScan: 8,
     allowedPairs: [...ALL_PAIRS] as PairSymbol[],
-    allowedTimeframes: ["5min", "15min", "both"] as const,
+    allowedTimeframes: ["2min", "5min", "15min", "both"] as const,
     allowBothTimeframes: true,
     dailyScanLimit: 100,
     liveUpdateMode: "quote_polling" as const,
@@ -51,7 +51,7 @@ export const PLAN_LIMITS = {
     label: "Admin",
     maxPairsPerScan: 8,
     allowedPairs: [...ALL_PAIRS] as PairSymbol[],
-    allowedTimeframes: ["5min", "15min", "both"] as const,
+    allowedTimeframes: ["2min", "5min", "15min", "both"] as const,
     allowBothTimeframes: true,
     dailyScanLimit: 9999,
     liveUpdateMode: "full" as const,
@@ -82,6 +82,7 @@ export function resolveTimeframesForScan(
   timeframes: string[]
 ): string[] {
   const limits = getPlanLimits(plan);
+  // `both` stays 5+15 only — 2min is a separate Micro-focused expiry
   if (timeframes.includes("both")) {
     if (!limits.allowBothTimeframes) {
       throw new Error("This timeframe is not included in your current plan.");
@@ -197,6 +198,7 @@ export function defaultAutoRefreshForPlan(plan: PlanName): AutoRefreshOption {
 }
 
 const EXPIRY_LABELS: Record<string, string> = {
+  "2min": "2-min expiry",
   "5min": "5-min expiry",
   "15min": "15-min expiry",
   both: "5 + 15-min",
