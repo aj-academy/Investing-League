@@ -33,6 +33,10 @@ import {
 import { PLATFORM_SAVE_FAILED } from "@/lib/platform/userCopy";
 import { sanitizeUserFacingErrors } from "@/lib/platform/sanitizeUserFacingError";
 import { upsertTradeJournalRow } from "@/lib/journal/upsertJournal";
+import {
+  shouldJournal2MMicroSignal,
+  upsertMicro2MJournalRow,
+} from "@/lib/journal/upsertMicro2M";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ComputedSignal, OHLC } from "@/lib/signal-engine/types";
@@ -341,7 +345,9 @@ export async function POST(request: Request) {
       tradeMode === "micro_2m" || (is2minScan && timeframes.every((t) => t === "2min"));
     const signalsToSave = suppressV9 ? [] : toDisplay.length > 0 ? toDisplay : toPersist;
     const journalToSave = suppressV9 ? [] : signalsToSave.filter(shouldJournalV9Signal);
+    const live2mPresentation = is2minScan && (mode === "live" || tradeMode === "v9_live");
     let journalSaved = 0;
+    let microJournalSaved = 0;
     let signalsSaved = 0;
     const persistErrors: string[] = [];
 
@@ -385,6 +391,25 @@ export async function POST(request: Request) {
         journalSaved++;
         if (journalResult.warning) {
           persistErrors.push(journalResult.warning);
+        }
+      }
+    }
+
+    // Auto-journal takeable 2M LIVE / MICRO trades (separate from V9 LIVE WR)
+    if (wantMicro && micro2m.length > 0) {
+      for (const m of micro2m.filter(shouldJournal2MMicroSignal)) {
+        const microResult = await upsertMicro2MJournalRow(writer, {
+          userId: auth!.user.id,
+          signal: m,
+          livePresentation: live2mPresentation,
+          scanMode: mode,
+        });
+        if (microResult.error) {
+          persistErrors.push(`2M journal ${m.pair}: ${microResult.error}`);
+        } else {
+          microJournalSaved++;
+          journalSaved++;
+          if (microResult.warning) persistErrors.push(microResult.warning);
         }
       }
     }
@@ -441,6 +466,8 @@ export async function POST(request: Request) {
       allSignals: suppressV9 ? [] : finalized,
       micro2m,
       microRiskWarning,
+      microJournalSaved,
+      live2mPresentation,
       ticker: tickerResult.items,
       connected: !!process.env.TWELVE_DATA_API_KEY,
       usage: {
@@ -461,10 +488,12 @@ export async function POST(request: Request) {
       persistErrors: clientPersistErrors,
       marketErrors: clientMarketErrors,
       message:
-        journalSaved > 0
+        microJournalSaved > 0 && suppressV9
+          ? `Scan complete — ${microJournalSaved} 2M LIVE trade signal(s) ready and saved to journal. Use 2-minute expiry on platform. Not counted in V9 LIVE win rate.`
+          : journalSaved > 0
           ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
           : micro2m.length > 0 && (tradeMode !== "v9_live" || is2minScan)
-            ? `Scan complete — ${micro2m.length} 2M Micro candidate(s) from ${is2minScan ? "2-minute" : "radar"} candles. Separate from V9 LIVE permission.`
+            ? `Scan complete — ${micro2m.length} 2M candidate(s) from ${is2minScan ? "2-minute" : "radar"} candles. Take only 2M LIVE / MICRO TRADE badges.`
           : signals.length > 0 && clientPersistErrors.length > 0
             ? `Scan complete — ${signals.length} setup(s) on screen but journal save failed: ${clientPersistErrors[0]}`
             : signals.length > 0 && journalToSave.length === 0

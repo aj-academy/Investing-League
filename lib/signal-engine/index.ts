@@ -42,6 +42,8 @@ export {
   build2MRiskWarning,
   classify2MMicroSignal,
   rank2MMicroSignals,
+  isTakeable2MPermission,
+  liveFacingMicroLabel,
 } from "./micro2m";
 export type { Micro2MSignal, TradeModeOption } from "./micro2m";
 

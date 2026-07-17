@@ -10,6 +10,11 @@ export {
 } from "./classify";
 export { build2MMicroSignals, build2MRiskWarning } from "./build";
 export { rank2MMicroSignals } from "./rank";
+export {
+  isTakeable2MPermission,
+  liveFacingMicroLabel,
+  microLabelForPermission,
+} from "./labels";
 export type {
   Micro2MLabel,
   Micro2MPermission,

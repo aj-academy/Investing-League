@@ -116,7 +116,11 @@ export function DashboardClient({
   const showMicro =
     settings.tradeMode === "micro_2m" ||
     settings.tradeMode === "both" ||
-    settings.timeframe === "2min";
+    settings.timeframe === "2min" ||
+    (settings.tradeMode === "v9_live" && settings.timeframe === "2min");
+  const live2mPresentation =
+    settings.timeframe === "2min" &&
+    (settings.mode === "live" || settings.tradeMode === "v9_live");
 
   const displaySignals = useMemo(
     () => (showV9 ? filterByShowSignals(signals, settings.showSignals) : []),
@@ -683,17 +687,23 @@ export function DashboardClient({
         }));
       }
       setLastScanNote(
-        list.length === 0
+        list.length === 0 && (json.micro2m?.length || json.microJournalSaved)
           ? json.message
-          : json.filteredSignalCount < json.rawSignalCount
-            ? `V9: showing ${list.length} setup(s). ${json.journalSaved ?? 0} saved to journal.`
-            : null
+          : list.length === 0
+            ? json.message
+            : json.filteredSignalCount < json.rawSignalCount
+              ? `V9: showing ${list.length} setup(s). ${json.journalSaved ?? 0} saved to journal.`
+              : null
       );
       void loadRiskStatus();
       setProgress(100);
       if (!isAuto) {
-        if (json.journalSaved > 0) {
+        if (json.microJournalSaved > 0) {
+          toast.success(json.message || `${json.microJournalSaved} 2M LIVE trade(s) ready`);
+        } else if (json.journalSaved > 0) {
           toast.success(json.message);
+        } else if (json.micro2m?.length > 0) {
+          toast.message(json.message || `${json.micro2m.length} 2M candidate(s) — check 2M section`);
         } else if (list.length > 0 && json.persistErrors?.length) {
           toast.error(json.message || "Setups shown but could not save — check server config.");
         } else if (list.length > 0) {
@@ -860,6 +870,7 @@ export function DashboardClient({
               items={micro2m}
               riskWarning={microRiskWarning}
               visible={showMicro && !scanning && !autoScanning && scanCompleted}
+              livePresentation={live2mPresentation}
             />
             {showV9 && !scanning && !autoScanning && !displaySignals.length && !v9Meta && !micro2m.length ? (
               <div className="empty">

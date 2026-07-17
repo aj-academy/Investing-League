@@ -715,6 +715,13 @@
 .micro2m-journal{display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)}
 .micro2m-journal input,.micro2m-journal select{width:100%;min-height:30px;font-size:11px}
 .micro2m-journal button{min-height:32px;font-size:11px}
+.micro2m-wrap.live-mode{border-color:rgba(34,197,94,.45);background:linear-gradient(160deg,rgba(34,197,94,.1),rgba(8,13,24,.92))}
+.micro2m-wrap.live-mode .micro2m-head h3{color:#4ade80}
+.micro2m-live-banner{margin:0 0 10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.12);color:#86efac;font-size:12px;font-family:var(--mono);letter-spacing:.5px}
+.micro2m-card.takeable{border-color:rgba(34,197,94,.55);box-shadow:0 0 0 1px rgba(34,197,94,.2)}
+.micro2m-live-ok{font-size:11px;color:#4ade80;margin:0 0 8px;font-weight:600}
+.micro2m-take{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:#4ade80;margin-bottom:6px}
+.micro2m-badge.live{box-shadow:0 0 0 1px rgba(34,197,94,.35)}
 .micro2m-footer{margin:12px 0 0;font-size:11px;color:var(--m3);line-height:1.6}
 .why-panel{grid-column:1/-1;margin-top:4px;margin-bottom:12px}
 .why-panel-title{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:2px;margin:0 0 6px}

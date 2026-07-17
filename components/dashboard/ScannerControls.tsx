@@ -117,15 +117,7 @@ export function ScannerControls({
             disabled={lockFilters}
             onChange={(e) => {
               const timeframe = e.target.value;
-              onChange(
-                timeframe === "2min"
-                  ? {
-                      timeframe,
-                      tradeMode:
-                        settings.tradeMode === "v9_live" ? "micro_2m" : settings.tradeMode,
-                    }
-                  : { timeframe },
-              );
+              onChange({ timeframe });
             }}
           >
             {expiryOptions.map((opt) => (
@@ -175,9 +167,19 @@ export function ScannerControls({
               onChange({ tradeMode: e.target.value as ScanSettings["tradeMode"] })
             }
           >
-            <option value="both">BOTH · V9 + 2M Micro</option>
-            <option value="v9_live">V9 LIVE MODE</option>
-            <option value="micro_2m">2M MICRO MODE</option>
+            {settings.timeframe === "2min" ? (
+              <>
+                <option value="v9_live">2M LIVE MODE · takeable trades</option>
+                <option value="micro_2m">2M MICRO MODE · all cards</option>
+                <option value="both">BOTH · 2M Live focus</option>
+              </>
+            ) : (
+              <>
+                <option value="both">BOTH · V9 + 2M Micro</option>
+                <option value="v9_live">V9 LIVE MODE</option>
+                <option value="micro_2m">2M MICRO MODE</option>
+              </>
+            )}
           </select>
         </div>
         <div className="scanner-field">
@@ -254,7 +256,7 @@ export function ScannerControls({
           <p className="scanner-action-hint">
             {selectedPairCount > 0
               ? settings.timeframe === "2min"
-                ? `${selectedPairCount} asset(s) · 2-min candles → 2M Micro only (not V9 LIVE) · counts toward daily quota`
+                ? `${selectedPairCount} asset(s) · 2-min LIVE path · take 2M LIVE TRADE badges · counts toward daily quota`
                 : `${selectedPairCount} asset(s) · ${tfLabel} · counts toward daily quota`
               : "Select at least one asset above to scan"}
           </p>
