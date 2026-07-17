@@ -1,4 +1,4 @@
-import { formatAppTime, resolveTimeZone } from "@/lib/datetime";
+import { formatSignalTime, resolveTimeZone } from "@/lib/datetime";
 import type { ComputedSignal, OHLC } from "../types";
 import { classify2MMicroSignal } from "./classify";
 import { MICRO_2M_CONFIG } from "./config";
@@ -9,11 +9,12 @@ import type { Micro2MSignal } from "./types";
 export function compute2MEntryWindow(timeZone?: string, asOf = Date.now()) {
   const tz = resolveTimeZone(timeZone);
   const bucketMs = 2 * 60_000;
-  const entry = new Date(Math.ceil(asOf / bucketMs) * bucketMs);
-  const expiry = new Date(entry.getTime() + bucketMs);
+  const entryMs = Math.ceil(asOf / bucketMs) * bucketMs;
+  const entry = new Date(entryMs);
+  const expiry = new Date(entryMs + bucketMs);
   return {
-    entryTime: formatAppTime(entry, tz),
-    expTime: formatAppTime(expiry, tz),
+    entryTime: formatSignalTime(entry, tz),
+    expTime: formatSignalTime(expiry, tz),
     entryAtIso: entry.toISOString(),
     expAtIso: expiry.toISOString(),
   };

@@ -136,7 +136,13 @@ export function Micro2MSection({
   return (
     <div className={`micro2m-wrap${livePresentation ? " live-mode" : ""}`}>
       <div className="micro2m-head">
-        <h3>{livePresentation ? "2M LIVE · TRADE ALLOWED SIGNALS" : "2M MICRO SIGNALS"}</h3>
+        <h3>
+          {livePresentation
+            ? takeable.length > 0
+              ? "2M LIVE · TRADE ALLOWED SIGNALS"
+              : "2M LIVE · NO TRADE YET (WATCH ONLY)"
+            : "2M MICRO SIGNALS"}
+        </h3>
         <p className="micro2m-sub">
           {livePresentation
             ? "Takeable 2-minute live trades. Look for TRADE ALLOWED badges, then enter at the shown Entry time with 2-minute expiry on your platform."
