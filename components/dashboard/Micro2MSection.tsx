@@ -4,27 +4,20 @@ import { useState } from "react";
 import type { Micro2MSignal } from "@/lib/signal-engine/micro2m/types";
 import { liveFacingMicroLabel } from "@/lib/signal-engine/micro2m/labels";
 
-function badgeClass(permission: Micro2MSignal["microPermission"], live: boolean) {
-  if (permission === "2M_STRONG_MICRO") return live ? "micro2m-badge strong live" : "micro2m-badge strong";
-  if (permission === "2M_MICRO_TRADE") return live ? "micro2m-badge trade live" : "micro2m-badge trade";
-  if (permission === "2M_WATCH") return "micro2m-badge watch";
-  return "micro2m-badge avoid";
+function isTakeable(item: Micro2MSignal) {
+  return (
+    item.microPermission === "2M_MICRO_TRADE" || item.microPermission === "2M_STRONG_MICRO"
+  );
 }
 
-function cardPermClass(permission: Micro2MSignal["microPermission"]) {
-  if (permission === "2M_STRONG_MICRO") return "perm-strong";
-  if (permission === "2M_MICRO_TRADE") return "perm-trade";
-  if (permission === "2M_WATCH") return "perm-watch";
-  return "perm-avoid";
+function decisionLabel(item: Micro2MSignal): string {
+  if (item.microPermission === "2M_STRONG_MICRO") return "TAKE TRADE";
+  if (item.microPermission === "2M_MICRO_TRADE") return "TAKE TRADE";
+  if (item.microPermission === "2M_WATCH") return "WAIT — DO NOT TRADE";
+  return "SKIP — DO NOT TRADE";
 }
 
-function Micro2MJournalForm({
-  item,
-  livePresentation,
-}: {
-  item: Micro2MSignal;
-  livePresentation: boolean;
-}) {
+function Micro2MJournalForm({ item }: { item: Micro2MSignal }) {
   const [openQuote, setOpenQuote] = useState("");
   const [closeQuote, setCloseQuote] = useState("");
   const [result, setResult] = useState("Pending");
@@ -32,10 +25,7 @@ function Micro2MJournalForm({
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const canJournal =
-    item.microPermission === "2M_MICRO_TRADE" || item.microPermission === "2M_STRONG_MICRO";
-
-  if (!canJournal) return null;
+  if (!isTakeable(item)) return null;
 
   async function save() {
     setSaving(true);
@@ -55,23 +45,20 @@ function Micro2MJournalForm({
           score: item.score,
           microReadiness: item.microReadiness,
           microPermission: item.microPermission,
-          microLabel: liveFacingMicroLabel(item.microPermission, livePresentation),
+          microLabel: liveFacingMicroLabel(item.microPermission, true),
           microReason: item.microReason,
           entryTime: item.entryTime,
           platformOpenQuote: openQuote || null,
           platformCloseQuote: closeQuote || null,
           result,
           notes,
-          livePresentation,
-          scanMode: livePresentation ? "live" : "practice",
+          livePresentation: true,
+          scanMode: "live",
         }),
       });
       const json = await res.json();
-      if (!res.ok) {
-        setMsg(json.error || "Save failed");
-      } else {
-        setMsg(json.warning || "Trade logged. Update quotes/result after the 2-minute expiry.");
-      }
+      if (!res.ok) setMsg(json.error || "Save failed");
+      else setMsg(json.warning || "Saved. Update result after 2-minute expiry.");
     } catch {
       setMsg("Save failed");
     } finally {
@@ -81,9 +68,6 @@ function Micro2MJournalForm({
 
   return (
     <div className="micro2m-journal">
-      {livePresentation ? (
-        <div className="micro2m-take">TAKE NOW · Platform expiry must be 2 minutes</div>
-      ) : null}
       <input
         type="text"
         placeholder="Platform open quote"
@@ -109,9 +93,69 @@ function Micro2MJournalForm({
         onChange={(e) => setNotes(e.target.value)}
       />
       <button type="button" className="btn btn-sm" disabled={saving} onClick={save}>
-        {saving ? "Saving…" : livePresentation ? "Update 2M journal" : "Journal 2M trade"}
+        {saving ? "Saving…" : "Update journal"}
       </button>
       {msg ? <div className="micro2m-line">{msg}</div> : null}
+    </div>
+  );
+}
+
+function TakeCard({ item }: { item: Micro2MSignal }) {
+  return (
+    <div className="micro2m-card takeable">
+      {item.isBest ? <div className="micro2m-best">BEST 2-MINUTE SETUP</div> : null}
+      <div className="micro2m-decision take">{decisionLabel(item)}</div>
+      <div className="micro2m-top">
+        <div>
+          <div className="micro2m-pair">
+            {item.pair} {item.direction}
+          </div>
+          <div className="micro2m-meta">
+            Ready {item.microReadiness}% · Grade {item.grade} · Source {item.sourceTf}
+          </div>
+        </div>
+        <div className="micro2m-ready">{item.microReadiness}%</div>
+      </div>
+
+      <div className="micro2m-entry-banner">
+        <div className="micro2m-entry-label">ENTER AT THIS TIME</div>
+        <div className="micro2m-entry-value">{item.entryTime || "—"}</div>
+        <div className="micro2m-entry-sub">
+          Close / expiry clock: {item.expTime || "Entry + 2 min"} · Set broker expiry to{" "}
+          <strong>2 minutes</strong>
+        </div>
+      </div>
+
+      <p className="micro2m-reason">{item.microReason}</p>
+      <p className="micro2m-action">
+        <strong>How to take:</strong> {item.pair} {item.direction} at entry time · expiry 2 minutes ·
+        fixed small amount
+      </p>
+      <Micro2MJournalForm item={item} />
+    </div>
+  );
+}
+
+function WaitCard({ item }: { item: Micro2MSignal }) {
+  const waiting = item.microPermission === "2M_WATCH";
+  return (
+    <div className={`micro2m-card muted ${waiting ? "perm-watch" : "perm-avoid"}`}>
+      <div className={`micro2m-decision ${waiting ? "wait" : "skip"}`}>{decisionLabel(item)}</div>
+      <div className="micro2m-top">
+        <div>
+          <div className="micro2m-pair">
+            {item.pair} {item.direction}
+          </div>
+          <div className="micro2m-meta">
+            Ready {item.microReadiness}% · needs 70%+ to take
+          </div>
+        </div>
+        <div className="micro2m-ready dim">{item.microReadiness}%</div>
+      </div>
+      <p className="micro2m-reason">{item.microReason}</p>
+      <p className="micro2m-action">
+        <strong>Action:</strong> {waiting ? "Wait for next scan — do not enter yet." : "Skip this pair."}
+      </p>
     </div>
   );
 }
@@ -129,137 +173,72 @@ export function Micro2MSection({
 }) {
   if (!visible) return null;
 
-  const takeable = items.filter(
-    (i) => i.microPermission === "2M_MICRO_TRADE" || i.microPermission === "2M_STRONG_MICRO",
-  );
+  const takeable = items.filter(isTakeable);
+  const waiting = items.filter((i) => !isTakeable(i));
+  const hasTake = takeable.length > 0;
 
   return (
-    <div className={`micro2m-wrap${livePresentation ? " live-mode" : ""}`}>
+    <div className={`micro2m-wrap${hasTake ? " has-take" : " no-take"}`}>
       <div className="micro2m-head">
-        <h3>
-          {livePresentation
-            ? takeable.length > 0
-              ? "2M LIVE · TRADE ALLOWED SIGNALS"
-              : "2M LIVE · NO TRADE YET (WATCH ONLY)"
-            : "2M MICRO SIGNALS"}
-        </h3>
+        <h3>2-MINUTE TRADES</h3>
         <p className="micro2m-sub">
-          {livePresentation
-            ? "Takeable 2-minute live trades. Look for TRADE ALLOWED badges, then enter at the shown Entry time with 2-minute expiry on your platform."
-            : "Short-term 2-minute direction candidates from 2-minute candles. Separate from 5-min/15-min V9 LIVE."}
+          Separate from 5-min / 15-min V9 LIVE. Only cards under <strong>TAKE THESE</strong> are real
+          trades. Everything else is wait or skip.
         </p>
       </div>
 
-      {livePresentation && takeable.length > 0 ? (
-        <div className="micro2m-live-banner">
-          {takeable.length} TRADE ALLOWED signal(s) — enter at listed Entry time · 2-minute expiry only
-        </div>
-      ) : livePresentation ? (
-        <div className="micro2m-risk">
-          No TRADE ALLOWED cards yet. Readiness must be 70%+ with aligned candle. Current cards are
-          Watch/Avoid only — do not place a real trade.
-        </div>
-      ) : null}
+      <div className={`micro2m-status ${hasTake ? "ok" : "stop"}`}>
+        {hasTake ? (
+          <>
+            <strong>{takeable.length} trade(s) you can take</strong>
+            <span>Enter at the time shown · broker expiry must be 2 minutes</span>
+          </>
+        ) : (
+          <>
+            <strong>Do not trade 2-minute now</strong>
+            <span>
+              No setup reached 70% readiness yet
+              {waiting[0] ? ` (best is ${waiting[0].pair} at ${waiting[0].microReadiness}%)` : ""}.
+              Wait for the next scan.
+            </span>
+          </>
+        )}
+      </div>
 
       {riskWarning ? <div className="micro2m-risk">{riskWarning}</div> : null}
 
       {!items.length ? (
-        <p className="micro2m-empty">
-          No 2M candidates from this scan. Wait for stronger readiness (70%+) and aligned candles.
-        </p>
+        <p className="micro2m-empty">No 2-minute setups on this scan.</p>
       ) : (
-        <div className="micro2m-grid">
-          {items.map((item) => {
-            const label = liveFacingMicroLabel(item.microPermission, livePresentation);
-            const takeableCard =
-              item.microPermission === "2M_MICRO_TRADE" ||
-              item.microPermission === "2M_STRONG_MICRO";
-            return (
-              <div
-                className={`micro2m-card ${cardPermClass(item.microPermission)}${item.isBest ? " best" : ""}${takeableCard && livePresentation ? " takeable" : ""}`}
-                key={item.id}
-              >
-                {item.isBest ? (
-                  <div className="micro2m-best">
-                    {livePresentation ? "BEST 2M LIVE SETUP" : "BEST 2M MICRO SETUP"}
-                  </div>
-                ) : null}
-                <div className="micro2m-top">
-                  <div>
-                    <div className="micro2m-pair">
-                      {item.pair} {item.direction}
-                    </div>
-                    <div className="micro2m-meta">
-                      Source {item.sourceTf} · Grade {item.grade} · Conf {item.conf}%
-                    </div>
-                  </div>
-                  <div className="micro2m-ready">{item.microReadiness}%</div>
-                </div>
-
-                {takeableCard && livePresentation ? (
-                  <div className="micro2m-allowed">✅ 2M TRADE ALLOWED</div>
-                ) : null}
-                <div className={badgeClass(item.microPermission, livePresentation)}>{label}</div>
-
-                <div className="micro2m-entry-banner">
-                  <div className="micro2m-entry-label">2M ENTRY TIME</div>
-                  <div className="micro2m-entry-value">{item.entryTime || "—"}</div>
-                  <div className="micro2m-entry-sub">
-                    Expiry at {item.expTime || "Entry + 2 min"} · Platform expiry = 2 minutes
-                  </div>
-                </div>
-
-                <div className="micro2m-times">
-                  <div>
-                    <span>Entry</span>
-                    <b>{item.entryTime || "—"}</b>
-                  </div>
-                  <div>
-                    <span>Expiry</span>
-                    <b>{item.expTime || "2 min"}</b>
-                  </div>
-                  <div>
-                    <span>Price</span>
-                    <b>{item.price || "—"}</b>
-                  </div>
-                </div>
-
-                {takeableCard && livePresentation ? (
-                  <div className="micro2m-live-ok">
-                    Place CALL/PUT on platform at Entry time · set expiry to 2 minutes
-                  </div>
-                ) : null}
-
-                <div className="micro2m-line">
-                  Candle: {item.candleAligned ? "Aligned" : "Not aligned"} · body{" "}
-                  {Math.round(item.candleBodyRatio)}%
-                  {item.isDoji ? " · Doji" : ""}
-                </div>
-                <div className="micro2m-line">
-                  1m: {item.oneMinuteStatus}
-                  {item.oneMinuteNote ? ` — ${item.oneMinuteNote}` : ""}
-                </div>
-                <p className="micro2m-reason">{item.microReason}</p>
-                <p className="micro2m-action">
-                  <strong>Action:</strong> {item.microAction}
-                </p>
-                <div className="micro2m-expiry">Platform expiry: 2 minutes only</div>
-                <div className="micro2m-warn">
-                  {livePresentation
-                    ? "2M TRADE ALLOWED path — not counted in 5-min/15-min V9 LIVE win rate"
-                    : "Not 5-min/15-min V9 LIVE permission"}
-                </div>
-                <Micro2MJournalForm item={item} livePresentation={livePresentation} />
+        <>
+          {hasTake ? (
+            <div className="micro2m-block">
+              <h4 className="micro2m-block-title take">TAKE THESE</h4>
+              <div className="micro2m-grid">
+                {takeable.map((item) => (
+                  <TakeCard key={item.id} item={item} />
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          ) : null}
+
+          {waiting.length > 0 ? (
+            <div className="micro2m-block">
+              <h4 className="micro2m-block-title skip">DO NOT TRADE</h4>
+              <div className="micro2m-grid">
+                {waiting.map((item) => (
+                  <WaitCard key={item.id} item={item} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
       )}
 
       <p className="micro2m-footer">
         {livePresentation
-          ? "Take only cards with ✅ 2M TRADE ALLOWED. Use fixed small amount, stop after 2 losses, journal after expiry."
-          : "2M Micro is separate from V9 LIVE. Use fixed small amount and journal every trade."}
+          ? "Rule: take only from TAKE THESE. Ignore DO NOT TRADE cards. Fixed small amount. Stop after 2 losses."
+          : "Rule: take only from TAKE THESE. Journal every 2-minute trade separately from V9 LIVE."}
       </p>
     </div>
   );
