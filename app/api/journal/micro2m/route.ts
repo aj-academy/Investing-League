@@ -59,6 +59,7 @@ export async function POST(request: Request) {
 
     const admin = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : null;
     const supabase = await createClient();
+    // Prefer service role so journal upsert is not blocked by missing insert RLS
     const writer = admin ?? supabase;
 
     const result =
@@ -66,18 +67,31 @@ export async function POST(request: Request) {
         ? body.result
         : "Pending";
 
+    const openRaw = body.platformOpenQuote;
+    const closeRaw = body.platformCloseQuote;
+    const openQuote =
+      openRaw === "" || openRaw == null ? null : Number(openRaw);
+    const closeQuote =
+      closeRaw === "" || closeRaw == null ? null : Number(closeRaw);
+
     const saved = await upsertMicro2MJournalRow(writer, {
       userId: auth!.user.id,
       signal,
       livePresentation: Boolean(body.livePresentation),
       scanMode: body.scanMode === "live" ? "live" : "practice",
-      platformOpenQuote: body.platformOpenQuote != null ? Number(body.platformOpenQuote) : null,
-      platformCloseQuote: body.platformCloseQuote != null ? Number(body.platformCloseQuote) : null,
+      platformOpenQuote: Number.isFinite(openQuote as number) ? openQuote : null,
+      platformCloseQuote: Number.isFinite(closeQuote as number) ? closeQuote : null,
       result,
       notes: body.notes != null ? String(body.notes) : null,
     });
 
     if (saved.error) {
+      console.error("[micro2m journal]", saved.error, {
+        pair,
+        direction,
+        signalUid: saved.signalUid,
+        usedAdmin: Boolean(admin),
+      });
       return NextResponse.json({ error: saved.error }, { status: 500 });
     }
 

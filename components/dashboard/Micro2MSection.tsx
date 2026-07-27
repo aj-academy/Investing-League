@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import type { Micro2MSignal } from "@/lib/signal-engine/micro2m/types";
 import { liveFacingMicroLabel } from "@/lib/signal-engine/micro2m/labels";
 
@@ -11,8 +12,9 @@ function isTakeable(item: Micro2MSignal) {
 }
 
 function decisionLabel(item: Micro2MSignal): string {
-  if (item.microPermission === "2M_STRONG_MICRO") return "TAKE TRADE";
-  if (item.microPermission === "2M_MICRO_TRADE") return "TAKE TRADE";
+  if (isTakeable(item)) {
+    return item.direction === "PUT" ? "TAKE PUT" : "TAKE CALL";
+  }
   if (item.microPermission === "2M_WATCH") return "WAIT — DO NOT TRADE";
   return "SKIP — DO NOT TRADE";
 }
@@ -39,7 +41,7 @@ function Micro2MJournalForm({ item }: { item: Micro2MSignal }) {
           direction: item.direction,
           sourceTf: item.sourceTf,
           sourceLayer: item.sourceLayer,
-          sourceSignalUid: item.sourceSignalUid,
+          sourceSignalUid: item.sourceSignalUid || item.id,
           grade: item.grade,
           conf: item.conf,
           score: item.score,
@@ -48,19 +50,27 @@ function Micro2MJournalForm({ item }: { item: Micro2MSignal }) {
           microLabel: liveFacingMicroLabel(item.microPermission, true),
           microReason: item.microReason,
           entryTime: item.entryTime,
-          platformOpenQuote: openQuote || null,
-          platformCloseQuote: closeQuote || null,
+          platformOpenQuote: openQuote.trim() || null,
+          platformCloseQuote: closeQuote.trim() || null,
           result,
           notes,
           livePresentation: true,
           scanMode: "live",
         }),
       });
-      const json = await res.json();
-      if (!res.ok) setMsg(json.error || "Save failed");
-      else setMsg(json.warning || "Saved. Update result after 2-minute expiry.");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = json.error || `Save failed (${res.status})`;
+        setMsg(err);
+        toast.error(err);
+      } else {
+        const ok = json.warning || "2M journal saved. Open Journal page to confirm.";
+        setMsg(ok);
+        toast.success(ok);
+      }
     } catch {
-      setMsg("Save failed");
+      setMsg("Save failed — network error");
+      toast.error("2M journal save failed — network error");
     } finally {
       setSaving(false);
     }
@@ -68,14 +78,17 @@ function Micro2MJournalForm({ item }: { item: Micro2MSignal }) {
 
   return (
     <div className="micro2m-journal">
+      <div className="micro2m-journal-title">Log this 2-minute trade</div>
       <input
         type="text"
+        inputMode="decimal"
         placeholder="Platform open quote"
         value={openQuote}
         onChange={(e) => setOpenQuote(e.target.value)}
       />
       <input
         type="text"
+        inputMode="decimal"
         placeholder="Platform close quote"
         value={closeQuote}
         onChange={(e) => setCloseQuote(e.target.value)}
@@ -92,23 +105,30 @@ function Micro2MJournalForm({ item }: { item: Micro2MSignal }) {
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
       />
-      <button type="button" className="btn btn-sm" disabled={saving} onClick={save}>
-        {saving ? "Saving…" : "Update journal"}
+      <button type="button" className="micro2m-save-btn" disabled={saving} onClick={save}>
+        {saving ? "Saving…" : "Save 2M journal"}
       </button>
-      {msg ? <div className="micro2m-line">{msg}</div> : null}
+      {msg ? <div className={`micro2m-line ${msg.includes("fail") ? "err" : "ok"}`}>{msg}</div> : null}
     </div>
   );
 }
 
-function TakeCard({ item }: { item: Micro2MSignal }) {
+function TakeCard({ item, isPrimary }: { item: Micro2MSignal; isPrimary: boolean }) {
+  const isPut = item.direction === "PUT";
   return (
-    <div className="micro2m-card takeable">
-      {item.isBest ? <div className="micro2m-best">BEST 2-MINUTE SETUP</div> : null}
-      <div className="micro2m-decision take">{decisionLabel(item)}</div>
+    <div className={`micro2m-card takeable ${isPut ? "dir-put" : "dir-call"}${isPrimary ? " primary" : ""}`}>
+      {isPrimary ? <div className="micro2m-best">BEST — TAKE THIS ONE FIRST</div> : null}
+      <div className={`micro2m-dir-pill ${isPut ? "put" : "call"}`}>
+        {isPut ? "▼ PUT" : "▲ CALL"}
+      </div>
+      <div className={`micro2m-decision ${isPut ? "take-put" : "take-call"}`}>
+        {decisionLabel(item)}
+      </div>
       <div className="micro2m-top">
         <div>
           <div className="micro2m-pair">
-            {item.pair} {item.direction}
+            {item.pair}{" "}
+            <span className={isPut ? "dir-put-text" : "dir-call-text"}>{item.direction}</span>
           </div>
           <div className="micro2m-meta">
             Ready {item.microReadiness}% · Grade {item.grade} · Source {item.sourceTf}
@@ -121,15 +141,17 @@ function TakeCard({ item }: { item: Micro2MSignal }) {
         <div className="micro2m-entry-label">ENTER AT THIS TIME</div>
         <div className="micro2m-entry-value">{item.entryTime || "—"}</div>
         <div className="micro2m-entry-sub">
-          Close / expiry clock: {item.expTime || "Entry + 2 min"} · Set broker expiry to{" "}
+          Expiry clock: {item.expTime || "Entry + 2 min"} · Broker expiry ={" "}
           <strong>2 minutes</strong>
         </div>
       </div>
 
       <p className="micro2m-reason">{item.microReason}</p>
       <p className="micro2m-action">
-        <strong>How to take:</strong> {item.pair} {item.direction} at entry time · expiry 2 minutes ·
-        fixed small amount
+        <strong>How to take:</strong> {item.pair}{" "}
+        <strong className={isPut ? "dir-put-text" : "dir-call-text"}>{item.direction}</strong> at
+        entry time · expiry 2 minutes · fixed small amount
+        {!isPrimary ? " · Prefer the BEST card if taking only one." : ""}
       </p>
       <Micro2MJournalForm item={item} />
     </div>
@@ -138,13 +160,18 @@ function TakeCard({ item }: { item: Micro2MSignal }) {
 
 function WaitCard({ item }: { item: Micro2MSignal }) {
   const waiting = item.microPermission === "2M_WATCH";
+  const isPut = item.direction === "PUT";
   return (
     <div className={`micro2m-card muted ${waiting ? "perm-watch" : "perm-avoid"}`}>
+      <div className={`micro2m-dir-pill soft ${isPut ? "put" : "call"}`}>
+        {isPut ? "▼ PUT" : "▲ CALL"}
+      </div>
       <div className={`micro2m-decision ${waiting ? "wait" : "skip"}`}>{decisionLabel(item)}</div>
       <div className="micro2m-top">
         <div>
           <div className="micro2m-pair">
-            {item.pair} {item.direction}
+            {item.pair}{" "}
+            <span className={isPut ? "dir-put-text" : "dir-call-text"}>{item.direction}</span>
           </div>
           <div className="micro2m-meta">
             Ready {item.microReadiness}% · needs 70%+ to take
@@ -182,16 +209,21 @@ export function Micro2MSection({
       <div className="micro2m-head">
         <h3>2-MINUTE TRADES</h3>
         <p className="micro2m-sub">
-          Separate from 5-min / 15-min V9 LIVE. Only cards under <strong>TAKE THESE</strong> are real
-          trades. Everything else is wait or skip.
+          Separate from 5-min / 15-min V9 LIVE. Only <strong>TAKE THESE</strong> are real trades.
+          Red badge = <strong>PUT</strong>, green badge = <strong>CALL</strong>. Prefer the BEST
+          card — do not take multiple pairs at once.
         </p>
       </div>
 
       <div className={`micro2m-status ${hasTake ? "ok" : "stop"}`}>
         {hasTake ? (
           <>
-            <strong>{takeable.length} trade(s) you can take</strong>
-            <span>Enter at the time shown · broker expiry must be 2 minutes</span>
+            <strong>
+              {takeable.length} takeable · prefer BEST only
+            </strong>
+            <span>
+              Check ▲ CALL (green) vs ▼ PUT (red) before you click. Broker expiry must be 2 minutes.
+            </span>
           </>
         ) : (
           <>
@@ -215,8 +247,8 @@ export function Micro2MSection({
             <div className="micro2m-block">
               <h4 className="micro2m-block-title take">TAKE THESE</h4>
               <div className="micro2m-grid">
-                {takeable.map((item) => (
-                  <TakeCard key={item.id} item={item} />
+                {takeable.map((item, idx) => (
+                  <TakeCard key={item.id} item={item} isPrimary={idx === 0 || item.isBest} />
                 ))}
               </div>
             </div>
@@ -237,7 +269,7 @@ export function Micro2MSection({
 
       <p className="micro2m-footer">
         {livePresentation
-          ? "Rule: take only from TAKE THESE. Ignore DO NOT TRADE cards. Fixed small amount. Stop after 2 losses."
+          ? "Rule: one trade at a time from BEST. Save journal after entry. Stop after 2 losses."
           : "Rule: take only from TAKE THESE. Journal every 2-minute trade separately from V9 LIVE."}
       </p>
     </div>
