@@ -489,11 +489,13 @@ export async function POST(request: Request) {
       marketErrors: clientMarketErrors,
       message:
         microJournalSaved > 0 && suppressV9
-          ? `Scan complete — ${microJournalSaved} 2M LIVE trade signal(s) ready and saved to journal. Use 2-minute expiry on platform. Not counted in V9 LIVE win rate.`
+          ? `Scan complete — ${microJournalSaved} 2M trade(s) auto-saved to Journal (same as 5-min). Open Journal to add platform quotes. Not counted in V9 LIVE win rate.`
+          : journalSaved > 0 && microJournalSaved > 0
+          ? `Scan complete — ${journalSaved - microJournalSaved} V9 + ${microJournalSaved} 2M row(s) auto-saved to Journal.`
           : journalSaved > 0
           ? `Scan complete — ${journalSaved} signal(s) saved to your journal.`
           : micro2m.length > 0 && (tradeMode !== "v9_live" || is2minScan)
-            ? `Scan complete — ${micro2m.length} 2M candidate(s) from ${is2minScan ? "2-minute" : "radar"} candles. Take only 2M LIVE / MICRO TRADE badges.`
+            ? `Scan complete — ${micro2m.length} 2M candidate(s). Takeable ones auto-save to Journal.`
           : signals.length > 0 && clientPersistErrors.length > 0
             ? `Scan complete — ${signals.length} setup(s) on screen but journal save failed: ${clientPersistErrors[0]}`
             : signals.length > 0 && journalToSave.length === 0

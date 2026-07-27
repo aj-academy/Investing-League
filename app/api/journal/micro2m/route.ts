@@ -6,8 +6,8 @@ import type { Micro2MSignal } from "@/lib/signal-engine/micro2m/types";
 import { NextResponse } from "next/server";
 
 /**
- * Create or update a 2M Micro / 2M LIVE journal row.
- * Never counted in V9 LIVE win rate (strategy_type=2M_MICRO, entry_method=manual_2m).
+ * Optional API for 2M journal upsert (scan already auto-saves).
+ * Same row format as V9 journal; excluded from V9 LIVE win rate.
  */
 export async function POST(request: Request) {
   try {
@@ -50,6 +50,9 @@ export async function POST(request: Request) {
       oneMinuteStatus: "UNAVAILABLE",
       oneMinuteNote: "",
       expiryLabel: "2 minutes",
+      entryTime: body.entryTime != null ? String(body.entryTime) : null,
+      expTime: body.expTime != null ? String(body.expTime) : null,
+      price: body.price != null ? String(body.price) : null,
       strategyType: "2M_MICRO",
       entryMethod: "manual_2m",
       isBest: false,
@@ -59,39 +62,16 @@ export async function POST(request: Request) {
 
     const admin = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : null;
     const supabase = await createClient();
-    // Prefer service role so journal upsert is not blocked by missing insert RLS
     const writer = admin ?? supabase;
-
-    const result =
-      body.result === "Win" || body.result === "Loss" || body.result === "Refund"
-        ? body.result
-        : "Pending";
-
-    const openRaw = body.platformOpenQuote;
-    const closeRaw = body.platformCloseQuote;
-    const openQuote =
-      openRaw === "" || openRaw == null ? null : Number(openRaw);
-    const closeQuote =
-      closeRaw === "" || closeRaw == null ? null : Number(closeRaw);
 
     const saved = await upsertMicro2MJournalRow(writer, {
       userId: auth!.user.id,
       signal,
       livePresentation: Boolean(body.livePresentation),
       scanMode: body.scanMode === "live" ? "live" : "practice",
-      platformOpenQuote: Number.isFinite(openQuote as number) ? openQuote : null,
-      platformCloseQuote: Number.isFinite(closeQuote as number) ? closeQuote : null,
-      result,
-      notes: body.notes != null ? String(body.notes) : null,
     });
 
     if (saved.error) {
-      console.error("[micro2m journal]", saved.error, {
-        pair,
-        direction,
-        signalUid: saved.signalUid,
-        usedAdmin: Boolean(admin),
-      });
       return NextResponse.json({ error: saved.error }, { status: 500 });
     }
 

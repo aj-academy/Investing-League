@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
 import type { Micro2MSignal } from "@/lib/signal-engine/micro2m/types";
-import { liveFacingMicroLabel } from "@/lib/signal-engine/micro2m/labels";
 
 function isTakeable(item: Micro2MSignal) {
   return (
@@ -17,100 +14,6 @@ function decisionLabel(item: Micro2MSignal): string {
   }
   if (item.microPermission === "2M_WATCH") return "WAIT — DO NOT TRADE";
   return "SKIP — DO NOT TRADE";
-}
-
-function Micro2MJournalForm({ item }: { item: Micro2MSignal }) {
-  const [openQuote, setOpenQuote] = useState("");
-  const [closeQuote, setCloseQuote] = useState("");
-  const [result, setResult] = useState("Pending");
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  if (!isTakeable(item)) return null;
-
-  async function save() {
-    setSaving(true);
-    setMsg(null);
-    try {
-      const res = await fetch("/api/journal/micro2m", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pair: item.pair,
-          direction: item.direction,
-          sourceTf: item.sourceTf,
-          sourceLayer: item.sourceLayer,
-          sourceSignalUid: item.sourceSignalUid || item.id,
-          grade: item.grade,
-          conf: item.conf,
-          score: item.score,
-          microReadiness: item.microReadiness,
-          microPermission: item.microPermission,
-          microLabel: liveFacingMicroLabel(item.microPermission, true),
-          microReason: item.microReason,
-          entryTime: item.entryTime,
-          platformOpenQuote: openQuote.trim() || null,
-          platformCloseQuote: closeQuote.trim() || null,
-          result,
-          notes,
-          livePresentation: true,
-          scanMode: "live",
-        }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const err = json.error || `Save failed (${res.status})`;
-        setMsg(err);
-        toast.error(err);
-      } else {
-        const ok = json.warning || "2M journal saved. Open Journal page to confirm.";
-        setMsg(ok);
-        toast.success(ok);
-      }
-    } catch {
-      setMsg("Save failed — network error");
-      toast.error("2M journal save failed — network error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="micro2m-journal">
-      <div className="micro2m-journal-title">Log this 2-minute trade</div>
-      <input
-        type="text"
-        inputMode="decimal"
-        placeholder="Platform open quote"
-        value={openQuote}
-        onChange={(e) => setOpenQuote(e.target.value)}
-      />
-      <input
-        type="text"
-        inputMode="decimal"
-        placeholder="Platform close quote"
-        value={closeQuote}
-        onChange={(e) => setCloseQuote(e.target.value)}
-      />
-      <select value={result} onChange={(e) => setResult(e.target.value)}>
-        <option value="Pending">Pending</option>
-        <option value="Win">Win</option>
-        <option value="Loss">Loss</option>
-        <option value="Refund">Refund</option>
-      </select>
-      <input
-        type="text"
-        placeholder="Notes"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-      />
-      <button type="button" className="micro2m-save-btn" disabled={saving} onClick={save}>
-        {saving ? "Saving…" : "Save 2M journal"}
-      </button>
-      {msg ? <div className={`micro2m-line ${msg.includes("fail") ? "err" : "ok"}`}>{msg}</div> : null}
-    </div>
-  );
 }
 
 function TakeCard({ item, isPrimary }: { item: Micro2MSignal; isPrimary: boolean }) {
@@ -153,7 +56,11 @@ function TakeCard({ item, isPrimary }: { item: Micro2MSignal; isPrimary: boolean
         entry time · expiry 2 minutes · fixed small amount
         {!isPrimary ? " · Prefer the BEST card if taking only one." : ""}
       </p>
-      <Micro2MJournalForm item={item} />
+
+      <div className="micro2m-auto-journal">
+        Auto-saved to Journal (same as 5‑min signals). Open <strong>Journal</strong> to add platform
+        open/close quotes and mark Win / Loss / Refund.
+      </div>
     </div>
   );
 }
@@ -209,9 +116,8 @@ export function Micro2MSection({
       <div className="micro2m-head">
         <h3>2-MINUTE TRADES</h3>
         <p className="micro2m-sub">
-          Separate from 5-min / 15-min V9 LIVE. Only <strong>TAKE THESE</strong> are real trades.
-          Red badge = <strong>PUT</strong>, green badge = <strong>CALL</strong>. Prefer the BEST
-          card — do not take multiple pairs at once.
+          Separate from 5-min / 15-min V9 LIVE. Takeable setups are <strong>auto-saved to Journal</strong>{" "}
+          on scan (same flow as 5‑min). Red = PUT, green = CALL. Prefer BEST only.
         </p>
       </div>
 
@@ -219,10 +125,10 @@ export function Micro2MSection({
         {hasTake ? (
           <>
             <strong>
-              {takeable.length} takeable · prefer BEST only
+              {takeable.length} takeable · auto-saved to Journal · prefer BEST only
             </strong>
             <span>
-              Check ▲ CALL (green) vs ▼ PUT (red) before you click. Broker expiry must be 2 minutes.
+              Check ▲ CALL (green) vs ▼ PUT (red). Broker expiry = 2 minutes. Update quotes in Journal.
             </span>
           </>
         ) : (
@@ -248,7 +154,7 @@ export function Micro2MSection({
               <h4 className="micro2m-block-title take">TAKE THESE</h4>
               <div className="micro2m-grid">
                 {takeable.map((item, idx) => (
-                  <TakeCard key={item.id} item={item} isPrimary={idx === 0 || item.isBest} />
+                  <TakeCard key={item.id} item={item} isPrimary={idx === 0 || Boolean(item.isBest)} />
                 ))}
               </div>
             </div>
@@ -269,8 +175,8 @@ export function Micro2MSection({
 
       <p className="micro2m-footer">
         {livePresentation
-          ? "Rule: one trade at a time from BEST. Save journal after entry. Stop after 2 losses."
-          : "Rule: take only from TAKE THESE. Journal every 2-minute trade separately from V9 LIVE."}
+          ? "Journal: auto-saved on scan like 5‑min. Open Journal to enter platform quotes and result."
+          : "Journal: takeable 2M setups auto-save on scan. Update results in Journal (same as V9)."}
       </p>
     </div>
   );

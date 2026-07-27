@@ -14,10 +14,6 @@ export type UpsertMicro2MInput = {
   signal: Micro2MSignal;
   livePresentation?: boolean;
   scanMode?: "practice" | "live";
-  platformOpenQuote?: number | null;
-  platformCloseQuote?: number | null;
-  result?: "Pending" | "Win" | "Loss" | "Refund";
-  notes?: string | null;
 };
 
 function cleanNum(value: unknown): number | null {
@@ -34,74 +30,88 @@ function microSignalUid(signal: Micro2MSignal): string {
   return raw.startsWith("2m_") ? raw : `2m_${raw}`;
 }
 
-const OPTIONAL_COLUMNS = [
-  "strategy_type",
-  "micro_permission",
-  "micro_label",
-  "micro_readiness",
-  "source_layer",
-  "notes",
-  "entry_method",
-  "v9_layer",
-  "v9_readiness",
-  "scan_mode",
-  "olymp_opening_quote",
-  "olymp_closing_quote",
-  "expiry_minutes",
-] as const;
-
-/** Journal 2M takeable trades — never counted in V9 LIVE win rate. */
-export async function upsertMicro2MJournalRow(
-  writer: SupabaseClient,
-  input: UpsertMicro2MInput,
+/**
+ * Build journal row in the same core shape as V9 (buildJournalRow),
+ * with 2M tags so it appears in Journal and is excluded from V9 LIVE WR.
+ */
+export function buildMicro2MJournalRow(
+  userId: string,
+  signal: Micro2MSignal,
+  options?: { livePresentation?: boolean; scanMode?: "practice" | "live" },
 ) {
-  const { userId, signal, livePresentation = false } = input;
-  const label = liveFacingMicroLabel(signal.microPermission, livePresentation);
-  const signalUid = microSignalUid(signal);
-  const result = input.result ?? "Pending";
-  const openQ = cleanNum(input.platformOpenQuote);
-  const closeQ = cleanNum(input.platformCloseQuote);
-  const priceFromSignal =
-    signal.price != null ? cleanNum(signal.price) : null;
+  const live = Boolean(options?.livePresentation);
+  const label = liveFacingMicroLabel(signal.microPermission, live);
+  const price = cleanNum(signal.price);
 
-  const row: Record<string, unknown> = {
+  const core = {
     user_id: userId,
-    signal_id: null,
-    signal_uid: signalUid,
+    signal_id: null as string | null,
+    signal_uid: microSignalUid(signal),
     pair: signal.pair,
-    timeframe: signal.sourceTf || "2min",
+    timeframe: "2min",
     direction: signal.direction,
     grade: signal.grade ?? null,
-    confidence: signal.conf ?? signal.microReadiness ?? null,
+    confidence: signal.microReadiness ?? signal.conf ?? null,
     score: signal.score ?? null,
     signal_type: label,
-    signal_reason: signal.microReason || "2M direction candidate — 2-minute expiry only",
+    signal_reason: signal.microReason || "2-minute takeable setup — auto-saved on scan",
     trade_eligible: false,
     signal_entry_time: signal.entryTime ?? null,
-    signal_entry_price: openQ ?? priceFromSignal,
+    signal_entry_price: price,
     expiry_time: signal.expTime ?? null,
     expiry_minutes: 2,
-    result,
-    result_source: result === "Pending" ? "Unverified" : "Manual",
+    result: "Pending",
+    result_source: "Unverified",
     entry_status: "Pending",
-    olymp_opening_quote: openQ,
-    olymp_closing_quote: closeQ,
-    entry_method: "manual_2m",
+  };
+
+  const extended = {
+    ...core,
+    scan_mode: options?.scanMode ?? "practice",
+    v9_layer: signal.sourceLayer ?? null,
+    v9_readiness: signal.microReadiness ?? null,
+    entry_method: "manual_2m" as const,
+    signal_detected_time: new Date().toISOString(),
+    planned_entry_time: signal.entryTime ?? null,
+    signal_price: price,
     strategy_type: "2M_MICRO",
     micro_permission: signal.microPermission,
     micro_label: label,
     micro_readiness: signal.microReadiness,
     source_layer: signal.sourceLayer ?? null,
-    v9_layer: signal.sourceLayer ?? null,
-    v9_readiness: signal.microReadiness,
-    notes: input.notes ?? null,
-    scan_mode: input.scanMode ?? "practice",
   };
 
-  let attempt: Record<string, unknown> = { ...row };
+  return { core, extended, signalUid: core.signal_uid };
+}
+
+const EXTENDED_OPTIONAL = [
+  "strategy_type",
+  "micro_permission",
+  "micro_label",
+  "micro_readiness",
+  "source_layer",
+  "entry_method",
+  "signal_detected_time",
+  "planned_entry_time",
+  "signal_price",
+  "v9_layer",
+  "v9_readiness",
+  "scan_mode",
+  "expiry_minutes",
+] as const;
+
+/** Auto-save 2M takeable trades on scan — same journal flow as V9 (no card form). */
+export async function upsertMicro2MJournalRow(
+  writer: SupabaseClient,
+  input: UpsertMicro2MInput,
+) {
+  const { userId, signal, livePresentation = false, scanMode } = input;
+  const built = buildMicro2MJournalRow(userId, signal, { livePresentation, scanMode });
+
+  let attempt: Record<string, unknown> = { ...built.extended };
   let lastError: string | null = null;
 
-  for (let i = 0; i < OPTIONAL_COLUMNS.length + 1; i++) {
+  for (let i = 0; i < EXTENDED_OPTIONAL.length + 1; i++) {
     const { error } = await writer.from("trade_journal").upsert(attempt, {
       onConflict: "user_id,signal_uid",
     });
@@ -109,8 +119,11 @@ export async function upsertMicro2MJournalRow(
     if (!error) {
       return {
         error: null as string | null,
-        signalUid,
-        warning: i > 0 ? "Saved with partial columns (apply micro2m_journal_fields migration)." : undefined,
+        signalUid: built.signalUid,
+        warning:
+          i > 0
+            ? "Saved with partial columns — apply micro2m_journal_fields migration for full 2M fields."
+            : undefined,
       };
     }
 
@@ -120,37 +133,22 @@ export async function upsertMicro2MJournalRow(
     }
 
     const next = { ...attempt };
-    const col = OPTIONAL_COLUMNS[i];
+    const col = EXTENDED_OPTIONAL[i];
     if (col) delete next[col];
     attempt = next;
   }
 
-  // Last resort: update existing row by signal_uid (covers insert-RLS blocks)
-  const { data: existing } = await writer
-    .from("trade_journal")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("signal_uid", signalUid)
-    .maybeSingle();
-
-  if (existing?.id) {
-    const patch: Record<string, unknown> = {
-      result,
-      result_source: result === "Pending" ? "Unverified" : "Manual",
-      olymp_opening_quote: openQ,
-      olymp_closing_quote: closeQ,
-      signal_entry_price: openQ ?? priceFromSignal,
-      notes: input.notes ?? null,
+  // Core-only retry (mirrors V9 upsertTradeJournalRow fallback)
+  const { error: coreErr } = await writer.from("trade_journal").upsert(built.core, {
+    onConflict: "user_id,signal_uid",
+  });
+  if (!coreErr) {
+    return {
+      error: null as string | null,
+      signalUid: built.signalUid,
+      warning: "Saved core journal fields only.",
     };
-    const { error: updErr } = await writer
-      .from("trade_journal")
-      .update(patch)
-      .eq("id", existing.id);
-    if (!updErr) {
-      return { error: null as string | null, signalUid, warning: "Updated existing 2M journal row." };
-    }
-    lastError = updErr.message;
   }
 
-  return { error: lastError || "Failed to save 2M journal", signalUid };
+  return { error: lastError || coreErr.message, signalUid: built.signalUid };
 }

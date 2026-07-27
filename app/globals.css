@@ -738,6 +738,7 @@
 .micro2m-line{font-size:10px;color:var(--txt);margin:0 0 6px;line-height:1.45}
 .micro2m-reason{font-size:11px;color:var(--txt);line-height:1.55;margin:0 0 6px}
 .micro2m-action{font-size:11px;color:var(--m3);line-height:1.5;margin:0 0 8px}
+.micro2m-auto-journal{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,170,255,.35);background:rgba(0,170,255,.08);font-size:11px;color:var(--txt);line-height:1.5}
 .micro2m-journal{display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)}
 .micro2m-journal input,.micro2m-journal select{width:100%;min-height:30px;font-size:11px}
 .micro2m-journal-title{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--txt2);margin-bottom:4px}

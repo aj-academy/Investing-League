@@ -702,7 +702,10 @@ export function DashboardClient({
       setProgress(100);
       if (!isAuto) {
         if (json.microJournalSaved > 0) {
-          toast.success(json.message || `${json.microJournalSaved} 2M LIVE trade(s) ready`);
+          toast.success(
+            json.message ||
+              `${json.microJournalSaved} 2M trade(s) auto-saved to Journal — update quotes there`,
+          );
         } else if (json.journalSaved > 0) {
           toast.success(json.message);
         } else if (json.micro2m?.length > 0) {
