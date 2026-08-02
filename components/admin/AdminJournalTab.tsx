@@ -251,6 +251,7 @@ export function AdminJournalTab() {
               onChange={(e) => setFilters((s) => ({ ...s, timeframe: e.target.value }))}
             >
               <option value="">All</option>
+              <option value="2min">2min</option>
               <option value="5min">5min</option>
               <option value="15min">15min</option>
             </select>

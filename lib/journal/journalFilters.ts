@@ -5,12 +5,15 @@ import { PAIRS } from "@/lib/utils";
 
 export type JournalPermissionFilter = "" | TradePermission;
 
+export type JournalTimeframeFilter = "" | "2min" | "5min" | "15min";
+
 export type JournalFilterState = {
   from: string;
   to: string;
   pair: string;
   permission: JournalPermissionFilter;
   result: string;
+  timeframe: JournalTimeframeFilter;
 };
 
 export const DEFAULT_JOURNAL_FILTERS: JournalFilterState = {
@@ -19,7 +22,15 @@ export const DEFAULT_JOURNAL_FILTERS: JournalFilterState = {
   pair: "",
   permission: "TRADE ALLOWED",
   result: "",
+  timeframe: "",
 };
+
+export const JOURNAL_TIMEFRAME_OPTIONS: { value: JournalTimeframeFilter; label: string }[] = [
+  { value: "", label: "All timeframes" },
+  { value: "2min", label: "2 min" },
+  { value: "5min", label: "5 min" },
+  { value: "15min", label: "15 min" },
+];
 
 export const JOURNAL_PERMISSION_FILTER_LABEL = "Permission level";
 
@@ -52,6 +63,7 @@ export const JOURNAL_RESULT_OPTIONS = [
 type FilterableJournalRow = {
   created_at: string;
   pair: string;
+  timeframe?: string | null;
   signal_type?: string | null;
   trade_eligible?: boolean | null;
   result: string;
@@ -90,6 +102,10 @@ export function rowMatchesJournalFilters<T extends FilterableJournalRow>(
   }
   if (filters.pair && row.pair !== filters.pair) return false;
   if (filters.result && row.result !== filters.result) return false;
+  if (filters.timeframe) {
+    const tf = String(row.timeframe || "").toLowerCase();
+    if (tf !== filters.timeframe.toLowerCase()) return false;
+  }
   if (filters.permission) {
     const perm = rowPermission(row.signal_type, row.trade_eligible);
     if (perm !== filters.permission) return false;

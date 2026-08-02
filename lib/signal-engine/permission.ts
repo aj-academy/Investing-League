@@ -30,11 +30,25 @@ export function applyPermission(sig: ComputedSignal): ComputedSignal {
   return sig;
 }
 
+/** Takeable 2M Micro journal labels (auto-saved on scan). */
+const TAKEABLE_2M_SIGNAL_TYPES = new Set([
+  "2M MICRO TRADE",
+  "STRONG 2M MICRO TRADE",
+  "2M TRADE ALLOWED",
+  "STRONG 2M TRADE ALLOWED",
+]);
+
 export function journalPermission(
   signalType?: string | null,
   tradeEligible?: boolean | null
 ): TradePermission {
-  const t = (signalType || "WATCH ONLY") as SignalType;
+  const raw = (signalType || "WATCH ONLY").trim();
+  // 2M takeable rows use non-V9 labels and trade_eligible=false — still show under "Trade allowed"
+  if (TAKEABLE_2M_SIGNAL_TYPES.has(raw)) return "TRADE ALLOWED";
+  if (raw === "2M AVOID") return "DO NOT TRADE";
+  if (raw === "2M WATCH") return "OBSERVE ONLY";
+
+  const t = raw as SignalType;
   if (DO_NOT_TRADE_TYPES.includes(t) || t === "CORRELATION RISK") return "DO NOT TRADE";
   if (OBSERVE_TYPES.includes(t)) return "OBSERVE ONLY";
   if (tradeEligible && (t === "FINAL TRADE" || t === "STRONG FINAL")) return "TRADE ALLOWED";

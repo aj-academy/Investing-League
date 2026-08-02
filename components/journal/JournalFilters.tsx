@@ -6,6 +6,7 @@ import {
   JOURNAL_PERMISSION_FILTER_LABEL,
   JOURNAL_PERMISSION_OPTIONS,
   JOURNAL_RESULT_OPTIONS,
+  JOURNAL_TIMEFRAME_OPTIONS,
   todayDateInputValue,
   type JournalFilterState,
 } from "@/lib/journal/journalFilters";
@@ -30,7 +31,8 @@ export function JournalFilters({
     filters.to === DEFAULT_JOURNAL_FILTERS.to &&
     filters.pair === DEFAULT_JOURNAL_FILTERS.pair &&
     filters.permission === DEFAULT_JOURNAL_FILTERS.permission &&
-    filters.result === DEFAULT_JOURNAL_FILTERS.result;
+    filters.result === DEFAULT_JOURNAL_FILTERS.result &&
+    filters.timeframe === DEFAULT_JOURNAL_FILTERS.timeframe;
 
   return (
     <div className="journal-filters">
@@ -52,6 +54,22 @@ export function JournalFilters({
             min={filters.from || undefined}
             onChange={(to) => set({ to })}
           />
+        </div>
+        <div className="f">
+          <label>Timeframe</label>
+          <select
+            className="journal-filter-select"
+            value={filters.timeframe}
+            onChange={(e) =>
+              set({ timeframe: e.target.value as JournalFilterState["timeframe"] })
+            }
+          >
+            {JOURNAL_TIMEFRAME_OPTIONS.map((opt) => (
+              <option key={opt.value || "all-tf"} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="f">
           <label>{JOURNAL_PERMISSION_FILTER_LABEL}</label>
@@ -115,7 +133,39 @@ export function JournalFilters({
           type="button"
           className="journal-filter-chip"
           onClick={() =>
-            set({ permission: "TRADE ALLOWED", result: "Pending", pair: "", from: "", to: "" })
+            set({
+              timeframe: "2min",
+              permission: "TRADE ALLOWED",
+              result: "",
+              pair: "",
+              from: "",
+              to: "",
+            })
+          }
+        >
+          2 min only
+        </button>
+        <button
+          type="button"
+          className="journal-filter-chip"
+          onClick={() =>
+            set({
+              timeframe: "5min",
+              permission: "TRADE ALLOWED",
+              result: "",
+              pair: "",
+              from: "",
+              to: "",
+            })
+          }
+        >
+          5 min only
+        </button>
+        <button
+          type="button"
+          className="journal-filter-chip"
+          onClick={() =>
+            set({ permission: "TRADE ALLOWED", result: "Pending", pair: "", from: "", to: "", timeframe: "" })
           }
         >
           Allowed · pending
@@ -123,7 +173,9 @@ export function JournalFilters({
         <button
           type="button"
           className="journal-filter-chip"
-          onClick={() => set({ permission: "TRADE ALLOWED", result: "", pair: "", from: "", to: "" })}
+          onClick={() =>
+            set({ permission: "TRADE ALLOWED", result: "", pair: "", from: "", to: "", timeframe: "" })
+          }
         >
           Allowed only
         </button>

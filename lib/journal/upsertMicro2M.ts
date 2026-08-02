@@ -55,7 +55,8 @@ export function buildMicro2MJournalRow(
     score: signal.score ?? null,
     signal_type: label,
     signal_reason: signal.microReason || "2-minute takeable setup — auto-saved on scan",
-    trade_eligible: false,
+    // true so Journal "Trade allowed" filter matches; V9 WR still excludes via strategy_type / entry_method
+    trade_eligible: true,
     signal_entry_time: signal.entryTime ?? null,
     signal_entry_price: price,
     expiry_time: signal.expTime ?? null,

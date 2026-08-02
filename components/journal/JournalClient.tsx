@@ -69,8 +69,8 @@ export function JournalClient({ initialRows }: { initialRows: JournalRow[] }) {
       <div className="journal-table-wrap">
         {filteredRows.length === 0 && rows.length > 0 ? (
           <div className="journal-empty">
-            No journal rows match these filters. Try widening the date range or set permission to
-            &quot;All permissions&quot;.
+            No journal rows match these filters. Try widening the date range, set timeframe to
+            &quot;All timeframes&quot;, or permission to &quot;All levels&quot;.
           </div>
         ) : (
           <JournalTable rows={filteredRows} onUpdated={onRowUpdated} />

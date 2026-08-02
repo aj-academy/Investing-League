@@ -234,11 +234,15 @@ function isMicro2MRow(r: {
   strategy_type?: string | null;
   signal_type?: string | null;
 }) {
+  const t = r.signal_type || "";
   return (
     r.strategy_type === "2M_MICRO" ||
     r.entry_method === "manual_2m" ||
-    (r.signal_type || "").includes("2M MICRO") ||
-    (r.signal_type || "").includes("STRONG 2M")
+    t.includes("2M MICRO") ||
+    t.includes("STRONG 2M") ||
+    t.includes("2M TRADE") ||
+    t === "2M WATCH" ||
+    t === "2M AVOID"
   );
 }
 

@@ -29,6 +29,8 @@ export function isRealTradeSignal(
     "V10 AVOID TRADE",
     "2M MICRO TRADE",
     "STRONG 2M MICRO TRADE",
+    "2M TRADE ALLOWED",
+    "STRONG 2M TRADE ALLOWED",
     "2M WATCH",
     "2M AVOID",
   ];
